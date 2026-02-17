@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: poetry-royal
+    name: poetry-royal-belal206
     runtime: node
     plan: free
     buildCommand: npm ci --prefix api && npm ci --prefix client && npm run build --prefix client
