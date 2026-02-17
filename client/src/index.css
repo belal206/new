@@ -1,0 +1,1037 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=EB+Garamond:wght@400;500;600;700&family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
+
+:root {
+  --royal-purple: #240046;
+  --gold: #d4af37;
+  --gold-glow: 0 0 25px rgba(212, 175, 55, 0.6), 0 0 50px rgba(212, 175, 55, 0.2);
+  --marble: #ffffff;
+  --accent: #7b2cbf;
+  --poem-serif: 'EB Garamond', 'Playfair Display', serif;
+  --paper-bg: #f5f5f3;
+  --paper-text: #333333;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background-color: var(--marble);
+  color: var(--royal-purple);
+  font-family: 'Playfair Display', serif;
+  background-image: url("https://www.transparenttextures.com/patterns/flower-trail.png");
+  background-attachment: fixed;
+  overflow-x: hidden;
+}
+
+/* 🕌 MUGHAL ARCH MEHRAB */
+.mehrab-frame {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  border: 40px solid transparent;
+  border-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cpath fill='none' stroke='%23d4af37' stroke-width='2' d='M50 0 L100 20 L100 100 L0 100 L0 20 Z'/%3E%3C/svg%3E") 40 stretch;
+  pointer-events: none;
+  z-index: 1000;
+  box-shadow: inset 0 0 150px rgba(212, 175, 55, 0.15);
+}
+
+.main-sanctuary {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 100px 40px;
+  min-height: 100vh;
+  position: relative;
+  z-index: 10;
+}
+
+.sanctuary-root {
+  position: relative;
+  min-height: 100vh;
+}
+
+.chinar-container {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.leaf {
+  position: absolute;
+  top: -12vh;
+  background: radial-gradient(circle at 40% 25%, #ffe08c 0%, #d98a2b 32%, #b24f1f 68%, #7f2f16 100%);
+  clip-path: polygon(50% 0%, 58% 12%, 73% 6%, 69% 22%, 86% 21%, 75% 36%, 92% 44%, 74% 50%, 82% 66%, 64% 62%, 62% 82%, 50% 70%, 38% 82%, 36% 62%, 18% 66%, 26% 50%, 8% 44%, 25% 36%, 14% 21%, 31% 22%, 27% 6%, 42% 12%);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.14);
+  opacity: 0.92;
+  transform-origin: 50% 60%;
+  animation-name: leaf-fall;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+.leaf::before {
+  content: "";
+  position: absolute;
+  width: 10%;
+  height: 48%;
+  left: 45%;
+  top: 26%;
+  border-radius: 999px;
+  background: rgba(110, 40, 20, 0.48);
+}
+
+.leaf::after {
+  content: "";
+  position: absolute;
+  width: 12%;
+  height: 30%;
+  left: 44%;
+  top: 73%;
+  border-radius: 999px;
+  background: rgba(90, 34, 18, 0.8);
+  transform: rotate(8deg);
+}
+
+@keyframes leaf-fall {
+  0% {
+    transform: translate3d(0, -8vh, 0) rotate(0deg);
+  }
+  100% {
+    transform: translate3d(9vw, 120vh, 0) rotate(300deg);
+  }
+}
+
+header {
+  text-align: center;
+  padding-bottom: 40px;
+  margin-bottom: 80px;
+  border-bottom: 2px solid var(--gold);
+}
+
+.bismillah {
+  font-size: 4.5rem;
+  color: var(--gold);
+  margin-bottom: 20px;
+  text-shadow: var(--gold-glow);
+  animation: pulse-glow 4s infinite alternate;
+}
+
+@keyframes pulse-glow {
+  from { text-shadow: 0 0 15px rgba(212, 175, 55, 0.3); }
+  to { text-shadow: 0 0 45px rgba(212, 175, 55, 0.8); }
+}
+
+h1 {
+  font-family: 'Cinzel Decorative', cursive;
+  font-size: 5rem;
+  margin: 0;
+  color: var(--royal-purple);
+  letter-spacing: 2px;
+}
+
+nav {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin-bottom: 80px;
+}
+
+nav button {
+  background: white;
+  border: 2px solid var(--gold);
+  padding: 15px 40px;
+  cursor: pointer;
+  font-family: 'Cinzel Decorative', cursive;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  transition: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+nav button.active, nav button:hover {
+  background: var(--royal-purple);
+  color: white;
+  border-color: var(--royal-purple);
+  box-shadow: var(--gold-glow);
+  transform: translateY(-3px);
+}
+
+.poem-list {
+  display: flex;
+  flex-direction: column;
+  gap: 72px;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+}
+
+.poem-card {
+  background: var(--paper-bg);
+  padding: 64px 0;
+  border: none;
+  box-shadow: none;
+  position: relative;
+  text-align: center;
+  transition: background-color 0.3s ease;
+}
+
+.poem-card-clickable {
+  cursor: pointer;
+}
+
+.poem-card-clickable:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px rgba(212, 175, 55, 0.55);
+}
+
+.poem-actions {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  display: flex;
+  gap: 8px;
+  opacity: 0.22;
+  transition: opacity 0.3s ease;
+}
+
+.poem-card:hover .poem-actions {
+  opacity: 0.7;
+}
+
+.poem-action-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid rgba(36, 0, 70, 0.35);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--royal-purple);
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.poem-action-mehfil {
+  color: rgba(123, 44, 191, 0.9);
+  border-color: rgba(123, 44, 191, 0.4);
+}
+
+.poem-action-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+  transform: scale(1.05);
+}
+
+.poem-card:hover {
+  background: #efefeb;
+}
+
+.poem-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  text-align: left;
+  padding: 0 28px;
+}
+
+.poem-edit-form input,
+.poem-edit-form select,
+.poem-edit-form textarea {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  background: #fff;
+  color: var(--royal-purple);
+  font-family: 'Playfair Display', serif;
+  font-size: 1rem;
+}
+
+.poem-edit-form textarea {
+  resize: vertical;
+}
+
+.poem-edit-form input:focus,
+.poem-edit-form select:focus,
+.poem-edit-form textarea:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+
+.poem-edit-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.poem-edit-actions button {
+  border: 1px solid rgba(36, 0, 70, 0.4);
+  background: white;
+  color: var(--royal-purple);
+  padding: 8px 14px;
+  font-family: 'Playfair Display', serif;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.poem-edit-actions button:hover:not(:disabled) {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.poem-edit-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.poem-card h2 {
+  font-size: 2.1rem;
+  margin: 0 0 26px 0;
+  color: var(--paper-text);
+  font-weight: 900;
+  text-shadow: none;
+  padding: 0 28px;
+  width: min(100%, 1200px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.poem-preview {
+  padding: 0 28px;
+  width: min(100%, 1260px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.poem-preview-line {
+  margin: 0;
+  font-size: clamp(1.16rem, 1.15vw, 1.32rem);
+  line-height: 1.9;
+  white-space: pre-wrap;
+  color: var(--paper-text);
+  font-family: var(--poem-serif), 'Noto Nastaliq Urdu', serif;
+}
+
+.poem-preview-line + .poem-preview-line {
+  margin-top: 4px;
+}
+
+.poem-read-hint {
+  margin-top: 16px;
+  font-size: 0.82rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(51, 51, 51, 0.62);
+}
+
+.poem-tag-picker {
+  margin: 6px 0 2px;
+}
+
+.poem-tag-picker label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.8rem;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: rgba(51, 51, 51, 0.72);
+}
+
+.poem-tag-picker select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  background: #fff;
+  color: var(--royal-purple);
+  font-family: 'Playfair Display', serif;
+  font-size: 0.96rem;
+}
+
+.poem-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.poem-tag-list-preview {
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.poem-tag-list-detail {
+  margin: 4px 0 16px 0;
+}
+
+.poem-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(51, 51, 51, 0.22);
+  background: rgba(255, 255, 255, 0.72);
+  color: #4a3b2b;
+  font-size: 0.78rem;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.poem-tag-remove {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid rgba(51, 51, 51, 0.3);
+  background: rgba(255, 255, 255, 0.86);
+  color: #4a3b2b;
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.poem-tag-remove:hover {
+  border-color: #b64040;
+  color: #b64040;
+}
+
+.poem-card .content {
+  font-size: clamp(1.18rem, 1.2vw, 1.35rem);
+  line-height: 1.95;
+  white-space: pre-wrap;
+  color: var(--paper-text);
+  font-style: normal;
+  font-family: var(--poem-serif), 'Noto Nastaliq Urdu', serif;
+  padding: 0 28px;
+  width: min(100%, 1260px);
+  margin-left: auto;
+  margin-right: auto;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.poem-detail-view {
+  display: flex;
+  justify-content: center;
+}
+
+.poem-detail-card {
+  width: min(100%, 1080px);
+  background: var(--paper-bg);
+  border: 1px solid rgba(51, 51, 51, 0.18);
+  border-radius: 18px;
+  padding: 32px 28px 42px;
+  box-shadow: 0 22px 48px rgba(0, 0, 0, 0.1);
+}
+
+.poem-detail-card h2 {
+  margin: 0 0 22px 0;
+  color: var(--paper-text);
+  font-size: clamp(1.8rem, 2.6vw, 2.6rem);
+  font-family: 'Cinzel Decorative', cursive;
+}
+
+.poem-detail-content {
+  font-family: var(--poem-serif), 'Noto Nastaliq Urdu', serif;
+  color: var(--paper-text);
+  font-size: clamp(1.2rem, 1.35vw, 1.45rem);
+  line-height: 2;
+  white-space: pre-wrap;
+}
+
+.poem-detail-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+
+.poem-detail-btn {
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid rgba(51, 51, 51, 0.3);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--paper-text);
+  font-family: 'Playfair Display', serif;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.poem-detail-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.poem-detail-btn-danger:hover {
+  border-color: #b64040;
+  color: #b64040;
+}
+
+.poet-stamp {
+  margin-top: 38px;
+  display: inline-block;
+  padding: 14px 28px;
+  border: 2px solid rgba(51, 51, 51, 0.35);
+  color: var(--gold);
+  font-family: 'Cinzel Decorative', cursive;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  background: rgba(255, 255, 255, 0.75);
+  box-shadow: 6px 6px 0px rgba(51, 51, 51, 0.18);
+}
+
+.mehfil-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(212, 175, 55, 0.15), transparent 48%),
+    radial-gradient(circle at 80% 65%, rgba(123, 44, 191, 0.22), transparent 50%),
+    linear-gradient(145deg, rgba(36, 0, 70, 0.85), rgba(18, 8, 30, 0.9));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: mehfil-overlay-in 0.35s ease;
+}
+
+.mehfil-panel {
+  width: min(980px, 100%);
+  max-height: calc(100vh - 48px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 36px;
+  border-radius: 24px;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.93), rgba(255, 255, 255, 0.86)),
+    linear-gradient(120deg, rgba(212, 175, 55, 0.18), rgba(123, 44, 191, 0.15));
+  box-shadow: 0 40px 120px rgba(0, 0, 0, 0.35), inset 0 0 80px rgba(212, 175, 55, 0.12);
+}
+
+.mehfil-header {
+  text-align: center;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.45);
+  padding-bottom: 16px;
+}
+
+.mehfil-title {
+  margin: 0;
+  font-family: 'Cinzel Decorative', cursive;
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  color: var(--royal-purple);
+}
+
+.mehfil-poet {
+  margin-top: 10px;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  color: rgba(36, 0, 70, 0.7);
+}
+
+.mehfil-lines {
+  flex: 1;
+  min-height: 240px;
+  max-height: 46vh;
+  overflow-y: auto;
+  padding: 4px 18px 6px;
+}
+
+.mehfil-line {
+  display: none;
+  margin: 0 0 14px 0;
+  font-size: clamp(1.1rem, 2vw, 1.55rem);
+  line-height: 1.9;
+  color: #1e1127;
+  white-space: pre-wrap;
+  font-family: var(--poem-serif), 'Noto Nastaliq Urdu', serif;
+}
+
+.mehfil-line.visible {
+  display: block;
+  animation: mehfil-line-in 0.45s ease forwards;
+}
+
+.mehfil-line-empty {
+  min-height: 1.15em;
+}
+
+.mehfil-progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.mehfil-progress-label {
+  min-width: 100px;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  color: rgba(36, 0, 70, 0.72);
+}
+
+.mehfil-progress {
+  height: 8px;
+  flex: 1;
+  border-radius: 999px;
+  background: rgba(36, 0, 70, 0.16);
+  overflow: hidden;
+}
+
+.mehfil-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--gold), #f3cd73);
+  transition: width 0.3s ease;
+}
+
+.mehfil-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.mehfil-btn {
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid rgba(36, 0, 70, 0.32);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--royal-purple);
+  font-family: 'Playfair Display', serif;
+  font-size: 0.98rem;
+  cursor: pointer;
+  transition: 0.22s ease;
+}
+
+.mehfil-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+  transform: translateY(-1px);
+}
+
+.mehfil-btn-primary {
+  background: var(--royal-purple);
+  border-color: var(--royal-purple);
+  color: #fff;
+}
+
+.mehfil-btn-primary:hover {
+  color: #fff;
+  background: #3a1260;
+  border-color: #3a1260;
+}
+
+.mehfil-btn-ghost {
+  background: transparent;
+}
+
+.theme-control {
+  position: fixed;
+  bottom: 50px;
+  right: 124px;
+  z-index: 2000;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--royal-purple);
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 1px solid rgba(212, 175, 55, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1.5rem;
+  box-shadow: 0 10px 24px rgba(36, 0, 70, 0.18);
+  transition: 0.3s ease;
+}
+
+.theme-control:hover {
+  transform: scale(1.08);
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+@keyframes mehfil-line-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes mehfil-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 900px) {
+  .main-sanctuary {
+    padding: 72px 16px;
+  }
+
+  .poem-list {
+    gap: 52px;
+  }
+
+  .poem-card {
+    padding: 56px 0;
+  }
+
+  .poem-actions {
+    top: 10px;
+    right: 10px;
+    opacity: 0.5;
+  }
+
+  .poem-card h2 {
+    font-size: clamp(1.5rem, 7vw, 1.95rem);
+    padding: 0 14px;
+  }
+
+  .poem-card .content,
+  .poem-edit-form,
+  .poem-preview {
+    padding: 0 14px;
+  }
+
+  .poem-card .content {
+    font-size: clamp(1.03rem, 4.8vw, 1.24rem);
+    line-height: 1.85;
+  }
+
+  .poem-preview-line {
+    font-size: clamp(1.02rem, 4.5vw, 1.22rem);
+    line-height: 1.8;
+  }
+
+  .poem-detail-card {
+    width: 100%;
+    padding: 22px 14px 30px;
+  }
+
+  .poem-detail-content {
+    font-size: clamp(1.08rem, 4.6vw, 1.28rem);
+    line-height: 1.9;
+  }
+
+  .music-control {
+    width: 54px;
+    height: 54px;
+    bottom: 18px;
+    right: 18px;
+  }
+
+  .theme-control {
+    width: 50px;
+    height: 50px;
+    right: 80px;
+    bottom: 20px;
+  }
+
+  .mehfil-overlay {
+    padding: 12px;
+  }
+
+  .mehfil-panel {
+    max-height: calc(100vh - 24px);
+    padding: 20px 16px;
+    gap: 16px;
+  }
+
+  .mehfil-lines {
+    max-height: 50vh;
+    padding: 4px 8px;
+  }
+}
+
+@media (max-width: 640px) {
+  .mehfil-controls {
+    justify-content: stretch;
+  }
+
+  .mehfil-btn {
+    flex: 1 1 calc(50% - 8px);
+  }
+}
+
+body.dark-mode {
+  background-color: #120e1d;
+  color: #f0e6d2;
+}
+
+body.dark-mode .poem-card {
+  background: rgba(17, 12, 30, 0.78);
+}
+
+body.dark-mode .poem-card:hover {
+  background: rgba(28, 18, 45, 0.82);
+}
+
+body.dark-mode .poem-card h2 {
+  color: #f3e8c8;
+}
+
+body.dark-mode .poem-card .content {
+  color: #f5ecd8;
+}
+
+body.dark-mode .poem-preview-line {
+  color: #f5ecd8;
+}
+
+body.dark-mode .poem-read-hint {
+  color: rgba(245, 236, 216, 0.72);
+}
+
+body.dark-mode .poem-tag-picker label {
+  color: rgba(245, 236, 216, 0.78);
+}
+
+body.dark-mode .poem-tag-picker select {
+  background: #1a1228;
+  color: #f0e6d2;
+  border-color: rgba(212, 175, 55, 0.5);
+}
+
+body.dark-mode .poem-tag {
+  background: rgba(30, 20, 45, 0.86);
+  border-color: rgba(212, 175, 55, 0.34);
+  color: #f3e8c8;
+}
+
+body.dark-mode .poem-tag-remove {
+  background: rgba(20, 12, 32, 0.92);
+  color: #f3e8c8;
+  border-color: rgba(212, 175, 55, 0.3);
+}
+
+body.dark-mode .poet-stamp {
+  background: #1a112a;
+  color: #e8c56a;
+  box-shadow: 8px 8px 0px rgba(212, 175, 55, 0.28);
+}
+
+body.dark-mode nav button {
+  background: #1e1630;
+  color: #efe4cf;
+  border-color: rgba(212, 175, 55, 0.5);
+}
+
+body.dark-mode nav button.active,
+body.dark-mode nav button:hover {
+  background: #2d1b45;
+  border-color: #2d1b45;
+  color: #fff;
+}
+
+body.dark-mode .form-container {
+  background: #1a1228;
+  border-color: rgba(212, 175, 55, 0.45);
+  box-shadow: 0 40px 120px rgba(0, 0, 0, 0.45);
+}
+
+body.dark-mode .form-container::before {
+  background: #1a1228;
+}
+
+body.dark-mode .form-container h2 {
+  color: #f0e6d2;
+}
+
+body.dark-mode .form-container input,
+body.dark-mode .form-container textarea,
+body.dark-mode .form-container select {
+  background: #120d1d;
+  color: #f0e6d2;
+  border-bottom-color: rgba(212, 175, 55, 0.6);
+}
+
+body.dark-mode .form-container input:focus,
+body.dark-mode .form-container textarea:focus,
+body.dark-mode .form-container select:focus {
+  background: #100a1b;
+}
+
+body.dark-mode .poem-detail-card {
+  background: rgba(17, 12, 30, 0.86);
+  border-color: rgba(212, 175, 55, 0.36);
+}
+
+body.dark-mode .poem-detail-card h2,
+body.dark-mode .poem-detail-content {
+  color: #f5ecd8;
+}
+
+body.dark-mode .poem-detail-btn {
+  background: rgba(30, 20, 45, 0.88);
+  color: #f3e8c8;
+  border-color: rgba(212, 175, 55, 0.38);
+}
+
+body.dark-mode .poem-action-btn {
+  background: rgba(20, 12, 32, 0.9);
+  color: #f0e6d2;
+}
+
+body.dark-mode .mehfil-panel {
+  background:
+    linear-gradient(160deg, rgba(22, 14, 35, 0.95), rgba(25, 16, 40, 0.9)),
+    linear-gradient(120deg, rgba(212, 175, 55, 0.12), rgba(123, 44, 191, 0.15));
+}
+
+body.dark-mode .mehfil-title {
+  color: #f3e8c8;
+}
+
+body.dark-mode .mehfil-poet {
+  color: rgba(243, 232, 200, 0.72);
+}
+
+body.dark-mode .mehfil-line {
+  color: #f5ecd8;
+}
+
+body.dark-mode .mehfil-progress {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+body.dark-mode .mehfil-btn {
+  background: rgba(30, 20, 45, 0.88);
+  color: #f3e8c8;
+  border-color: rgba(212, 175, 55, 0.38);
+}
+
+body.dark-mode .mehfil-btn:hover {
+  color: #ffdd8e;
+  border-color: #ffdd8e;
+}
+
+body.dark-mode .mehfil-btn-primary {
+  background: #3a235c;
+  border-color: #3a235c;
+  color: #fff;
+}
+
+body.dark-mode .music-control,
+body.dark-mode .theme-control {
+  background: #f0d48d;
+  color: #2a183f;
+}
+
+/* 🏺 MAJESTIC FORM STYLING */
+.form-container {
+  background: #fff;
+  padding: 100px;
+  border: 2px solid var(--gold);
+  box-shadow: 0 50px 150px rgba(0,0,0,0.15);
+  position: relative;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.form-container::before {
+  content: "✒️";
+  position: absolute;
+  top: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  padding: 0 20px;
+  font-size: 2.5rem;
+}
+
+.form-container h2 {
+  text-align: center;
+  font-family: 'Cinzel Decorative', cursive;
+  font-size: 3rem;
+  color: var(--royal-purple);
+  margin-bottom: 60px;
+  letter-spacing: 5px;
+}
+
+.form-container input, .form-container textarea, .form-container select {
+  width: 100%;
+  padding: 25px;
+  margin-bottom: 40px;
+  border: none;
+  border-bottom: 2px solid var(--gold);
+  background: #fdfdfd;
+  font-family: 'Playfair Display', serif;
+  font-size: 1.4rem;
+  transition: 0.4s;
+  color: var(--royal-purple);
+}
+
+.form-container input:focus, .form-container textarea:focus, .form-container select:focus {
+  outline: none;
+  background: white;
+  border-bottom-color: var(--accent);
+  box-shadow: 0 10px 20px -10px var(--gold-glow);
+}
+
+.form-container button {
+  width: 100%;
+  padding: 25px;
+  background: var(--royal-purple);
+  color: white;
+  border: none;
+  font-family: 'Cinzel Decorative', cursive;
+  font-size: 1.8rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition: 0.5s;
+  letter-spacing: 10px;
+  text-transform: uppercase;
+  margin-top: 20px;
+}
+
+.form-container button:hover {
+  background: var(--gold);
+  color: white;
+  box-shadow: var(--gold-glow);
+  letter-spacing: 15px;
+}
+
+.music-control {
+  position: fixed;
+  bottom: 50px;
+  right: 50px;
+  z-index: 2000;
+  background: var(--gold);
+  color: white;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 2rem;
+  box-shadow: var(--gold-glow);
+  transition: 0.3s;
+}
+
+.music-control:hover { transform: scale(1.1); }
+
+footer {
+  text-align: center;
+  padding: 100px 0;
+  opacity: 0.4;
+  font-size: 1.2rem;
+  letter-spacing: 3px;
+}
