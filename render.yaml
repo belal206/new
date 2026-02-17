@@ -3,7 +3,7 @@ services:
     name: poetry-royal-belal206
     runtime: node
     plan: free
-    buildCommand: npm ci --prefix api && npm ci --prefix client && npm run build --prefix client
+    buildCommand: npm ci --include=dev --prefix api && npm ci --include=dev --prefix client && npm run build --prefix client
     startCommand: node api/index.js
     healthCheckPath: /healthz
     envVars:
