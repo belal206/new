@@ -147,6 +147,8 @@ function App() {
 
   const activeSpotifyPlaylist = spotifyPlaylists.find((playlist) => playlist.playlistId === activeSpotifyPlaylistId) || null;
   const activeYoutubePlaylist = youtubePlaylists.find((playlist) => playlist.playlistId === activeYoutubePlaylistId) || null;
+  const spotifyAvailable = spotifyConfigured;
+  const canManageSpotify = spotifyAvailable && spotifyLoggedIn;
 
   const getPreviewLines = (content) => {
     if (typeof content !== 'string') return [''];
@@ -248,6 +250,7 @@ function App() {
   };
 
   const pauseSpotifyPlayback = async () => {
+    if (!spotifyConfigured) return;
     if (!spotifyLoggedIn) return;
 
     try {
@@ -271,6 +274,11 @@ function App() {
   };
 
   const startSpotifyPlayback = async (playlistId) => {
+    if (!spotifyConfigured) {
+      setSpotifyPlayerError('Spotify is not configured on this server.');
+      return;
+    }
+
     if (!spotifyLoggedIn) {
       setSpotifyError('Please log in with Spotify to play Spotify playlists.');
       return;
@@ -382,7 +390,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!spotifyLoggedIn) {
+    if (!spotifyConfigured || !spotifyLoggedIn) {
       if (spotifyPlayerRef.current) {
         spotifyPlayerRef.current.disconnect();
         spotifyPlayerRef.current = null;
@@ -466,7 +474,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [spotifyLoggedIn]);
+  }, [spotifyConfigured, spotifyLoggedIn]);
 
   useEffect(() => {
     let cancelled = false;
@@ -711,6 +719,11 @@ function App() {
   };
 
   const handleSpotifyLogin = () => {
+    if (!spotifyConfigured) {
+      setSpotifyAuthError('Spotify is not configured on this server. Add SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, and SPOTIFY_REDIRECT_URI.');
+      return;
+    }
+
     setSpotifyAuthError('');
     window.location.href = '/api/spotify/login';
   };
@@ -739,6 +752,11 @@ function App() {
 
   const handleAddSpotifyPlaylist = async (e) => {
     e.preventDefault();
+    if (!spotifyConfigured) {
+      setSpotifyError('Spotify is not configured on this server.');
+      return;
+    }
+
     if (!spotifyLoggedIn) {
       setSpotifyError('Please log in with Spotify first.');
       return;
@@ -776,6 +794,11 @@ function App() {
   };
 
   const handleActivateSpotifyPlaylist = async (playlistId) => {
+    if (!spotifyConfigured) {
+      setSpotifyError('Spotify is not configured on this server.');
+      return;
+    }
+
     if (!spotifyLoggedIn) {
       setSpotifyError('Please log in with Spotify first.');
       return;
@@ -807,6 +830,11 @@ function App() {
   };
 
   const handleDeleteSpotifyPlaylist = async (playlistId) => {
+    if (!spotifyConfigured) {
+      setSpotifyError('Spotify is not configured on this server.');
+      return;
+    }
+
     if (!spotifyLoggedIn) {
       setSpotifyError('Please log in with Spotify first.');
       return;
@@ -1299,8 +1327,13 @@ function App() {
               {spotifyAuthError ? <p className="music-error">{spotifyAuthError}</p> : null}
 
               <div className="music-source-grid">
-                <article className="music-source-card">
+                <article className={`music-source-card ${!spotifyAvailable ? 'music-source-card-disabled' : ''}`}>
                   <h3>Spotify Playlists</h3>
+                  {!spotifyAvailable ? (
+                    <p className="music-inline-note">Spotify is disabled until server env vars are configured.</p>
+                  ) : !spotifyLoggedIn ? (
+                    <p className="music-inline-note">Log in with Spotify to add and play playlists.</p>
+                  ) : null}
                   <form className="music-form" onSubmit={handleAddSpotifyPlaylist}>
                     <input
                       type="url"
@@ -1309,16 +1342,22 @@ function App() {
                       value={spotifyUrlInput}
                       onChange={(e) => setSpotifyUrlInput(e.target.value)}
                       required
-                      disabled={!spotifyLoggedIn || spotifySaving}
+                      disabled={!canManageSpotify || spotifySaving}
                     />
-                    <button type="submit" disabled={!spotifyLoggedIn || spotifySaving}>
+                    <button type="submit" disabled={!canManageSpotify || spotifySaving}>
                       {spotifySaving ? 'Saving...' : 'Add Spotify'}
                     </button>
                   </form>
 
                   <div className="music-player-controls">
-                    <button type="button" onClick={pauseSpotifyPlayback} disabled={!spotifyNowPlaying || spotifySaving}>Pause Spotify</button>
-                    <span className="music-status">{spotifyNowPlaying ? 'Playing' : 'Paused'} · {spotifyPlayerReady ? 'Player Ready' : 'Player Starting'}</span>
+                    <button type="button" onClick={pauseSpotifyPlayback} disabled={!spotifyAvailable || !spotifyNowPlaying || spotifySaving}>Pause Spotify</button>
+                    <span className="music-status">
+                      {!spotifyAvailable
+                        ? 'Unavailable · Configure Spotify env vars'
+                        : !spotifyLoggedIn
+                          ? 'Login required · Player offline'
+                          : `${spotifyNowPlaying ? 'Playing' : 'Paused'} · ${spotifyPlayerReady ? 'Player Ready' : 'Player Starting'}`}
+                    </span>
                   </div>
 
                   {spotifyError ? <p className="music-error">{spotifyError}</p> : null}
@@ -1343,7 +1382,7 @@ function App() {
                               <button
                                 type="button"
                                 onClick={() => handleActivateSpotifyPlaylist(playlist.playlistId)}
-                                disabled={!spotifyLoggedIn || spotifySaving}
+                                disabled={!canManageSpotify || spotifySaving}
                               >
                                 {isActive ? 'Play Active' : 'Activate + Play'}
                               </button>
@@ -1351,7 +1390,7 @@ function App() {
                                 type="button"
                                 className="playlist-delete-btn"
                                 onClick={() => handleDeleteSpotifyPlaylist(playlist.playlistId)}
-                                disabled={!spotifyLoggedIn || spotifySaving}
+                                disabled={!canManageSpotify || spotifySaving}
                               >
                                 Delete
                               </button>

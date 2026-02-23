@@ -1094,6 +1094,11 @@ body.dark-mode .theme-control {
   font-family: 'Playfair Display', serif;
 }
 
+.music-auth-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .music-source-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1107,11 +1112,22 @@ body.dark-mode .theme-control {
   padding: 16px 14px 14px;
 }
 
+.music-source-card-disabled {
+  border-style: dashed;
+  background: rgba(255, 255, 255, 0.66);
+}
+
 .music-source-card h3 {
   margin: 0 0 12px;
   font-family: 'Cinzel Decorative', cursive;
   color: var(--royal-purple);
   font-size: 1.15rem;
+}
+
+.music-inline-note {
+  margin: -2px 0 12px;
+  color: rgba(36, 0, 70, 0.72);
+  font-size: 0.9rem;
 }
 
 .music-form {
@@ -1137,6 +1153,12 @@ body.dark-mode .theme-control {
   outline: none;
   border-color: var(--gold);
   box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.18);
+}
+
+.music-url-input:disabled {
+  background: rgba(241, 241, 241, 0.9);
+  color: rgba(36, 0, 70, 0.46);
+  cursor: not-allowed;
 }
 
 .music-form button {
@@ -1170,6 +1192,11 @@ body.dark-mode .theme-control {
   color: var(--royal-purple);
   padding: 0 12px;
   cursor: pointer;
+}
+
+.music-player-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .music-status {
@@ -1353,6 +1380,10 @@ body.dark-mode .music-source-card {
 
 body.dark-mode .music-source-card h3 {
   color: #f3e8c8;
+}
+
+body.dark-mode .music-inline-note {
+  color: rgba(243, 232, 200, 0.8);
 }
 
 body.dark-mode .music-url-input {
