@@ -46,23 +46,23 @@ body.theme-sukoon {
   --theme-control-text: #240046;
 }
 
-body.theme-ishq {
-  --royal-purple: #5f1736;
-  --gold: #cf8a43;
-  --gold-glow: 0 0 28px rgba(207, 138, 67, 0.55), 0 0 56px rgba(183, 61, 103, 0.2);
-  --marble: #fff6f1;
-  --accent: #c04673;
-  --paper-bg: #fff1e7;
-  --paper-text: #482329;
+body.theme-noor {
+  --royal-purple: #4b3a23;
+  --gold: #b58d4a;
+  --gold-glow: 0 0 24px rgba(181, 141, 74, 0.4), 0 0 46px rgba(181, 141, 74, 0.16);
+  --marble: #fffbf2;
+  --accent: #9f7932;
+  --paper-bg: #fff5e6;
+  --paper-text: #4a3b26;
   --theme-bg-image:
-    radial-gradient(circle at 15% 15%, rgba(192, 70, 115, 0.12), transparent 44%),
-    radial-gradient(circle at 82% 20%, rgba(207, 138, 67, 0.16), transparent 46%),
-    linear-gradient(135deg, rgba(255, 246, 241, 0.98), rgba(255, 235, 223, 0.94));
-  --theme-chip-bg: rgba(255, 241, 234, 0.95);
-  --theme-chip-text: #5f1736;
-  --theme-chip-border: rgba(207, 138, 67, 0.7);
-  --theme-control-bg: rgba(255, 241, 234, 0.95);
-  --theme-control-text: #5f1736;
+    radial-gradient(circle at 16% 15%, rgba(181, 141, 74, 0.12), transparent 46%),
+    radial-gradient(circle at 82% 20%, rgba(222, 193, 136, 0.2), transparent 48%),
+    linear-gradient(135deg, rgba(255, 251, 242, 0.99), rgba(255, 244, 224, 0.95));
+  --theme-chip-bg: rgba(255, 248, 235, 0.95);
+  --theme-chip-text: #4b3a23;
+  --theme-chip-border: rgba(181, 141, 74, 0.62);
+  --theme-control-bg: rgba(255, 248, 235, 0.95);
+  --theme-control-text: #4b3a23;
 }
 
 body.theme-fanaa {
@@ -883,7 +883,7 @@ h1 {
   }
 }
 
-@keyframes ishq-bg-drift {
+@keyframes noor-bg-drift {
   0% {
     background-position: 0% 0%, 100% 0%, 0% 0%;
   }
@@ -895,7 +895,7 @@ h1 {
   }
 }
 
-@keyframes ishq-accent-sheen {
+@keyframes noor-accent-sheen {
   0% {
     background-position: 0% 50%;
   }
@@ -904,170 +904,170 @@ h1 {
   }
 }
 
-body.theme-ishq {
-  background-color: #fff6f1;
-  color: #5a1a36;
+body.theme-noor {
+  background-color: #fffbf2;
+  color: #4b3a23;
   background-size: 110% 110%, 110% 110%, 100% 100%;
-  animation: ishq-bg-drift 52s ease-in-out infinite;
+  animation: noor-bg-drift 52s ease-in-out infinite;
 }
 
-body.theme-ishq .poem-card {
-  background: #fff0e8;
+body.theme-noor .poem-card {
+  background: #fff6e8;
 }
 
-body.theme-ishq .poem-card:hover {
-  background: linear-gradient(140deg, #ffe8db, #ffdcca);
-  box-shadow: inset 0 0 0 1px rgba(192, 70, 115, 0.14);
+body.theme-noor .poem-card:hover {
+  background: linear-gradient(140deg, #fff2e1, #ffe9cf);
+  box-shadow: inset 0 0 0 1px rgba(181, 141, 74, 0.2);
 }
 
-body.theme-ishq .poem-card h2,
-body.theme-ishq .poem-card .content,
-body.theme-ishq .poem-preview-line,
-body.theme-ishq .poem-detail-content {
-  color: #4a2b2e;
+body.theme-noor .poem-card h2,
+body.theme-noor .poem-card .content,
+body.theme-noor .poem-preview-line,
+body.theme-noor .poem-detail-content {
+  color: #4a3b26;
 }
 
-body.theme-ishq .poem-read-hint {
-  color: rgba(90, 26, 54, 0.6);
+body.theme-noor .poem-read-hint {
+  color: rgba(75, 58, 35, 0.62);
 }
 
-body.theme-ishq .poem-tag-picker label {
-  color: rgba(90, 26, 54, 0.7);
+body.theme-noor .poem-tag-picker label {
+  color: rgba(75, 58, 35, 0.72);
 }
 
-body.theme-ishq .poem-tag-picker select,
-body.theme-ishq .form-container input,
-body.theme-ishq .form-container textarea,
-body.theme-ishq .form-container select {
-  background: #fff7f2;
-  color: #5a1a36;
-  border-color: rgba(196, 124, 58, 0.45);
+body.theme-noor .poem-tag-picker select,
+body.theme-noor .form-container input,
+body.theme-noor .form-container textarea,
+body.theme-noor .form-container select {
+  background: #fffaf1;
+  color: #4b3a23;
+  border-color: rgba(181, 141, 74, 0.45);
 }
 
-body.theme-ishq .poem-tag {
-  background: rgba(255, 236, 226, 0.9);
-  border-color: rgba(183, 61, 103, 0.28);
-  color: #5a1a36;
+body.theme-noor .poem-tag {
+  background: rgba(255, 244, 223, 0.92);
+  border-color: rgba(181, 141, 74, 0.3);
+  color: #4b3a23;
 }
 
-body.theme-ishq .poem-tag-remove {
-  background: rgba(255, 247, 242, 0.95);
-  color: #5a1a36;
-  border-color: rgba(183, 61, 103, 0.35);
+body.theme-noor .poem-tag-remove {
+  background: rgba(255, 250, 241, 0.96);
+  color: #4b3a23;
+  border-color: rgba(181, 141, 74, 0.35);
 }
 
-body.theme-ishq .poet-stamp {
-  background: linear-gradient(135deg, rgba(255, 244, 236, 0.92), rgba(255, 230, 216, 0.92));
-  color: #c47c3a;
-  border-color: rgba(90, 26, 54, 0.42);
-  box-shadow: 8px 8px 0 rgba(192, 70, 115, 0.18);
+body.theme-noor .poet-stamp {
+  background: linear-gradient(135deg, rgba(255, 249, 237, 0.94), rgba(255, 238, 204, 0.92));
+  color: #b58d4a;
+  border-color: rgba(75, 58, 35, 0.42);
+  box-shadow: 8px 8px 0 rgba(181, 141, 74, 0.2);
 }
 
-body.theme-ishq .top-nav button {
-  background: #fff1e9;
-  color: #5a1a36;
-  border-color: rgba(196, 124, 58, 0.72);
+body.theme-noor .top-nav button {
+  background: #fff6e8;
+  color: #4b3a23;
+  border-color: rgba(181, 141, 74, 0.72);
 }
 
-body.theme-ishq .top-nav button.active,
-body.theme-ishq .top-nav button:hover {
-  background: #b73d67;
-  border-color: #b73d67;
-  color: #fff5ef;
-  box-shadow: 0 0 0 2px rgba(183, 61, 103, 0.16), 0 8px 22px rgba(183, 61, 103, 0.22);
+body.theme-noor .top-nav button.active,
+body.theme-noor .top-nav button:hover {
+  background: #9f7932;
+  border-color: #9f7932;
+  color: #fffaf0;
+  box-shadow: 0 0 0 2px rgba(181, 141, 74, 0.18), 0 8px 22px rgba(181, 141, 74, 0.24);
 }
 
-body.theme-ishq .top-nav button.active {
-  background-image: linear-gradient(120deg, #b73d67, #cf8a43, #b73d67);
+body.theme-noor .top-nav button.active {
+  background-image: linear-gradient(120deg, #9f7932, #d0ad69, #9f7932);
   background-size: 150% 150%;
-  animation: ishq-accent-sheen 14s ease-in-out infinite;
+  animation: noor-accent-sheen 14s ease-in-out infinite;
 }
 
-body.theme-ishq .form-container {
-  background: linear-gradient(160deg, #fff3eb, #ffe8dc);
-  border-color: rgba(196, 124, 58, 0.75);
-  box-shadow: 0 50px 150px rgba(90, 26, 54, 0.2);
+body.theme-noor .form-container {
+  background: linear-gradient(160deg, #fff7ea, #fff0da);
+  border-color: rgba(181, 141, 74, 0.72);
+  box-shadow: 0 50px 150px rgba(88, 64, 25, 0.18);
 }
 
-body.theme-ishq .form-container::before {
-  background: #fff0e8;
+body.theme-noor .form-container::before {
+  background: #fff7ea;
 }
 
-body.theme-ishq .poem-detail-card {
-  background: linear-gradient(160deg, rgba(255, 242, 234, 0.95), rgba(255, 227, 214, 0.9));
-  border-color: rgba(196, 124, 58, 0.35);
-  box-shadow: 0 20px 44px rgba(96, 23, 54, 0.16);
+body.theme-noor .poem-detail-card {
+  background: linear-gradient(160deg, rgba(255, 247, 235, 0.95), rgba(255, 237, 209, 0.9));
+  border-color: rgba(181, 141, 74, 0.34);
+  box-shadow: 0 20px 44px rgba(88, 64, 25, 0.16);
 }
 
-body.theme-ishq .poem-detail-btn,
-body.theme-ishq .poem-action-btn,
-body.theme-ishq .mehfil-btn {
-  background: rgba(255, 241, 234, 0.95);
-  color: #5a1a36;
-  border-color: rgba(183, 61, 103, 0.35);
+body.theme-noor .poem-detail-btn,
+body.theme-noor .poem-action-btn,
+body.theme-noor .mehfil-btn {
+  background: rgba(255, 246, 232, 0.96);
+  color: #4b3a23;
+  border-color: rgba(181, 141, 74, 0.35);
 }
 
-body.theme-ishq .mehfil-panel {
+body.theme-noor .mehfil-panel {
   background:
-    radial-gradient(circle at 20% 18%, rgba(207, 138, 67, 0.2), transparent 44%),
-    linear-gradient(160deg, rgba(255, 240, 232, 0.95), rgba(255, 224, 212, 0.9)),
-    linear-gradient(120deg, rgba(196, 124, 58, 0.22), rgba(183, 61, 103, 0.16));
+    radial-gradient(circle at 20% 18%, rgba(181, 141, 74, 0.2), transparent 44%),
+    linear-gradient(160deg, rgba(255, 246, 232, 0.95), rgba(255, 233, 199, 0.9)),
+    linear-gradient(120deg, rgba(181, 141, 74, 0.2), rgba(208, 173, 105, 0.14));
 }
 
-body.theme-ishq .mehfil-title,
-body.theme-ishq .mehfil-line {
-  color: #4a2b2e;
+body.theme-noor .mehfil-title,
+body.theme-noor .mehfil-line {
+  color: #4a3b26;
 }
 
-body.theme-ishq .mehfil-poet {
-  color: rgba(90, 26, 54, 0.7);
+body.theme-noor .mehfil-poet {
+  color: rgba(75, 58, 35, 0.72);
 }
 
-body.theme-ishq .mehfil-btn-primary {
-  background: #b73d67;
-  border-color: #b73d67;
-  color: #fff9f5;
+body.theme-noor .mehfil-btn-primary {
+  background: #9f7932;
+  border-color: #9f7932;
+  color: #fffaf0;
 }
 
-body.theme-ishq .music-section {
+body.theme-noor .music-section {
   background:
-    radial-gradient(circle at 85% 8%, rgba(192, 70, 115, 0.16), transparent 42%),
-    linear-gradient(165deg, rgba(255, 240, 232, 0.94), rgba(255, 229, 216, 0.9)),
-    linear-gradient(120deg, rgba(196, 124, 58, 0.16), rgba(183, 61, 103, 0.16));
-  border-color: rgba(196, 124, 58, 0.52);
+    radial-gradient(circle at 85% 8%, rgba(181, 141, 74, 0.15), transparent 42%),
+    linear-gradient(165deg, rgba(255, 246, 232, 0.94), rgba(255, 235, 205, 0.9)),
+    linear-gradient(120deg, rgba(181, 141, 74, 0.16), rgba(208, 173, 105, 0.16));
+  border-color: rgba(181, 141, 74, 0.52);
 }
 
-body.theme-ishq .music-auth-left h2,
-body.theme-ishq .music-subtitle,
-body.theme-ishq .music-empty-state,
-body.theme-ishq .music-status {
-  color: #5a1a36;
+body.theme-noor .music-auth-left h2,
+body.theme-noor .music-subtitle,
+body.theme-noor .music-empty-state,
+body.theme-noor .music-status {
+  color: #4b3a23;
 }
 
-body.theme-ishq .music-source-card,
-body.theme-ishq .playlist-item {
-  background: linear-gradient(140deg, rgba(255, 244, 237, 0.95), rgba(255, 232, 222, 0.9));
-  border-color: rgba(183, 61, 103, 0.22);
+body.theme-noor .music-source-card,
+body.theme-noor .playlist-item {
+  background: linear-gradient(140deg, rgba(255, 249, 237, 0.95), rgba(255, 239, 213, 0.9));
+  border-color: rgba(181, 141, 74, 0.24);
 }
 
-body.theme-ishq .music-source-card h3,
-body.theme-ishq .playlist-item-meta strong,
-body.theme-ishq .playlist-item-meta span,
-body.theme-ishq .music-inline-note {
-  color: #5a1a36;
+body.theme-noor .music-source-card h3,
+body.theme-noor .playlist-item-meta strong,
+body.theme-noor .playlist-item-meta span,
+body.theme-noor .music-inline-note {
+  color: #4b3a23;
 }
 
-body.theme-ishq .music-url-input {
-  background: #fff8f3;
-  color: #5a1a36;
-  border-color: rgba(196, 124, 58, 0.5);
+body.theme-noor .music-url-input {
+  background: #fffaf1;
+  color: #4b3a23;
+  border-color: rgba(181, 141, 74, 0.5);
 }
 
-body.theme-ishq .playlist-item-actions button,
-body.theme-ishq .music-player-controls button {
-  background: #fff8f3;
-  color: #5a1a36;
-  border-color: rgba(183, 61, 103, 0.28);
+body.theme-noor .playlist-item-actions button,
+body.theme-noor .music-player-controls button {
+  background: #fffaf1;
+  color: #4b3a23;
+  border-color: rgba(181, 141, 74, 0.3);
 }
 
 body.theme-fanaa {
@@ -1080,7 +1080,8 @@ body.theme-fanaa .poem-card {
 }
 
 body.theme-fanaa .poem-card:hover {
-  background: rgba(27, 30, 38, 0.96);
+  background: rgba(23, 26, 33, 0.95);
+  box-shadow: inset 0 0 0 1px rgba(201, 164, 92, 0.08);
 }
 
 body.theme-fanaa .poem-card h2 {
@@ -1702,17 +1703,17 @@ body.theme-fanaa .music-player-controls button {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body.theme-ishq {
+  body.theme-noor {
     animation: none;
   }
 
-  body.theme-ishq .poem-card,
-  body.theme-ishq .poem-detail-card,
-  body.theme-ishq .music-section,
-  body.theme-ishq .music-source-card,
-  body.theme-ishq .playlist-item,
-  body.theme-ishq .mehfil-panel,
-  body.theme-ishq .top-nav button.active {
+  body.theme-noor .poem-card,
+  body.theme-noor .poem-detail-card,
+  body.theme-noor .music-section,
+  body.theme-noor .music-source-card,
+  body.theme-noor .playlist-item,
+  body.theme-noor .mehfil-panel,
+  body.theme-noor .top-nav button.active {
     animation: none !important;
   }
 }

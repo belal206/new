@@ -33,15 +33,15 @@ const FEEL_TAGS = [
   'Devotion',
   'Grief',
 ];
-const THEMES = ['sukoon', 'ishq', 'fanaa'];
+const THEMES = ['sukoon', 'noor', 'fanaa'];
 const THEME_LABELS = {
   sukoon: 'Sukoon',
-  ishq: 'Ishq',
+  noor: 'Noor',
   fanaa: 'Fanaa',
 };
 const THEME_ICONS = {
   sukoon: '☀',
-  ishq: '❤',
+  noor: '✧',
   fanaa: '☾',
 };
 const THEME_STORAGE_KEY = 'sufi_dervish_theme';
@@ -768,6 +768,11 @@ function App() {
 
   useEffect(() => {
     const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (storedTheme === 'ishq') {
+      setCurrentTheme('noor');
+      window.localStorage.setItem(THEME_STORAGE_KEY, 'noor');
+      return;
+    }
     if (THEMES.includes(storedTheme)) {
       setCurrentTheme(storedTheme);
     }
@@ -1278,6 +1283,7 @@ function App() {
         >
           {THEME_ICONS[currentTheme]}
         </button>
+        <span className="theme-chip">{THEME_LABELS[currentTheme]}</span>
       </div>
 
       <div className="main-sanctuary">
