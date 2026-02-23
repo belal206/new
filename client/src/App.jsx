@@ -196,7 +196,6 @@ function App() {
   const activeMehfilPoem = poems.find((poem) => poem._id === activeMehfilPoemId) || null;
 
   const activeSpotifyPlaylist = spotifyPlaylists.find((playlist) => playlist.playlistId === activeSpotifyPlaylistId) || null;
-  const activeYoutubePlaylist = youtubePlaylists.find((playlist) => playlist.playlistId === activeYoutubePlaylistId) || null;
   const spotifyAvailable = spotifyConfigured;
   const canManageSpotify = spotifyAvailable && spotifyLoggedIn;
   const canControlYouTubePlaylist = youtubePlayerReady && Boolean(activeYoutubePlaylistId) && !youtubeSaving;
@@ -419,6 +418,41 @@ function App() {
     } catch (err) {
       console.error(err);
       setYoutubePlayerError('Unable to pause YouTube playback.');
+    }
+  };
+
+  const playYouTubePlayback = async () => {
+    if (!activeYoutubePlaylistId) {
+      setYoutubePlayerError('Select a playlist first.');
+      return;
+    }
+    if (!youtubePlayerRef.current || !youtubePlayerReady) {
+      setYoutubePlayerError('YouTube player is still loading. Wait a moment and try again.');
+      return;
+    }
+
+    if (spotifyNowPlaying) {
+      await pauseSpotifyPlayback();
+    }
+
+    try {
+      const playlist = typeof youtubePlayerRef.current.getPlaylist === 'function'
+        ? youtubePlayerRef.current.getPlaylist()
+        : null;
+      const hasLoadedPlaylist = Array.isArray(playlist) && playlist.length > 0;
+
+      if (!hasLoadedPlaylist) {
+        await startYouTubePlayback(activeYoutubePlaylistId);
+        return;
+      }
+
+      youtubePlayerRef.current.playVideo();
+      setYoutubeNowPlaying(true);
+      setYoutubePlayerError('');
+    } catch (err) {
+      console.error(err);
+      setYoutubeNowPlaying(false);
+      setYoutubePlayerError('Unable to resume YouTube playback.');
     }
   };
 
@@ -1430,6 +1464,7 @@ function App() {
 
                   <div className="music-player-controls">
                     <button type="button" onClick={handleYouTubePrevious} disabled={!canControlYouTubePlaylist}>Previous</button>
+                    <button type="button" onClick={playYouTubePlayback} disabled={!canControlYouTubePlaylist || youtubeNowPlaying}>Play YouTube</button>
                     <button type="button" onClick={pauseYouTubePlayback} disabled={!youtubeNowPlaying || youtubeSaving}>Pause YouTube</button>
                     <button type="button" onClick={handleYouTubeNext} disabled={!canControlYouTubePlaylist}>Next</button>
                     <span className="music-status">
@@ -1480,17 +1515,6 @@ function App() {
                     </ul>
                   )}
 
-                  {activeYoutubePlaylist ? (
-                    <div className="youtube-preview-wrap">
-                      <iframe
-                        title="YouTube Playlist Preview"
-                        src={`https://www.youtube.com/embed/videoseries?list=${activeYoutubePlaylist.playlistId}`}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        referrerPolicy="strict-origin-when-cross-origin"
-                        allowFullScreen
-                      ></iframe>
-                    </div>
-                  ) : null}
                 </article>
               </div>
             </section>
