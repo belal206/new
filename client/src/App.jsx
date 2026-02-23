@@ -49,7 +49,7 @@ const readErrorMessage = async (res, fallbackMessage) => {
   }
 };
 
-const applyMusicPayload = (payload, setPlaylists, setActivePlaylistId) => {
+const applySourcePayload = (payload, setPlaylists, setActivePlaylistId) => {
   const nextPlaylists = Array.isArray(payload?.playlists) ? payload.playlists : [];
   const nextActivePlaylistId = typeof payload?.activePlaylistId === 'string' ? payload.activePlaylistId : null;
   setPlaylists(nextPlaylists);
@@ -106,12 +106,35 @@ function App() {
   const [editData, setEditData] = useState({ title: '', poet: 'Ahmad Faraz', content: '', tags: [] });
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
-  const [playlists, setPlaylists] = useState([]);
-  const [activePlaylistId, setActivePlaylistId] = useState(null);
-  const [playlistUrlInput, setPlaylistUrlInput] = useState('');
-  const [musicLoading, setMusicLoading] = useState(false);
-  const [musicSaving, setMusicSaving] = useState(false);
-  const [musicError, setMusicError] = useState('');
+  const [spotifyConfigured, setSpotifyConfigured] = useState(true);
+  const [spotifyLoggedIn, setSpotifyLoggedIn] = useState(false);
+  const [spotifyProfile, setSpotifyProfile] = useState(null);
+  const [spotifyAuthLoading, setSpotifyAuthLoading] = useState(false);
+  const [spotifyAuthError, setSpotifyAuthError] = useState('');
+
+  const [spotifyPlaylists, setSpotifyPlaylists] = useState([]);
+  const [activeSpotifyPlaylistId, setActiveSpotifyPlaylistId] = useState(null);
+  const [spotifyUrlInput, setSpotifyUrlInput] = useState('');
+  const [spotifyLoading, setSpotifyLoading] = useState(false);
+  const [spotifySaving, setSpotifySaving] = useState(false);
+  const [spotifyError, setSpotifyError] = useState('');
+  const [spotifyNowPlaying, setSpotifyNowPlaying] = useState(false);
+  const [spotifyPlayerReady, setSpotifyPlayerReady] = useState(false);
+  const [spotifyPlayerError, setSpotifyPlayerError] = useState('');
+
+  const [youtubePlaylists, setYoutubePlaylists] = useState([]);
+  const [activeYoutubePlaylistId, setActiveYoutubePlaylistId] = useState(null);
+  const [youtubeUrlInput, setYoutubeUrlInput] = useState('');
+  const [youtubeLoading, setYoutubeLoading] = useState(false);
+  const [youtubeSaving, setYoutubeSaving] = useState(false);
+  const [youtubeError, setYoutubeError] = useState('');
+  const [youtubeNowPlaying, setYoutubeNowPlaying] = useState(false);
+  const [youtubePlayerReady, setYoutubePlayerReady] = useState(false);
+  const [youtubePlayerError, setYoutubePlayerError] = useState('');
+
+  const spotifyPlayerRef = useRef(null);
+  const spotifyDeviceIdRef = useRef('');
+  const youtubePlayerRef = useRef(null);
 
   const [isMehfilOpen, setIsMehfilOpen] = useState(false);
   const [activeMehfilPoemId, setActiveMehfilPoemId] = useState(null);
@@ -121,7 +144,9 @@ function App() {
   const selectPoetValue = (poetName) => (isKnownPoet(poetName) ? poetName : OTHER_POET_VALUE);
   const selectedPoem = poems.find((poem) => poem._id === selectedPoemId) || null;
   const activeMehfilPoem = poems.find((poem) => poem._id === activeMehfilPoemId) || null;
-  const activePlaylist = playlists.find((playlist) => playlist.playlistId === activePlaylistId) || null;
+
+  const activeSpotifyPlaylist = spotifyPlaylists.find((playlist) => playlist.playlistId === activeSpotifyPlaylistId) || null;
+  const activeYoutubePlaylist = youtubePlaylists.find((playlist) => playlist.playlistId === activeYoutubePlaylistId) || null;
 
   const getPreviewLines = (content) => {
     if (typeof content !== 'string') return [''];
@@ -144,28 +169,382 @@ function App() {
     }
   };
 
-  const fetchMusicSettings = async () => {
-    setMusicLoading(true);
+  const fetchSpotifyPlaylists = async (forceEnabled = spotifyLoggedIn) => {
+    if (!forceEnabled) {
+      setSpotifyPlaylists([]);
+      setActiveSpotifyPlaylistId(null);
+      return;
+    }
+
+    setSpotifyLoading(true);
     try {
-      const res = await fetch('/api/music/playlists');
+      const res = await fetch('/api/music/spotify/playlists');
       if (!res.ok) {
-        const message = await readErrorMessage(res, 'Unable to load playlists.');
+        const message = await readErrorMessage(res, 'Unable to load Spotify playlists.');
         throw new Error(message);
       }
       const data = await res.json();
-      applyMusicPayload(data, setPlaylists, setActivePlaylistId);
-      setMusicError('');
+      applySourcePayload(data, setSpotifyPlaylists, setActiveSpotifyPlaylistId);
+      setSpotifyError('');
     } catch (err) {
       console.error(err);
-      setMusicError(err.message || 'Unable to load playlists.');
+      setSpotifyError(err.message || 'Unable to load Spotify playlists.');
     } finally {
-      setMusicLoading(false);
+      setSpotifyLoading(false);
+    }
+  };
+
+  const fetchYouTubePlaylists = async () => {
+    setYoutubeLoading(true);
+    try {
+      const res = await fetch('/api/music/youtube/playlists');
+      if (!res.ok) {
+        const message = await readErrorMessage(res, 'Unable to load YouTube playlists.');
+        throw new Error(message);
+      }
+      const data = await res.json();
+      applySourcePayload(data, setYoutubePlaylists, setActiveYoutubePlaylistId);
+      setYoutubeError('');
+    } catch (err) {
+      console.error(err);
+      setYoutubeError(err.message || 'Unable to load YouTube playlists.');
+    } finally {
+      setYoutubeLoading(false);
+    }
+  };
+
+  const fetchSpotifySession = async () => {
+    setSpotifyAuthLoading(true);
+    try {
+      const res = await fetch('/api/spotify/session');
+      if (!res.ok) {
+        const message = await readErrorMessage(res, 'Unable to read Spotify session.');
+        throw new Error(message);
+      }
+
+      const data = await res.json();
+      setSpotifyConfigured(Boolean(data?.configured ?? true));
+      setSpotifyLoggedIn(Boolean(data?.loggedIn));
+      setSpotifyProfile(data?.profile || null);
+
+      if (data?.loggedIn) {
+        await fetchSpotifyPlaylists(true);
+      } else {
+        setSpotifyPlaylists([]);
+        setActiveSpotifyPlaylistId(null);
+        setSpotifyNowPlaying(false);
+        setSpotifyPlayerReady(false);
+      }
+    } catch (err) {
+      console.error(err);
+      setSpotifyLoggedIn(false);
+      setSpotifyProfile(null);
+      setSpotifyPlaylists([]);
+      setActiveSpotifyPlaylistId(null);
+      setSpotifyAuthError(err.message || 'Unable to read Spotify session.');
+    } finally {
+      setSpotifyAuthLoading(false);
+    }
+  };
+
+  const pauseSpotifyPlayback = async () => {
+    if (!spotifyLoggedIn) return;
+
+    try {
+      const res = await fetch('/api/spotify/player/pause', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deviceId: spotifyDeviceIdRef.current || undefined })
+      });
+
+      if (!res.ok) {
+        const message = await readErrorMessage(res, 'Unable to pause Spotify playback.');
+        throw new Error(message);
+      }
+
+      setSpotifyNowPlaying(false);
+      setSpotifyPlayerError('');
+    } catch (err) {
+      console.error(err);
+      setSpotifyPlayerError(err.message || 'Unable to pause Spotify playback.');
+    }
+  };
+
+  const startSpotifyPlayback = async (playlistId) => {
+    if (!spotifyLoggedIn) {
+      setSpotifyError('Please log in with Spotify to play Spotify playlists.');
+      return;
+    }
+
+    if (!spotifyDeviceIdRef.current || !spotifyPlayerReady) {
+      setSpotifyPlayerError('Spotify player is still starting. Wait a moment and try again.');
+      return;
+    }
+
+    if (youtubeNowPlaying && youtubePlayerRef.current) {
+      try {
+        youtubePlayerRef.current.pauseVideo();
+      } catch (err) {
+        console.error(err);
+      }
+      setYoutubeNowPlaying(false);
+    }
+
+    setSpotifySaving(true);
+    try {
+      const transferRes = await fetch('/api/spotify/player/transfer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deviceId: spotifyDeviceIdRef.current })
+      });
+
+      if (!transferRes.ok) {
+        const message = await readErrorMessage(transferRes, 'Unable to prepare Spotify player.');
+        throw new Error(message);
+      }
+
+      const playRes = await fetch('/api/spotify/player/play', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playlistId, deviceId: spotifyDeviceIdRef.current })
+      });
+
+      if (!playRes.ok) {
+        const message = await readErrorMessage(playRes, 'Unable to start Spotify playback.');
+        throw new Error(message);
+      }
+
+      setSpotifyNowPlaying(true);
+      setSpotifyPlayerError('');
+    } catch (err) {
+      console.error(err);
+      setSpotifyPlayerError(err.message || 'Unable to start Spotify playback.');
+    } finally {
+      setSpotifySaving(false);
+    }
+  };
+
+  const startYouTubePlayback = async (playlistId) => {
+    if (!youtubePlayerRef.current || !youtubePlayerReady) {
+      setYoutubePlayerError('YouTube player is still loading. Wait a moment and try again.');
+      return;
+    }
+
+    if (spotifyNowPlaying) {
+      await pauseSpotifyPlayback();
+    }
+
+    try {
+      youtubePlayerRef.current.loadPlaylist({
+        listType: 'playlist',
+        list: playlistId,
+        index: 0,
+        startSeconds: 0
+      });
+      youtubePlayerRef.current.playVideo();
+      setYoutubeNowPlaying(true);
+      setYoutubePlayerError('');
+    } catch (err) {
+      console.error(err);
+      setYoutubePlayerError('Unable to start YouTube playback.');
+    }
+  };
+
+  const pauseYouTubePlayback = () => {
+    if (!youtubePlayerRef.current || !youtubeNowPlaying) return;
+    try {
+      youtubePlayerRef.current.pauseVideo();
+      setYoutubeNowPlaying(false);
+      setYoutubePlayerError('');
+    } catch (err) {
+      console.error(err);
+      setYoutubePlayerError('Unable to pause YouTube playback.');
     }
   };
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const spotifyErrorParam = params.get('spotify_error');
+    const connectedParam = params.get('spotify');
+
+    if (spotifyErrorParam) {
+      setSpotifyAuthError(`Spotify login failed: ${spotifyErrorParam}`);
+    }
+
+    if (spotifyErrorParam || connectedParam) {
+      const cleanUrl = window.location.pathname + window.location.hash;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+
     fetchPoems();
-    fetchMusicSettings();
+    fetchYouTubePlaylists();
+    fetchSpotifySession();
+  }, []);
+
+  useEffect(() => {
+    if (!spotifyLoggedIn) {
+      if (spotifyPlayerRef.current) {
+        spotifyPlayerRef.current.disconnect();
+        spotifyPlayerRef.current = null;
+      }
+      spotifyDeviceIdRef.current = '';
+      setSpotifyPlayerReady(false);
+      setSpotifyNowPlaying(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const initSpotifyPlayer = () => {
+      if (cancelled || !window.Spotify || spotifyPlayerRef.current) return;
+
+      const player = new window.Spotify.Player({
+        name: 'Sufi Dervish Player',
+        getOAuthToken: async (cb) => {
+          try {
+            const res = await fetch('/api/spotify/access-token');
+            if (!res.ok) {
+              const message = await readErrorMessage(res, 'Unable to read Spotify access token.');
+              throw new Error(message);
+            }
+            const data = await res.json();
+            cb(data.accessToken);
+          } catch (err) {
+            console.error(err);
+            setSpotifyPlayerError(err.message || 'Unable to authorize Spotify player.');
+          }
+        },
+        volume: 0.8
+      });
+
+      player.addListener('ready', ({ device_id: deviceId }) => {
+        spotifyDeviceIdRef.current = deviceId;
+        setSpotifyPlayerReady(true);
+        setSpotifyPlayerError('');
+      });
+
+      player.addListener('not_ready', () => {
+        setSpotifyPlayerReady(false);
+      });
+
+      player.addListener('player_state_changed', (state) => {
+        if (!state) return;
+        setSpotifyNowPlaying(!state.paused);
+      });
+
+      player.addListener('initialization_error', ({ message }) => setSpotifyPlayerError(message));
+      player.addListener('authentication_error', ({ message }) => setSpotifyPlayerError(message));
+      player.addListener('account_error', ({ message }) => setSpotifyPlayerError(message));
+      player.addListener('playback_error', ({ message }) => setSpotifyPlayerError(message));
+
+      player.connect();
+      spotifyPlayerRef.current = player;
+    };
+
+    if (window.Spotify) {
+      initSpotifyPlayer();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const existingScript = document.getElementById('spotify-web-playback-sdk');
+    if (!existingScript) {
+      const script = document.createElement('script');
+      script.id = 'spotify-web-playback-sdk';
+      script.src = 'https://sdk.scdn.co/spotify-player.js';
+      script.async = true;
+      document.body.appendChild(script);
+    }
+
+    const previousReady = window.onSpotifyWebPlaybackSDKReady;
+    window.onSpotifyWebPlaybackSDKReady = () => {
+      if (typeof previousReady === 'function') previousReady();
+      initSpotifyPlayer();
+    };
+
+    return () => {
+      cancelled = true;
+    };
+  }, [spotifyLoggedIn]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const createYouTubePlayer = () => {
+      if (cancelled || !window.YT || !window.YT.Player || youtubePlayerRef.current) return;
+
+      youtubePlayerRef.current = new window.YT.Player('youtube-persistent-player', {
+        height: '0',
+        width: '0',
+        playerVars: {
+          autoplay: 0,
+          controls: 0,
+          rel: 0,
+          modestbranding: 1,
+          playsinline: 1
+        },
+        events: {
+          onReady: () => {
+            setYoutubePlayerReady(true);
+            setYoutubePlayerError('');
+          },
+          onStateChange: (event) => {
+            if (!window.YT || !window.YT.PlayerState) return;
+            if (event.data === window.YT.PlayerState.PLAYING) {
+              setYoutubeNowPlaying(true);
+            }
+            if (event.data === window.YT.PlayerState.PAUSED || event.data === window.YT.PlayerState.ENDED) {
+              setYoutubeNowPlaying(false);
+            }
+          },
+          onError: () => {
+            setYoutubePlayerError('YouTube playback failed for this playlist.');
+          }
+        }
+      });
+    };
+
+    if (window.YT && window.YT.Player) {
+      createYouTubePlayer();
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const existingScript = document.getElementById('youtube-iframe-api');
+    if (!existingScript) {
+      const script = document.createElement('script');
+      script.id = 'youtube-iframe-api';
+      script.src = 'https://www.youtube.com/iframe_api';
+      document.body.appendChild(script);
+    }
+
+    const previousReady = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      if (typeof previousReady === 'function') previousReady();
+      createYouTubePlayer();
+    };
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => () => {
+    if (spotifyPlayerRef.current) {
+      spotifyPlayerRef.current.disconnect();
+      spotifyPlayerRef.current = null;
+    }
+
+    if (youtubePlayerRef.current) {
+      try {
+        youtubePlayerRef.current.destroy();
+      } catch (err) {
+        console.error(err);
+      }
+      youtubePlayerRef.current = null;
+    }
   }, []);
 
   useEffect(() => {
@@ -331,90 +710,215 @@ function App() {
     }
   };
 
-  const handleAddPlaylist = async (e) => {
+  const handleSpotifyLogin = () => {
+    setSpotifyAuthError('');
+    window.location.href = '/api/spotify/login';
+  };
+
+  const handleSpotifyLogout = async () => {
+    try {
+      await fetch('/api/spotify/logout', { method: 'POST' });
+    } catch (err) {
+      console.error(err);
+    }
+
+    setSpotifyLoggedIn(false);
+    setSpotifyProfile(null);
+    setSpotifyPlaylists([]);
+    setActiveSpotifyPlaylistId(null);
+    setSpotifyNowPlaying(false);
+    setSpotifyPlayerReady(false);
+    setSpotifyError('');
+    setSpotifyPlayerError('');
+
+    if (spotifyPlayerRef.current) {
+      spotifyPlayerRef.current.disconnect();
+      spotifyPlayerRef.current = null;
+    }
+  };
+
+  const handleAddSpotifyPlaylist = async (e) => {
     e.preventDefault();
-    const url = playlistUrlInput.trim();
-    if (!url) {
-      setMusicError('Spotify playlist URL is required.');
+    if (!spotifyLoggedIn) {
+      setSpotifyError('Please log in with Spotify first.');
       return;
     }
 
-    setMusicSaving(true);
+    const url = spotifyUrlInput.trim();
+    if (!url) {
+      setSpotifyError('Spotify playlist URL is required.');
+      return;
+    }
+
+    setSpotifySaving(true);
     try {
-      const res = await fetch('/api/music/playlists', {
+      const res = await fetch('/api/music/spotify/playlists', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url })
       });
 
       if (!res.ok) {
-        const message = await readErrorMessage(res, 'Unable to add playlist.');
+        const message = await readErrorMessage(res, 'Unable to add Spotify playlist.');
         throw new Error(message);
       }
 
       const data = await res.json();
-      applyMusicPayload(data, setPlaylists, setActivePlaylistId);
-      setPlaylistUrlInput('');
-      setMusicError('');
+      applySourcePayload(data, setSpotifyPlaylists, setActiveSpotifyPlaylistId);
+      setSpotifyUrlInput('');
+      setSpotifyError('');
     } catch (err) {
       console.error(err);
-      setMusicError(err.message || 'Unable to add playlist.');
+      setSpotifyError(err.message || 'Unable to add Spotify playlist.');
     } finally {
-      setMusicSaving(false);
+      setSpotifySaving(false);
     }
   };
 
-  const handleActivatePlaylist = async (playlistId) => {
-    if (!playlistId || playlistId === activePlaylistId) return;
+  const handleActivateSpotifyPlaylist = async (playlistId) => {
+    if (!spotifyLoggedIn) {
+      setSpotifyError('Please log in with Spotify first.');
+      return;
+    }
 
-    setMusicSaving(true);
+    setSpotifySaving(true);
     try {
-      const res = await fetch('/api/music/playlists/active', {
+      const res = await fetch('/api/music/spotify/playlists/active', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ playlistId })
       });
 
       if (!res.ok) {
-        const message = await readErrorMessage(res, 'Unable to set active playlist.');
+        const message = await readErrorMessage(res, 'Unable to activate Spotify playlist.');
         throw new Error(message);
       }
 
       const data = await res.json();
-      applyMusicPayload(data, setPlaylists, setActivePlaylistId);
-      setMusicError('');
+      applySourcePayload(data, setSpotifyPlaylists, setActiveSpotifyPlaylistId);
+      setSpotifyError('');
+      await startSpotifyPlayback(playlistId);
     } catch (err) {
       console.error(err);
-      setMusicError(err.message || 'Unable to set active playlist.');
+      setSpotifyError(err.message || 'Unable to activate Spotify playlist.');
     } finally {
-      setMusicSaving(false);
+      setSpotifySaving(false);
     }
   };
 
-  const handleDeletePlaylist = async (playlistId) => {
-    if (!playlistId) return;
-    const shouldDelete = window.confirm('Delete this playlist?');
+  const handleDeleteSpotifyPlaylist = async (playlistId) => {
+    if (!spotifyLoggedIn) {
+      setSpotifyError('Please log in with Spotify first.');
+      return;
+    }
+
+    const shouldDelete = window.confirm('Delete this Spotify playlist?');
     if (!shouldDelete) return;
 
-    setMusicSaving(true);
+    setSpotifySaving(true);
     try {
-      const res = await fetch(`/api/music/playlists/${playlistId}`, {
+      const res = await fetch(`/api/music/spotify/playlists/${playlistId}`, {
         method: 'DELETE'
       });
 
       if (!res.ok) {
-        const message = await readErrorMessage(res, 'Unable to delete playlist.');
+        const message = await readErrorMessage(res, 'Unable to delete Spotify playlist.');
         throw new Error(message);
       }
 
       const data = await res.json();
-      applyMusicPayload(data, setPlaylists, setActivePlaylistId);
-      setMusicError('');
+      applySourcePayload(data, setSpotifyPlaylists, setActiveSpotifyPlaylistId);
+      setSpotifyError('');
     } catch (err) {
       console.error(err);
-      setMusicError(err.message || 'Unable to delete playlist.');
+      setSpotifyError(err.message || 'Unable to delete Spotify playlist.');
     } finally {
-      setMusicSaving(false);
+      setSpotifySaving(false);
+    }
+  };
+
+  const handleAddYouTubePlaylist = async (e) => {
+    e.preventDefault();
+    const url = youtubeUrlInput.trim();
+    if (!url) {
+      setYoutubeError('YouTube playlist URL is required.');
+      return;
+    }
+
+    setYoutubeSaving(true);
+    try {
+      const res = await fetch('/api/music/youtube/playlists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+
+      if (!res.ok) {
+        const message = await readErrorMessage(res, 'Unable to add YouTube playlist.');
+        throw new Error(message);
+      }
+
+      const data = await res.json();
+      applySourcePayload(data, setYoutubePlaylists, setActiveYoutubePlaylistId);
+      setYoutubeUrlInput('');
+      setYoutubeError('');
+    } catch (err) {
+      console.error(err);
+      setYoutubeError(err.message || 'Unable to add YouTube playlist.');
+    } finally {
+      setYoutubeSaving(false);
+    }
+  };
+
+  const handleActivateYouTubePlaylist = async (playlistId) => {
+    setYoutubeSaving(true);
+    try {
+      const res = await fetch('/api/music/youtube/playlists/active', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playlistId })
+      });
+
+      if (!res.ok) {
+        const message = await readErrorMessage(res, 'Unable to activate YouTube playlist.');
+        throw new Error(message);
+      }
+
+      const data = await res.json();
+      applySourcePayload(data, setYoutubePlaylists, setActiveYoutubePlaylistId);
+      setYoutubeError('');
+      await startYouTubePlayback(playlistId);
+    } catch (err) {
+      console.error(err);
+      setYoutubeError(err.message || 'Unable to activate YouTube playlist.');
+    } finally {
+      setYoutubeSaving(false);
+    }
+  };
+
+  const handleDeleteYouTubePlaylist = async (playlistId) => {
+    const shouldDelete = window.confirm('Delete this YouTube playlist?');
+    if (!shouldDelete) return;
+
+    setYoutubeSaving(true);
+    try {
+      const res = await fetch(`/api/music/youtube/playlists/${playlistId}`, {
+        method: 'DELETE'
+      });
+
+      if (!res.ok) {
+        const message = await readErrorMessage(res, 'Unable to delete YouTube playlist.');
+        throw new Error(message);
+      }
+
+      const data = await res.json();
+      applySourcePayload(data, setYoutubePlaylists, setActiveYoutubePlaylistId);
+      setYoutubeError('');
+    } catch (err) {
+      console.error(err);
+      setYoutubeError(err.message || 'Unable to delete YouTube playlist.');
+    } finally {
+      setYoutubeSaving(false);
     }
   };
 
@@ -587,7 +1091,7 @@ function App() {
           <p>A Dance of Words and Silence for Her Soul</p>
         </header>
 
-        <nav>
+        <nav className="top-nav">
           <button onClick={() => setView('gallery')} className={view === 'gallery' ? 'active' : ''}>The Sema</button>
           <button onClick={() => setView('plant')} className={view === 'plant' ? 'active' : ''}>Inscribe Verse</button>
           <button onClick={() => setView('music')} className={view === 'music' ? 'active' : ''}>Music</button>
@@ -771,78 +1275,169 @@ function App() {
             </div>
           ) : view === 'music' ? (
             <section className="music-section">
-              <h2>Spotify Mehfil</h2>
-              <p className="music-subtitle">Add Spotify playlist links and choose one as your active soundtrack.</p>
+              <div className="music-auth-bar">
+                <div className="music-auth-left">
+                  <h2>Music Mehfil</h2>
+                  <p className="music-subtitle">Spotify login + YouTube playlists with continuous playback across tabs.</p>
+                </div>
+                <div className="music-auth-right">
+                  {!spotifyConfigured ? (
+                    <span className="music-auth-badge music-auth-badge-warning">Spotify not configured on server</span>
+                  ) : spotifyLoggedIn ? (
+                    <>
+                      <span className="music-auth-badge">Spotify: {spotifyProfile?.displayName || 'Connected'}</span>
+                      <button type="button" className="music-auth-btn" onClick={handleSpotifyLogout}>Logout</button>
+                    </>
+                  ) : (
+                    <button type="button" className="music-auth-btn" onClick={handleSpotifyLogin} disabled={spotifyAuthLoading}>
+                      {spotifyAuthLoading ? 'Checking...' : 'Login with Spotify'}
+                    </button>
+                  )}
+                </div>
+              </div>
 
-              <form className="music-form" onSubmit={handleAddPlaylist}>
-                <input
-                  type="url"
-                  className="music-url-input"
-                  placeholder="https://open.spotify.com/playlist/..."
-                  value={playlistUrlInput}
-                  onChange={(e) => setPlaylistUrlInput(e.target.value)}
-                  required
-                />
-                <button type="submit" disabled={musicSaving}>
-                  {musicSaving ? 'Saving...' : 'Add Playlist'}
-                </button>
-              </form>
+              {spotifyAuthError ? <p className="music-error">{spotifyAuthError}</p> : null}
 
-              {musicError ? <p className="music-error">{musicError}</p> : null}
+              <div className="music-source-grid">
+                <article className="music-source-card">
+                  <h3>Spotify Playlists</h3>
+                  <form className="music-form" onSubmit={handleAddSpotifyPlaylist}>
+                    <input
+                      type="url"
+                      className="music-url-input"
+                      placeholder="https://open.spotify.com/playlist/..."
+                      value={spotifyUrlInput}
+                      onChange={(e) => setSpotifyUrlInput(e.target.value)}
+                      required
+                      disabled={!spotifyLoggedIn || spotifySaving}
+                    />
+                    <button type="submit" disabled={!spotifyLoggedIn || spotifySaving}>
+                      {spotifySaving ? 'Saving...' : 'Add Spotify'}
+                    </button>
+                  </form>
 
-              {musicLoading ? (
-                <p className="music-empty-state">Loading playlists...</p>
-              ) : playlists.length === 0 ? (
-                <p className="music-empty-state">No playlists added yet. Paste a Spotify playlist URL to start.</p>
-              ) : (
-                <ul className="playlist-list">
-                  {playlists.map((playlist, index) => {
-                    const isActive = playlist.playlistId === activePlaylistId;
-                    const shortId = String(playlist.playlistId || '').slice(0, 10);
-                    return (
-                      <li key={playlist.playlistId} className={`playlist-item ${isActive ? 'playlist-item-active' : ''}`}>
-                        <div className="playlist-item-meta">
-                          <strong>{`Playlist ${index + 1}`}</strong>
-                          <span>{`ID: ${shortId}${shortId.length >= 10 ? '...' : ''}`}</span>
-                          <a href={playlist.url} target="_blank" rel="noreferrer">Open on Spotify</a>
-                        </div>
-                        <div className="playlist-item-actions">
-                          <button
-                            type="button"
-                            onClick={() => handleActivatePlaylist(playlist.playlistId)}
-                            disabled={musicSaving || isActive}
-                          >
-                            {isActive ? 'Active' : 'Play'}
-                          </button>
-                          <button
-                            type="button"
-                            className="playlist-delete-btn"
-                            onClick={() => handleDeletePlaylist(playlist.playlistId)}
-                            disabled={musicSaving}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
+                  <div className="music-player-controls">
+                    <button type="button" onClick={pauseSpotifyPlayback} disabled={!spotifyNowPlaying || spotifySaving}>Pause Spotify</button>
+                    <span className="music-status">{spotifyNowPlaying ? 'Playing' : 'Paused'} · {spotifyPlayerReady ? 'Player Ready' : 'Player Starting'}</span>
+                  </div>
 
-              <div className="spotify-embed-wrap">
-                {activePlaylist ? (
-                  <iframe
-                    title="Spotify Playlist"
-                    src={`https://open.spotify.com/embed/playlist/${activePlaylistId}?utm_source=generator`}
-                    width="100%"
-                    height="352"
-                    frameBorder="0"
-                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                    loading="lazy"
-                  ></iframe>
-                ) : (
-                  <p className="music-empty-state">Choose an active playlist to play music.</p>
-                )}
+                  {spotifyError ? <p className="music-error">{spotifyError}</p> : null}
+                  {spotifyPlayerError ? <p className="music-error">{spotifyPlayerError}</p> : null}
+
+                  {spotifyLoading ? (
+                    <p className="music-empty-state">Loading Spotify playlists...</p>
+                  ) : spotifyPlaylists.length === 0 ? (
+                    <p className="music-empty-state">No Spotify playlists yet.</p>
+                  ) : (
+                    <ul className="playlist-list">
+                      {spotifyPlaylists.map((playlist, index) => {
+                        const isActive = playlist.playlistId === activeSpotifyPlaylistId;
+                        return (
+                          <li key={playlist.playlistId} className={`playlist-item ${isActive ? 'playlist-item-active' : ''}`}>
+                            <div className="playlist-item-meta">
+                              <strong>{`Spotify ${index + 1}`}</strong>
+                              <span>{isActive ? 'Active Playlist' : 'Saved Playlist'}</span>
+                              <a href={playlist.url} target="_blank" rel="noreferrer">Open on Spotify</a>
+                            </div>
+                            <div className="playlist-item-actions">
+                              <button
+                                type="button"
+                                onClick={() => handleActivateSpotifyPlaylist(playlist.playlistId)}
+                                disabled={!spotifyLoggedIn || spotifySaving}
+                              >
+                                {isActive ? 'Play Active' : 'Activate + Play'}
+                              </button>
+                              <button
+                                type="button"
+                                className="playlist-delete-btn"
+                                onClick={() => handleDeleteSpotifyPlaylist(playlist.playlistId)}
+                                disabled={!spotifyLoggedIn || spotifySaving}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </article>
+
+                <article className="music-source-card">
+                  <h3>YouTube Playlists</h3>
+                  <form className="music-form" onSubmit={handleAddYouTubePlaylist}>
+                    <input
+                      type="url"
+                      className="music-url-input"
+                      placeholder="https://www.youtube.com/playlist?list=..."
+                      value={youtubeUrlInput}
+                      onChange={(e) => setYoutubeUrlInput(e.target.value)}
+                      required
+                      disabled={youtubeSaving}
+                    />
+                    <button type="submit" disabled={youtubeSaving}>
+                      {youtubeSaving ? 'Saving...' : 'Add YouTube'}
+                    </button>
+                  </form>
+
+                  <div className="music-player-controls">
+                    <button type="button" onClick={pauseYouTubePlayback} disabled={!youtubeNowPlaying || youtubeSaving}>Pause YouTube</button>
+                    <span className="music-status">{youtubeNowPlaying ? 'Playing' : 'Paused'} · {youtubePlayerReady ? 'Player Ready' : 'Player Starting'}</span>
+                  </div>
+
+                  {youtubeError ? <p className="music-error">{youtubeError}</p> : null}
+                  {youtubePlayerError ? <p className="music-error">{youtubePlayerError}</p> : null}
+
+                  {youtubeLoading ? (
+                    <p className="music-empty-state">Loading YouTube playlists...</p>
+                  ) : youtubePlaylists.length === 0 ? (
+                    <p className="music-empty-state">No YouTube playlists yet.</p>
+                  ) : (
+                    <ul className="playlist-list">
+                      {youtubePlaylists.map((playlist, index) => {
+                        const isActive = playlist.playlistId === activeYoutubePlaylistId;
+                        return (
+                          <li key={playlist.playlistId} className={`playlist-item ${isActive ? 'playlist-item-active' : ''}`}>
+                            <div className="playlist-item-meta">
+                              <strong>{`YouTube ${index + 1}`}</strong>
+                              <span>{isActive ? 'Active Playlist' : 'Saved Playlist'}</span>
+                              <a href={playlist.url} target="_blank" rel="noreferrer">Open on YouTube</a>
+                            </div>
+                            <div className="playlist-item-actions">
+                              <button
+                                type="button"
+                                onClick={() => handleActivateYouTubePlaylist(playlist.playlistId)}
+                                disabled={youtubeSaving}
+                              >
+                                {isActive ? 'Play Active' : 'Activate + Play'}
+                              </button>
+                              <button
+                                type="button"
+                                className="playlist-delete-btn"
+                                onClick={() => handleDeleteYouTubePlaylist(playlist.playlistId)}
+                                disabled={youtubeSaving}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+
+                  {activeYoutubePlaylist ? (
+                    <div className="youtube-preview-wrap">
+                      <iframe
+                        title="YouTube Playlist Preview"
+                        src={`https://www.youtube.com/embed/videoseries?list=${activeYoutubePlaylist.playlistId}`}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        referrerPolicy="strict-origin-when-cross-origin"
+                        allowFullScreen
+                      ></iframe>
+                    </div>
+                  ) : null}
+                </article>
               </div>
             </section>
           ) : null}
@@ -894,6 +1489,10 @@ function App() {
           </section>
         </div>
       )}
+
+      <div className="persistent-player-host" aria-hidden="true">
+        <div id="youtube-persistent-player"></div>
+      </div>
     </div>
   );
 }

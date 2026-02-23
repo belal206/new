@@ -11,3 +11,11 @@ services:
         value: production
       - key: MONGO_URI
         sync: false
+      - key: SPOTIFY_CLIENT_ID
+        sync: false
+      - key: SPOTIFY_CLIENT_SECRET
+        sync: false
+      - key: SPOTIFY_REDIRECT_URI
+        sync: false
+      - key: APP_BASE_URL
+        sync: false

@@ -129,14 +129,14 @@ h1 {
   letter-spacing: 2px;
 }
 
-nav {
+.top-nav {
   display: flex;
   justify-content: center;
   gap: 40px;
   margin-bottom: 80px;
 }
 
-nav button {
+.top-nav button {
   background: white;
   border: 2px solid var(--gold);
   padding: 15px 40px;
@@ -148,7 +148,7 @@ nav button {
   transition: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-nav button.active, nav button:hover {
+.top-nav button.active, .top-nav button:hover {
   background: var(--royal-purple);
   color: white;
   border-color: var(--royal-purple);
@@ -684,6 +684,32 @@ nav button.active, nav button:hover {
     padding: 72px 16px;
   }
 
+  .top-nav {
+    justify-content: flex-start;
+    gap: 10px;
+    margin-bottom: 44px;
+    overflow-x: auto;
+    white-space: nowrap;
+    flex-wrap: nowrap;
+    padding: 4px 2px 10px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .top-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .top-nav button {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    padding: 10px 16px;
+    letter-spacing: 1.2px;
+    font-size: 0.74rem;
+    white-space: nowrap;
+  }
+
   .poem-list {
     gap: 52px;
   }
@@ -819,14 +845,14 @@ body.dark-mode .poet-stamp {
   box-shadow: 8px 8px 0px rgba(212, 175, 55, 0.28);
 }
 
-body.dark-mode nav button {
+body.dark-mode .top-nav button {
   background: #1e1630;
   color: #efe4cf;
   border-color: rgba(212, 175, 55, 0.5);
 }
 
-body.dark-mode nav button.active,
-body.dark-mode nav button:hover {
+body.dark-mode .top-nav button.active,
+body.dark-mode .top-nav button:hover {
   background: #2d1b45;
   border-color: #2d1b45;
   color: #fff;
@@ -1000,9 +1026,9 @@ body.dark-mode .theme-control {
 }
 
 .music-section {
-  width: min(100%, 1080px);
+  width: min(100%, 1160px);
   margin: 0 auto;
-  padding: 40px 28px 34px;
+  padding: 34px 24px 28px;
   border: 1px solid rgba(212, 175, 55, 0.42);
   border-radius: 18px;
   background:
@@ -1011,33 +1037,97 @@ body.dark-mode .theme-control {
   box-shadow: 0 24px 52px rgba(0, 0, 0, 0.12);
 }
 
-.music-section h2 {
+.music-auth-bar {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.music-auth-left h2 {
   margin: 0;
   font-family: 'Cinzel Decorative', cursive;
-  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-size: clamp(1.8rem, 3.4vw, 2.5rem);
   color: var(--royal-purple);
 }
 
 .music-subtitle {
-  margin: 14px 0 28px;
+  margin: 10px 0 0;
   color: rgba(36, 0, 70, 0.74);
-  font-size: 1rem;
+  font-size: 0.98rem;
+}
+
+.music-auth-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.music-auth-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  border-radius: 999px;
+  padding: 0 12px;
+  border: 1px solid rgba(36, 0, 70, 0.22);
+  font-size: 0.85rem;
+  color: var(--royal-purple);
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.music-auth-badge-warning {
+  border-color: rgba(182, 64, 64, 0.4);
+  color: #b64040;
+}
+
+.music-auth-btn {
+  min-height: 38px;
+  border-radius: 999px;
+  border: 1px solid var(--royal-purple);
+  background: var(--royal-purple);
+  color: #fff;
+  padding: 0 14px;
+  cursor: pointer;
+  font-family: 'Playfair Display', serif;
+}
+
+.music-source-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.music-source-card {
+  border: 1px solid rgba(36, 0, 70, 0.16);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.76);
+  padding: 16px 14px 14px;
+}
+
+.music-source-card h3 {
+  margin: 0 0 12px;
+  font-family: 'Cinzel Decorative', cursive;
+  color: var(--royal-purple);
+  font-size: 1.15rem;
 }
 
 .music-form {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
 }
 
 .music-url-input {
   width: 100%;
-  min-height: 48px;
-  padding: 12px 14px;
+  min-height: 44px;
+  padding: 10px 12px;
   border: 1px solid rgba(212, 175, 55, 0.48);
   border-radius: 10px;
-  font-size: 1rem;
+  font-size: 0.96rem;
   font-family: 'Playfair Display', serif;
   background: rgba(255, 255, 255, 0.9);
   color: var(--royal-purple);
@@ -1050,57 +1140,71 @@ body.dark-mode .theme-control {
 }
 
 .music-form button {
-  min-height: 48px;
+  min-height: 44px;
   border-radius: 10px;
   border: 1px solid var(--royal-purple);
   background: var(--royal-purple);
   color: #fff;
-  padding: 0 20px;
-  font-family: 'Cinzel Decorative', cursive;
-  font-size: 0.95rem;
-  letter-spacing: 1px;
+  padding: 0 14px;
   cursor: pointer;
-  transition: 0.2s ease;
-}
-
-.music-form button:hover:not(:disabled) {
-  border-color: #3a1260;
-  background: #3a1260;
 }
 
 .music-form button:disabled {
-  opacity: 0.65;
+  opacity: 0.6;
   cursor: not-allowed;
 }
 
+.music-player-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 8px;
+  flex-wrap: wrap;
+}
+
+.music-player-controls button {
+  min-height: 34px;
+  border: 1px solid rgba(36, 0, 70, 0.3);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--royal-purple);
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.music-status {
+  font-size: 0.84rem;
+  color: rgba(36, 0, 70, 0.74);
+}
+
 .music-error {
-  margin: 14px 0 0;
+  margin: 8px 0 0;
   color: #b64040;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
 }
 
 .music-empty-state {
-  margin: 16px 0;
+  margin: 14px 0 0;
   color: rgba(36, 0, 70, 0.72);
 }
 
 .playlist-list {
   list-style: none;
-  margin: 22px 0 0;
+  margin: 14px 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .playlist-item {
   border: 1px solid rgba(36, 0, 70, 0.16);
   border-radius: 12px;
-  padding: 14px;
+  padding: 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   background: rgba(255, 255, 255, 0.78);
 }
 
@@ -1112,22 +1216,22 @@ body.dark-mode .theme-control {
 .playlist-item-meta {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
 }
 
 .playlist-item-meta strong {
-  font-size: 1rem;
+  font-size: 0.96rem;
   color: var(--royal-purple);
 }
 
 .playlist-item-meta span {
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   color: rgba(36, 0, 70, 0.65);
 }
 
 .playlist-item-meta a {
   color: #2a4ea1;
-  font-size: 0.88rem;
+  font-size: 0.84rem;
   text-decoration: none;
 }
 
@@ -1142,20 +1246,13 @@ body.dark-mode .theme-control {
 }
 
 .playlist-item-actions button {
-  min-height: 38px;
+  min-height: 34px;
   border: 1px solid rgba(36, 0, 70, 0.28);
   border-radius: 999px;
-  padding: 0 14px;
+  padding: 0 12px;
   background: #fff;
   color: var(--royal-purple);
   cursor: pointer;
-  font-family: 'Playfair Display', serif;
-  transition: 0.2s ease;
-}
-
-.playlist-item-actions button:hover:not(:disabled) {
-  border-color: var(--gold);
-  color: var(--gold);
 }
 
 .playlist-item-actions button:disabled {
@@ -1168,26 +1265,47 @@ body.dark-mode .theme-control {
   color: #b64040;
 }
 
-.spotify-embed-wrap {
-  margin-top: 22px;
-  border-radius: 16px;
+.youtube-preview-wrap {
+  margin-top: 12px;
+  border-radius: 12px;
   overflow: hidden;
-  border: 1px solid rgba(212, 175, 55, 0.38);
-  background: rgba(255, 255, 255, 0.86);
-  min-height: 140px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border: 1px solid rgba(212, 175, 55, 0.35);
 }
 
-.spotify-embed-wrap iframe {
-  border: none;
+.youtube-preview-wrap iframe {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
   display: block;
+}
+
+.persistent-player-host {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+@media (max-width: 1024px) {
+  .music-source-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 900px) {
   .music-section {
-    padding: 24px 16px 20px;
+    padding: 24px 12px 18px;
+  }
+
+  .music-auth-bar {
+    flex-direction: column;
+  }
+
+  .music-auth-right {
+    justify-content: flex-start;
   }
 
   .music-form {
@@ -1215,10 +1333,26 @@ body.dark-mode .music-section {
   border-color: rgba(212, 175, 55, 0.46);
 }
 
-body.dark-mode .music-section h2,
+body.dark-mode .music-auth-left h2,
 body.dark-mode .music-subtitle,
-body.dark-mode .music-empty-state {
+body.dark-mode .music-empty-state,
+body.dark-mode .music-status {
   color: #f0e6d2;
+}
+
+body.dark-mode .music-auth-badge {
+  background: rgba(20, 12, 32, 0.9);
+  color: #f3e8c8;
+  border-color: rgba(212, 175, 55, 0.36);
+}
+
+body.dark-mode .music-source-card {
+  background: rgba(28, 18, 45, 0.86);
+  border-color: rgba(212, 175, 55, 0.24);
+}
+
+body.dark-mode .music-source-card h3 {
+  color: #f3e8c8;
 }
 
 body.dark-mode .music-url-input {
@@ -1228,8 +1362,8 @@ body.dark-mode .music-url-input {
 }
 
 body.dark-mode .playlist-item {
-  background: rgba(28, 18, 45, 0.86);
-  border-color: rgba(212, 175, 55, 0.24);
+  background: rgba(20, 12, 32, 0.88);
+  border-color: rgba(212, 175, 55, 0.26);
 }
 
 body.dark-mode .playlist-item-active {
@@ -1245,15 +1379,11 @@ body.dark-mode .playlist-item-meta a {
   color: #92b6ff;
 }
 
-body.dark-mode .playlist-item-actions button {
-  background: rgba(20, 12, 32, 0.92);
+body.dark-mode .playlist-item-actions button,
+body.dark-mode .music-player-controls button {
+  background: rgba(30, 20, 45, 0.9);
   color: #f3e8c8;
   border-color: rgba(212, 175, 55, 0.34);
-}
-
-body.dark-mode .spotify-embed-wrap {
-  background: rgba(20, 12, 32, 0.9);
-  border-color: rgba(212, 175, 55, 0.4);
 }
 
 footer {
