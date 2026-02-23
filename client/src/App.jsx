@@ -1285,7 +1285,7 @@ function App() {
         <header>
           <div className="bismillah">﷽</div>
           <h1>Sufi Dervish</h1>
-          <p>A Dance of Words and Silence for Her Soul</p>
+          <p>I am in the ocean and an ocean is in me</p>
         </header>
 
         <nav className="top-nav">
@@ -1559,7 +1559,7 @@ function App() {
         </main>
 
         <footer>
-          Made with love for the soul. 🌬️
+          The only lasting beauty is the beauty of the heart
         </footer>
       </div>
 
