@@ -215,10 +215,6 @@ h1 {
   transform: translateY(-3px);
 }
 
-.theme-nav-btn {
-  border-style: dashed;
-}
-
 .poem-list {
   display: flex;
   flex-direction: column;
@@ -957,10 +953,6 @@ body.theme-ishq .top-nav button:hover {
   box-shadow: 0 0 0 2px rgba(183, 61, 103, 0.16), 0 8px 22px rgba(183, 61, 103, 0.22);
 }
 
-body.theme-ishq .theme-nav-btn {
-  border-color: rgba(183, 61, 103, 0.64);
-}
-
 body.theme-ishq .form-container {
   background: linear-gradient(160deg, #fff3eb, #ffe8dc);
   border-color: rgba(196, 124, 58, 0.75);
@@ -1116,10 +1108,6 @@ body.theme-fanaa .top-nav button:hover {
   background: #4a3a62;
   border-color: #4a3a62;
   color: #fff;
-}
-
-body.theme-fanaa .theme-nav-btn {
-  border-color: rgba(212, 175, 55, 0.62);
 }
 
 body.theme-fanaa .form-container {

@@ -1292,7 +1292,6 @@ function App() {
           <button onClick={() => setView('gallery')} className={view === 'gallery' ? 'active' : ''}>The Sema</button>
           <button onClick={() => setView('plant')} className={view === 'plant' ? 'active' : ''}>Inscribe Verse</button>
           <button onClick={() => setView('music')} className={view === 'music' ? 'active' : ''}>Music</button>
-          <button type="button" className="theme-nav-btn" onClick={cycleTheme}>{`Mood: ${THEME_LABELS[currentTheme]}`}</button>
         </nav>
 
         <main>
