@@ -33,6 +33,18 @@ const FEEL_TAGS = [
   'Devotion',
   'Grief',
 ];
+const THEMES = ['sukoon', 'ishq', 'fanaa'];
+const THEME_LABELS = {
+  sukoon: 'Sukoon',
+  ishq: 'Ishq',
+  fanaa: 'Fanaa',
+};
+const THEME_ICONS = {
+  sukoon: '☀',
+  ishq: '❤',
+  fanaa: '☾',
+};
+const THEME_STORAGE_KEY = 'sufi_dervish_theme';
 
 const normalizeTags = (tags) => [...new Set(
   (Array.isArray(tags) ? tags : [])
@@ -148,7 +160,7 @@ function App() {
   const [poems, setPoems] = useState([]);
   const [view, setView] = useState('gallery');
   const [selectedPoemId, setSelectedPoemId] = useState(null);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState('sukoon');
   const galleryScrollYRef = useRef(0);
 
   const [formData, setFormData] = useState({ title: '', poet: 'Ahmad Faraz', content: '', tags: [] });
@@ -199,6 +211,17 @@ function App() {
   const spotifyAvailable = spotifyConfigured;
   const canManageSpotify = spotifyAvailable && spotifyLoggedIn;
   const canControlYouTubePlaylist = youtubePlayerReady && Boolean(activeYoutubePlaylistId) && !youtubeSaving;
+
+  const setTheme = (themeKey) => {
+    if (!THEMES.includes(themeKey)) return;
+    setCurrentTheme(themeKey);
+  };
+
+  const cycleTheme = () => {
+    const currentIndex = THEMES.indexOf(currentTheme);
+    const nextIndex = currentIndex >= 0 ? (currentIndex + 1) % THEMES.length : 0;
+    setTheme(THEMES[nextIndex]);
+  };
 
   const getPreviewLines = (content) => {
     if (typeof content !== 'string') return [''];
@@ -744,11 +767,21 @@ function App() {
   }, [isMehfilOpen, poems, activeMehfilPoemId, poemLines.length]);
 
   useEffect(() => {
-    document.body.classList.toggle('dark-mode', isDarkMode);
+    const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (THEMES.includes(storedTheme)) {
+      setCurrentTheme(storedTheme);
+    }
+  }, []);
+
+  useEffect(() => {
+    const themeClasses = THEMES.map((theme) => `theme-${theme}`);
+    document.body.classList.remove(...themeClasses);
+    document.body.classList.add(`theme-${currentTheme}`);
+    window.localStorage.setItem(THEME_STORAGE_KEY, currentTheme);
     return () => {
-      document.body.classList.remove('dark-mode');
+      document.body.classList.remove(...themeClasses);
     };
-  }, [isDarkMode]);
+  }, [currentTheme]);
 
   useEffect(() => {
     if (view === 'detail' && selectedPoemId && !selectedPoem) {
@@ -1231,19 +1264,22 @@ function App() {
   );
 
   return (
-    <div className={`sanctuary-root ${isDarkMode ? 'theme-dark' : ''}`}>
+    <div className="sanctuary-root">
       <div className="mehrab-frame"></div>
       <FallingLeaves />
 
-      <button
-        type="button"
-        className="theme-control"
-        onClick={() => setIsDarkMode((prev) => !prev)}
-        title="Toggle Lights Out"
-        aria-label="Toggle dark mode"
-      >
-        {isDarkMode ? '☀︎' : '☾'}
-      </button>
+      <div className="theme-switcher">
+        <button
+          type="button"
+          className="theme-control"
+          onClick={cycleTheme}
+          title={`Switch mood theme (Current: ${THEME_LABELS[currentTheme]})`}
+          aria-label={`Switch mood theme. Current theme ${THEME_LABELS[currentTheme]}`}
+        >
+          {THEME_ICONS[currentTheme]}
+        </button>
+        <span className="theme-chip">{THEME_LABELS[currentTheme]}</span>
+      </div>
 
       <div className="main-sanctuary">
         <header>
@@ -1561,7 +1597,7 @@ function App() {
               <button type="button" className="mehfil-btn" onClick={goToNextPoem}>Next Poem</button>
               <button type="button" className="mehfil-btn mehfil-btn-primary" onClick={revealNextLine}>Reveal Next Line</button>
               <button type="button" className="mehfil-btn" onClick={resetReveal}>Reset</button>
-              <button type="button" className="mehfil-btn mehfil-btn-ghost" onClick={() => setIsDarkMode((prev) => !prev)}>{isDarkMode ? 'Light Mode' : 'Lights Out'}</button>
+              <button type="button" className="mehfil-btn mehfil-btn-ghost" onClick={cycleTheme}>{`Theme: ${THEME_LABELS[currentTheme]}`}</button>
               <button type="button" className="mehfil-btn mehfil-btn-ghost" onClick={closeMehfil}>Close</button>
             </div>
           </section>
