@@ -135,42 +135,53 @@ const parseSpotifyPlaylistId = (rawUrl) => {
     return playlistId;
 };
 
-const parseYouTubePlaylistId = (rawUrl) => {
+const isYouTubeAutoMixId = (playlistId) => String(playlistId || '').toUpperCase().startsWith('RD');
+
+const isStableYouTubePlaylistId = (playlistId) => /^[A-Za-z0-9_-]+$/.test(String(playlistId || ''))
+    && !isYouTubeAutoMixId(playlistId);
+
+const parseYouTubePlaylistInput = (rawUrl) => {
     const text = String(rawUrl || '').trim();
-    if (!text) return null;
+    if (!text) {
+        return { playlistId: null, error: 'YouTube playlist URL is required' };
+    }
 
     let parsedUrl;
     try {
         parsedUrl = new URL(text);
     } catch (err) {
-        return null;
+        return { playlistId: null, error: 'Invalid URL. Paste a full YouTube playlist link.' };
     }
 
     const host = parsedUrl.hostname.toLowerCase();
-    const allowedHosts = ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be'];
+    const allowedHosts = ['youtube.com', 'www.youtube.com', 'm.youtube.com'];
     if (!allowedHosts.includes(host)) {
-        return null;
+        return { playlistId: null, error: 'Only youtube.com playlist URLs are supported.' };
     }
 
-    const pathname = parsedUrl.pathname;
+    const pathname = parsedUrl.pathname.replace(/\/+$/, '');
+    if (pathname !== '/playlist') {
+        return { playlistId: null, error: 'Use a YouTube playlist URL like https://www.youtube.com/playlist?list=...' };
+    }
+
     const listId = parsedUrl.searchParams.get('list');
     if (!listId) {
-        return null;
-    }
-
-    const isPlaylistPath = pathname === '/playlist';
-    const isWatchPath = pathname === '/watch';
-    const isShortPath = host === 'youtu.be';
-
-    if (!(isPlaylistPath || isWatchPath || isShortPath)) {
-        return null;
+        return { playlistId: null, error: 'Playlist ID is missing in URL.' };
     }
 
     if (!/^[A-Za-z0-9_-]+$/.test(listId)) {
-        return null;
+        return { playlistId: null, error: 'Invalid YouTube playlist ID.' };
     }
 
-    return listId;
+    if (isYouTubeAutoMixId(listId)) {
+        return { playlistId: null, error: 'YouTube auto-mix/radio links are not supported. Paste a real playlist URL.' };
+    }
+
+    return {
+        playlistId: listId,
+        error: null,
+        normalizedUrl: `https://www.youtube.com/playlist?list=${listId}`
+    };
 };
 
 const normalizePlaylistArray = (playlists) => {
@@ -190,6 +201,26 @@ const normalizePlaylistArray = (playlists) => {
     }
 
     return cleaned;
+};
+
+const playlistArraysEqual = (left, right) => {
+    const sourceLeft = Array.isArray(left) ? left : [];
+    const sourceRight = Array.isArray(right) ? right : [];
+    if (sourceLeft.length !== sourceRight.length) return false;
+
+    for (let index = 0; index < sourceLeft.length; index += 1) {
+        const leftPlaylist = sourceLeft[index];
+        const rightPlaylist = sourceRight[index];
+        const leftId = String(leftPlaylist?.playlistId || '').trim();
+        const rightId = String(rightPlaylist?.playlistId || '').trim();
+        const leftUrl = String(leftPlaylist?.url || '').trim();
+        const rightUrl = String(rightPlaylist?.url || '').trim();
+        if (leftId !== rightId || leftUrl !== rightUrl) {
+            return false;
+        }
+    }
+
+    return true;
 };
 
 const serializeSource = (playlists, activePlaylistId) => ({
@@ -220,8 +251,23 @@ const getOrCreateMusicSettings = async () => MusicSettings.findOneAndUpdate(
 const migrateLegacyMusicSettings = async (musicSettings) => {
     let changed = false;
 
-    musicSettings.spotifyPlaylists = normalizePlaylistArray(musicSettings.spotifyPlaylists);
-    musicSettings.youtubePlaylists = normalizePlaylistArray(musicSettings.youtubePlaylists);
+    const normalizedSpotifyPlaylists = normalizePlaylistArray(musicSettings.spotifyPlaylists);
+    if (!playlistArraysEqual(normalizedSpotifyPlaylists, musicSettings.spotifyPlaylists)) {
+        changed = true;
+    }
+    musicSettings.spotifyPlaylists = normalizedSpotifyPlaylists;
+
+    const normalizedYouTubePlaylists = normalizePlaylistArray(musicSettings.youtubePlaylists);
+    const sanitizedYouTubePlaylists = normalizedYouTubePlaylists
+        .filter((playlist) => isStableYouTubePlaylistId(playlist.playlistId))
+        .map((playlist) => ({
+            ...playlist,
+            url: `https://www.youtube.com/playlist?list=${playlist.playlistId}`
+        }));
+    if (!playlistArraysEqual(sanitizedYouTubePlaylists, musicSettings.youtubePlaylists)) {
+        changed = true;
+    }
+    musicSettings.youtubePlaylists = sanitizedYouTubePlaylists;
 
     const hasLegacy = normalizePlaylistArray(musicSettings.playlists).length > 0;
     if (musicSettings.spotifyPlaylists.length === 0 && hasLegacy) {
@@ -690,10 +736,11 @@ app.get('/api/music/youtube/playlists', async (req, res) => {
 
 app.post('/api/music/youtube/playlists', async (req, res) => {
     try {
-        const playlistId = parseYouTubePlaylistId(req.body?.url);
-        if (!playlistId) {
-            return res.status(400).json({ error: 'Invalid YouTube playlist URL' });
+        const parsedPlaylist = parseYouTubePlaylistInput(req.body?.url);
+        if (parsedPlaylist.error || !parsedPlaylist.playlistId) {
+            return res.status(400).json({ error: parsedPlaylist.error || 'Invalid YouTube playlist URL' });
         }
+        const playlistId = parsedPlaylist.playlistId;
 
         const musicSettings = await getMusicSettings();
         const duplicate = musicSettings.youtubePlaylists.some((playlist) => playlist.playlistId === playlistId);
@@ -703,7 +750,7 @@ app.post('/api/music/youtube/playlists', async (req, res) => {
 
         musicSettings.youtubePlaylists.push({
             playlistId,
-            url: `https://www.youtube.com/playlist?list=${playlistId}`
+            url: parsedPlaylist.normalizedUrl
         });
 
         if (!musicSettings.activeYoutubePlaylistId) {

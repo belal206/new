@@ -64,6 +64,46 @@ const readYouTubePlaybackError = (errorCode) => {
   return 'YouTube playback failed for this playlist.';
 };
 
+const parseYouTubePlaylistInput = (rawUrl) => {
+  const text = String(rawUrl || '').trim();
+  if (!text) {
+    return { playlistId: null, error: 'YouTube playlist URL is required.' };
+  }
+
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(text);
+  } catch (err) {
+    return { playlistId: null, error: 'Invalid URL. Paste a full YouTube playlist link.' };
+  }
+
+  const host = parsedUrl.hostname.toLowerCase();
+  const allowedHosts = new Set(['youtube.com', 'www.youtube.com', 'm.youtube.com']);
+  if (!allowedHosts.has(host)) {
+    return { playlistId: null, error: 'Only youtube.com playlist URLs are supported.' };
+  }
+
+  const pathname = parsedUrl.pathname.replace(/\/+$/, '');
+  if (pathname !== '/playlist') {
+    return { playlistId: null, error: 'Use a playlist URL like https://www.youtube.com/playlist?list=...' };
+  }
+
+  const listId = parsedUrl.searchParams.get('list');
+  if (!listId) {
+    return { playlistId: null, error: 'Playlist ID is missing in URL.' };
+  }
+
+  if (!/^[A-Za-z0-9_-]+$/.test(listId)) {
+    return { playlistId: null, error: 'Invalid YouTube playlist ID.' };
+  }
+
+  if (listId.toUpperCase().startsWith('RD')) {
+    return { playlistId: null, error: 'Auto-mix/radio links are not supported. Paste a real playlist URL.' };
+  }
+
+  return { playlistId: listId, error: null, normalizedUrl: `https://www.youtube.com/playlist?list=${listId}` };
+};
+
 const FallingLeaves = () => {
   const [leaves, setLeaves] = useState([]);
 
@@ -159,6 +199,7 @@ function App() {
   const activeYoutubePlaylist = youtubePlaylists.find((playlist) => playlist.playlistId === activeYoutubePlaylistId) || null;
   const spotifyAvailable = spotifyConfigured;
   const canManageSpotify = spotifyAvailable && spotifyLoggedIn;
+  const canControlYouTubePlaylist = youtubePlayerReady && Boolean(activeYoutubePlaylistId) && !youtubeSaving;
 
   const getPreviewLines = (content) => {
     if (typeof content !== 'string') return [''];
@@ -381,6 +422,34 @@ function App() {
     }
   };
 
+  const handleYouTubePrevious = () => {
+    if (!youtubePlayerRef.current || !youtubePlayerReady || !activeYoutubePlaylistId) return;
+    try {
+      youtubePlayerRef.current.previousVideo();
+      youtubePlayerRef.current.playVideo();
+      setYoutubeNowPlaying(true);
+      setYoutubePlayerError('');
+    } catch (err) {
+      console.error(err);
+      setYoutubeNowPlaying(false);
+      setYoutubePlayerError('Unable to move to previous track.');
+    }
+  };
+
+  const handleYouTubeNext = () => {
+    if (!youtubePlayerRef.current || !youtubePlayerReady || !activeYoutubePlaylistId) return;
+    try {
+      youtubePlayerRef.current.nextVideo();
+      youtubePlayerRef.current.playVideo();
+      setYoutubeNowPlaying(true);
+      setYoutubePlayerError('');
+    } catch (err) {
+      console.error(err);
+      setYoutubeNowPlaying(false);
+      setYoutubePlayerError('Unable to move to next track.');
+    }
+  };
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const spotifyErrorParam = params.get('spotify_error');
@@ -573,6 +642,11 @@ function App() {
       youtubePlayerRef.current = null;
     }
   }, []);
+
+  useEffect(() => {
+    if (activeYoutubePlaylistId) return;
+    setYoutubeNowPlaying(false);
+  }, [activeYoutubePlaylistId]);
 
   useEffect(() => {
     if (!isMehfilOpen) return;
@@ -892,12 +966,18 @@ function App() {
       return;
     }
 
+    const parsedPlaylist = parseYouTubePlaylistInput(url);
+    if (parsedPlaylist.error) {
+      setYoutubeError(parsedPlaylist.error);
+      return;
+    }
+
     setYoutubeSaving(true);
     try {
       const res = await fetch('/api/music/youtube/playlists', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url })
+        body: JSON.stringify({ url: parsedPlaylist.normalizedUrl })
       });
 
       if (!res.ok) {
@@ -1346,9 +1426,12 @@ function App() {
                       {youtubeSaving ? 'Saving...' : 'Add YouTube'}
                     </button>
                   </form>
+                  <p className="music-inline-note">Use playlist links only: https://www.youtube.com/playlist?list=...</p>
 
                   <div className="music-player-controls">
+                    <button type="button" onClick={handleYouTubePrevious} disabled={!canControlYouTubePlaylist}>Previous</button>
                     <button type="button" onClick={pauseYouTubePlayback} disabled={!youtubeNowPlaying || youtubeSaving}>Pause YouTube</button>
+                    <button type="button" onClick={handleYouTubeNext} disabled={!canControlYouTubePlaylist}>Next</button>
                     <span className="music-status">
                       {(youtubePlayerError ? 'Error' : (youtubeNowPlaying ? 'Playing' : 'Paused'))}
                       {' · '}
