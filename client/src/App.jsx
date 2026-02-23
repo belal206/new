@@ -56,6 +56,14 @@ const applySourcePayload = (payload, setPlaylists, setActivePlaylistId) => {
   setActivePlaylistId(nextActivePlaylistId);
 };
 
+const readYouTubePlaybackError = (errorCode) => {
+  if (errorCode === 2) return 'Invalid YouTube request for this playlist.';
+  if (errorCode === 5) return 'This YouTube playlist cannot be played in this browser.';
+  if (errorCode === 100) return 'YouTube playlist/video not found or removed.';
+  if (errorCode === 101 || errorCode === 150) return 'YouTube owner blocked embedded playback for this item.';
+  return 'YouTube playback failed for this playlist.';
+};
+
 const FallingLeaves = () => {
   const [leaves, setLeaves] = useState([]);
 
@@ -343,6 +351,8 @@ function App() {
     }
 
     try {
+      setYoutubePlayerError('');
+      setYoutubeNowPlaying(false);
       youtubePlayerRef.current.loadPlaylist({
         listType: 'playlist',
         list: playlistId,
@@ -350,10 +360,9 @@ function App() {
         startSeconds: 0
       });
       youtubePlayerRef.current.playVideo();
-      setYoutubeNowPlaying(true);
-      setYoutubePlayerError('');
     } catch (err) {
       console.error(err);
+      setYoutubeNowPlaying(false);
       setYoutubePlayerError('Unable to start YouTube playback.');
     }
   };
@@ -501,13 +510,19 @@ function App() {
             if (!window.YT || !window.YT.PlayerState) return;
             if (event.data === window.YT.PlayerState.PLAYING) {
               setYoutubeNowPlaying(true);
+              setYoutubePlayerError('');
             }
-            if (event.data === window.YT.PlayerState.PAUSED || event.data === window.YT.PlayerState.ENDED) {
+            if (
+              event.data === window.YT.PlayerState.PAUSED
+              || event.data === window.YT.PlayerState.ENDED
+              || event.data === window.YT.PlayerState.CUED
+            ) {
               setYoutubeNowPlaying(false);
             }
           },
-          onError: () => {
-            setYoutubePlayerError('YouTube playback failed for this playlist.');
+          onError: (event) => {
+            setYoutubeNowPlaying(false);
+            setYoutubePlayerError(readYouTubePlaybackError(event?.data));
           }
         }
       });
@@ -1421,7 +1436,11 @@ function App() {
 
                   <div className="music-player-controls">
                     <button type="button" onClick={pauseYouTubePlayback} disabled={!youtubeNowPlaying || youtubeSaving}>Pause YouTube</button>
-                    <span className="music-status">{youtubeNowPlaying ? 'Playing' : 'Paused'} · {youtubePlayerReady ? 'Player Ready' : 'Player Starting'}</span>
+                    <span className="music-status">
+                      {(youtubePlayerError ? 'Error' : (youtubeNowPlaying ? 'Playing' : 'Paused'))}
+                      {' · '}
+                      {youtubePlayerReady ? 'Player Ready' : 'Player Starting'}
+                    </span>
                   </div>
 
                   {youtubeError ? <p className="music-error">{youtubeError}</p> : null}
