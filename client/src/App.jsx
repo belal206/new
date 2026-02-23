@@ -1278,7 +1278,6 @@ function App() {
         >
           {THEME_ICONS[currentTheme]}
         </button>
-        <span className="theme-chip">{THEME_LABELS[currentTheme]}</span>
       </div>
 
       <div className="main-sanctuary">
