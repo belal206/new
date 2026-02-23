@@ -30,6 +30,66 @@ const Poem = mongoose.model('Poem', new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 }));
 
+const MusicSettings = mongoose.model('MusicSettings', new mongoose.Schema({
+    scope: { type: String, required: true, unique: true, default: 'global' },
+    playlists: [{
+        _id: false,
+        playlistId: { type: String, required: true },
+        url: { type: String, required: true },
+        createdAt: { type: Date, default: Date.now }
+    }],
+    activePlaylistId: { type: String, default: null }
+}, { timestamps: true }));
+
+const extractSpotifyPlaylistId = (rawUrl) => {
+    const text = String(rawUrl || '').trim();
+    if (!text) return null;
+
+    let parsedUrl;
+    try {
+        parsedUrl = new URL(text);
+    } catch (err) {
+        return null;
+    }
+
+    if (!['open.spotify.com', 'www.open.spotify.com'].includes(parsedUrl.hostname)) {
+        return null;
+    }
+
+    const pathParts = parsedUrl.pathname.split('/').filter(Boolean);
+    if (pathParts.length < 2 || pathParts[0] !== 'playlist') {
+        return null;
+    }
+
+    const playlistId = pathParts[1];
+    if (!/^[a-zA-Z0-9]+$/.test(playlistId)) {
+        return null;
+    }
+
+    return playlistId;
+};
+
+const serializeMusicSettings = (musicSettings) => ({
+    playlists: (musicSettings.playlists || []).map((playlist) => ({
+        playlistId: playlist.playlistId,
+        url: playlist.url,
+        createdAt: playlist.createdAt
+    })),
+    activePlaylistId: musicSettings.activePlaylistId || null
+});
+
+const getOrCreateMusicSettings = async () => MusicSettings.findOneAndUpdate(
+    { scope: 'global' },
+    {
+        $setOnInsert: {
+            scope: 'global',
+            playlists: [],
+            activePlaylistId: null
+        }
+    },
+    { upsert: true, new: true }
+);
+
 app.get('/api/poems', async (req, res) => {
     try {
         const poems = await Poem.find().sort({ createdAt: -1 });
@@ -81,6 +141,90 @@ app.delete('/api/poems/:id', async (req, res) => {
         res.json({ message: 'Deleted' });
     } catch (err) {
         res.status(500).json({ error: 'Failed to delete' });
+    }
+});
+
+app.get('/api/music/playlists', async (req, res) => {
+    try {
+        const musicSettings = await getOrCreateMusicSettings();
+        res.json(serializeMusicSettings(musicSettings));
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch playlists' });
+    }
+});
+
+app.post('/api/music/playlists', async (req, res) => {
+    try {
+        const playlistId = extractSpotifyPlaylistId(req.body.url);
+        if (!playlistId) {
+            return res.status(400).json({ error: 'Invalid Spotify playlist URL' });
+        }
+
+        const musicSettings = await getOrCreateMusicSettings();
+        const isDuplicate = musicSettings.playlists.some((playlist) => playlist.playlistId === playlistId);
+        if (isDuplicate) {
+            return res.status(400).json({ error: 'Playlist already exists' });
+        }
+
+        musicSettings.playlists.push({
+            playlistId,
+            url: `https://open.spotify.com/playlist/${playlistId}`
+        });
+
+        if (!musicSettings.activePlaylistId) {
+            musicSettings.activePlaylistId = playlistId;
+        }
+
+        await musicSettings.save();
+        res.status(201).json(serializeMusicSettings(musicSettings));
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to add playlist' });
+    }
+});
+
+app.patch('/api/music/playlists/active', async (req, res) => {
+    try {
+        const playlistId = String(req.body.playlistId || '').trim();
+        if (!playlistId) {
+            return res.status(400).json({ error: 'Playlist ID is required' });
+        }
+
+        const musicSettings = await getOrCreateMusicSettings();
+        const playlistExists = musicSettings.playlists.some((playlist) => playlist.playlistId === playlistId);
+        if (!playlistExists) {
+            return res.status(400).json({ error: 'Playlist not found' });
+        }
+
+        musicSettings.activePlaylistId = playlistId;
+        await musicSettings.save();
+        res.json(serializeMusicSettings(musicSettings));
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to set active playlist' });
+    }
+});
+
+app.delete('/api/music/playlists/:playlistId', async (req, res) => {
+    try {
+        const playlistId = String(req.params.playlistId || '').trim();
+        if (!playlistId) {
+            return res.status(400).json({ error: 'Playlist ID is required' });
+        }
+
+        const musicSettings = await getOrCreateMusicSettings();
+        const playlistExists = musicSettings.playlists.some((playlist) => playlist.playlistId === playlistId);
+        if (!playlistExists) {
+            return res.status(400).json({ error: 'Playlist not found' });
+        }
+
+        musicSettings.playlists = musicSettings.playlists.filter((playlist) => playlist.playlistId !== playlistId);
+        if (musicSettings.activePlaylistId === playlistId) {
+            musicSettings.activePlaylistId = musicSettings.playlists[0]?.playlistId || null;
+        }
+
+        await musicSettings.save();
+        res.json(serializeMusicSettings(musicSettings));
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to delete playlist' });
     }
 });
 

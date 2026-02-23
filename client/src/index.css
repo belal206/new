@@ -636,7 +636,7 @@ nav button.active, nav button:hover {
 .theme-control {
   position: fixed;
   bottom: 50px;
-  right: 124px;
+  right: 50px;
   z-index: 2000;
   background: rgba(255, 255, 255, 0.95);
   color: var(--royal-purple);
@@ -729,17 +729,10 @@ nav button.active, nav button:hover {
     line-height: 1.9;
   }
 
-  .music-control {
-    width: 54px;
-    height: 54px;
-    bottom: 18px;
-    right: 18px;
-  }
-
   .theme-control {
     width: 50px;
     height: 50px;
-    right: 80px;
+    right: 18px;
     bottom: 20px;
   }
 
@@ -927,7 +920,6 @@ body.dark-mode .mehfil-btn-primary {
   color: #fff;
 }
 
-body.dark-mode .music-control,
 body.dark-mode .theme-control {
   background: #f0d48d;
   color: #2a183f;
@@ -1007,26 +999,262 @@ body.dark-mode .theme-control {
   letter-spacing: 15px;
 }
 
-.music-control {
-  position: fixed;
-  bottom: 50px;
-  right: 50px;
-  z-index: 2000;
-  background: var(--gold);
-  color: white;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
+.music-section {
+  width: min(100%, 1080px);
+  margin: 0 auto;
+  padding: 40px 28px 34px;
+  border: 1px solid rgba(212, 175, 55, 0.42);
+  border-radius: 18px;
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.93), rgba(255, 255, 255, 0.86)),
+    linear-gradient(120deg, rgba(212, 175, 55, 0.12), rgba(123, 44, 191, 0.1));
+  box-shadow: 0 24px 52px rgba(0, 0, 0, 0.12);
+}
+
+.music-section h2 {
+  margin: 0;
+  font-family: 'Cinzel Decorative', cursive;
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  color: var(--royal-purple);
+}
+
+.music-subtitle {
+  margin: 14px 0 28px;
+  color: rgba(36, 0, 70, 0.74);
+  font-size: 1rem;
+}
+
+.music-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.music-url-input {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 14px;
+  border: 1px solid rgba(212, 175, 55, 0.48);
+  border-radius: 10px;
+  font-size: 1rem;
+  font-family: 'Playfair Display', serif;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--royal-purple);
+}
+
+.music-url-input:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.18);
+}
+
+.music-form button {
+  min-height: 48px;
+  border-radius: 10px;
+  border: 1px solid var(--royal-purple);
+  background: var(--royal-purple);
+  color: #fff;
+  padding: 0 20px;
+  font-family: 'Cinzel Decorative', cursive;
+  font-size: 0.95rem;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.music-form button:hover:not(:disabled) {
+  border-color: #3a1260;
+  background: #3a1260;
+}
+
+.music-form button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.music-error {
+  margin: 14px 0 0;
+  color: #b64040;
+  font-size: 0.95rem;
+}
+
+.music-empty-state {
+  margin: 16px 0;
+  color: rgba(36, 0, 70, 0.72);
+}
+
+.playlist-list {
+  list-style: none;
+  margin: 22px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.playlist-item {
+  border: 1px solid rgba(36, 0, 70, 0.16);
+  border-radius: 12px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.playlist-item-active {
+  border-color: rgba(212, 175, 55, 0.7);
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2);
+}
+
+.playlist-item-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.playlist-item-meta strong {
+  font-size: 1rem;
+  color: var(--royal-purple);
+}
+
+.playlist-item-meta span {
+  font-size: 0.88rem;
+  color: rgba(36, 0, 70, 0.65);
+}
+
+.playlist-item-meta a {
+  color: #2a4ea1;
+  font-size: 0.88rem;
+  text-decoration: none;
+}
+
+.playlist-item-meta a:hover {
+  text-decoration: underline;
+}
+
+.playlist-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.playlist-item-actions button {
+  min-height: 38px;
+  border: 1px solid rgba(36, 0, 70, 0.28);
+  border-radius: 999px;
+  padding: 0 14px;
+  background: #fff;
+  color: var(--royal-purple);
+  cursor: pointer;
+  font-family: 'Playfair Display', serif;
+  transition: 0.2s ease;
+}
+
+.playlist-item-actions button:hover:not(:disabled) {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.playlist-item-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.playlist-delete-btn:hover:not(:disabled) {
+  border-color: #b64040;
+  color: #b64040;
+}
+
+.spotify-embed-wrap {
+  margin-top: 22px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(212, 175, 55, 0.38);
+  background: rgba(255, 255, 255, 0.86);
+  min-height: 140px;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  font-size: 2rem;
-  box-shadow: var(--gold-glow);
-  transition: 0.3s;
 }
 
-.music-control:hover { transform: scale(1.1); }
+.spotify-embed-wrap iframe {
+  border: none;
+  display: block;
+}
+
+@media (max-width: 900px) {
+  .music-section {
+    padding: 24px 16px 20px;
+  }
+
+  .music-form {
+    grid-template-columns: 1fr;
+  }
+
+  .playlist-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .playlist-item-actions {
+    width: 100%;
+  }
+
+  .playlist-item-actions button {
+    flex: 1;
+  }
+}
+
+body.dark-mode .music-section {
+  background:
+    linear-gradient(165deg, rgba(22, 14, 35, 0.95), rgba(25, 16, 40, 0.9)),
+    linear-gradient(120deg, rgba(212, 175, 55, 0.1), rgba(123, 44, 191, 0.15));
+  border-color: rgba(212, 175, 55, 0.46);
+}
+
+body.dark-mode .music-section h2,
+body.dark-mode .music-subtitle,
+body.dark-mode .music-empty-state {
+  color: #f0e6d2;
+}
+
+body.dark-mode .music-url-input {
+  background: #130d20;
+  color: #f0e6d2;
+  border-color: rgba(212, 175, 55, 0.52);
+}
+
+body.dark-mode .playlist-item {
+  background: rgba(28, 18, 45, 0.86);
+  border-color: rgba(212, 175, 55, 0.24);
+}
+
+body.dark-mode .playlist-item-active {
+  border-color: rgba(212, 175, 55, 0.66);
+}
+
+body.dark-mode .playlist-item-meta strong,
+body.dark-mode .playlist-item-meta span {
+  color: #f3e8c8;
+}
+
+body.dark-mode .playlist-item-meta a {
+  color: #92b6ff;
+}
+
+body.dark-mode .playlist-item-actions button {
+  background: rgba(20, 12, 32, 0.92);
+  color: #f3e8c8;
+  border-color: rgba(212, 175, 55, 0.34);
+}
+
+body.dark-mode .spotify-embed-wrap {
+  background: rgba(20, 12, 32, 0.9);
+  border-color: rgba(212, 175, 55, 0.4);
+}
 
 footer {
   text-align: center;

@@ -40,7 +40,22 @@ const normalizeTags = (tags) => [...new Set(
     .filter(Boolean)
 )].slice(0, 6);
 
-// Component for falling Chinar leaves
+const readErrorMessage = async (res, fallbackMessage) => {
+  try {
+    const data = await res.json();
+    return data?.error || fallbackMessage;
+  } catch (err) {
+    return fallbackMessage;
+  }
+};
+
+const applyMusicPayload = (payload, setPlaylists, setActivePlaylistId) => {
+  const nextPlaylists = Array.isArray(payload?.playlists) ? payload.playlists : [];
+  const nextActivePlaylistId = typeof payload?.activePlaylistId === 'string' ? payload.activePlaylistId : null;
+  setPlaylists(nextPlaylists);
+  setActivePlaylistId(nextActivePlaylistId);
+};
+
 const FallingLeaves = () => {
   const [leaves, setLeaves] = useState([]);
 
@@ -53,9 +68,8 @@ const FallingLeaves = () => {
 
       setLeaves((prev) => [...prev, { id, left, duration, size }]);
 
-      // Clean up old leaves
       setTimeout(() => {
-        setLeaves((prev) => prev.filter((l) => l.id !== id));
+        setLeaves((prev) => prev.filter((leaf) => leaf.id !== id));
       }, duration * 1000);
     }, 2000);
 
@@ -84,15 +98,20 @@ function App() {
   const [poems, setPoems] = useState([]);
   const [view, setView] = useState('gallery');
   const [selectedPoemId, setSelectedPoemId] = useState(null);
-  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const audioRef = useRef(null);
   const galleryScrollYRef = useRef(0);
-  const musicSrc = `${import.meta.env.BASE_URL}audio/rumi-oceans-of-love.mp3`;
+
   const [formData, setFormData] = useState({ title: '', poet: 'Ahmad Faraz', content: '', tags: [] });
   const [editingPoemId, setEditingPoemId] = useState(null);
   const [editData, setEditData] = useState({ title: '', poet: 'Ahmad Faraz', content: '', tags: [] });
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  const [playlists, setPlaylists] = useState([]);
+  const [activePlaylistId, setActivePlaylistId] = useState(null);
+  const [playlistUrlInput, setPlaylistUrlInput] = useState('');
+  const [musicLoading, setMusicLoading] = useState(false);
+  const [musicSaving, setMusicSaving] = useState(false);
+  const [musicError, setMusicError] = useState('');
 
   const [isMehfilOpen, setIsMehfilOpen] = useState(false);
   const [activeMehfilPoemId, setActiveMehfilPoemId] = useState(null);
@@ -101,44 +120,52 @@ function App() {
   const isKnownPoet = (poetName) => POETS.includes(poetName);
   const selectPoetValue = (poetName) => (isKnownPoet(poetName) ? poetName : OTHER_POET_VALUE);
   const selectedPoem = poems.find((poem) => poem._id === selectedPoemId) || null;
+  const activeMehfilPoem = poems.find((poem) => poem._id === activeMehfilPoemId) || null;
+  const activePlaylist = playlists.find((playlist) => playlist.playlistId === activePlaylistId) || null;
+
   const getPreviewLines = (content) => {
     if (typeof content !== 'string') return [''];
-    const lines = content.split(/\r?\n/);
-    return lines.slice(0, 2);
+    return content.split(/\r?\n/).slice(0, 2);
   };
 
-  const activeMehfilPoem = poems.find((poem) => poem._id === activeMehfilPoemId) || null;
   const poemLines = activeMehfilPoem ? activeMehfilPoem.content.split(/\r?\n/) : [];
   const totalMehfilLines = Math.max(poemLines.length, 1);
   const safeRevealedLineCount = Math.min(Math.max(revealedLineCount, 1), totalMehfilLines);
   const mehfilProgress = (safeRevealedLineCount / totalMehfilLines) * 100;
 
+  const fetchPoems = async () => {
+    try {
+      const res = await fetch('/api/poems');
+      if (!res.ok) throw new Error(`Fetch failed with status ${res.status}`);
+      const data = await res.json();
+      setPoems(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchMusicSettings = async () => {
+    setMusicLoading(true);
+    try {
+      const res = await fetch('/api/music/playlists');
+      if (!res.ok) {
+        const message = await readErrorMessage(res, 'Unable to load playlists.');
+        throw new Error(message);
+      }
+      const data = await res.json();
+      applyMusicPayload(data, setPlaylists, setActivePlaylistId);
+      setMusicError('');
+    } catch (err) {
+      console.error(err);
+      setMusicError(err.message || 'Unable to load playlists.');
+    } finally {
+      setMusicLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchPoems();
-  }, []);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const handlePlay = () => setIsMusicPlaying(true);
-    const handlePause = () => setIsMusicPlaying(false);
-    const handleError = () => {
-      setIsMusicPlaying(false);
-      console.error('Music playback failed.');
-    };
-
-    audio.addEventListener('play', handlePlay);
-    audio.addEventListener('pause', handlePause);
-    audio.addEventListener('ended', handlePause);
-    audio.addEventListener('error', handleError);
-
-    return () => {
-      audio.removeEventListener('play', handlePlay);
-      audio.removeEventListener('pause', handlePause);
-      audio.removeEventListener('ended', handlePause);
-      audio.removeEventListener('error', handleError);
-    };
+    fetchMusicSettings();
   }, []);
 
   useEffect(() => {
@@ -219,17 +246,6 @@ function App() {
     }
   }, [view, selectedPoemId, selectedPoem]);
 
-  const fetchPoems = async () => {
-    try {
-      const res = await fetch('/api/poems');
-      if (!res.ok) throw new Error(`Fetch failed with status ${res.status}`);
-      const data = await res.json();
-      setPoems(data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   const handlePlant = async (e) => {
     e.preventDefault();
     const poetName = formData.poet.trim();
@@ -289,6 +305,7 @@ function App() {
   const saveEdit = async (e) => {
     e.preventDefault();
     if (!editingPoemId) return;
+
     const poetName = editData.poet.trim();
     if (!poetName) {
       alert('Please select or enter a poet name.');
@@ -311,6 +328,93 @@ function App() {
       alert('Could not update this verse.');
     } finally {
       setIsSavingEdit(false);
+    }
+  };
+
+  const handleAddPlaylist = async (e) => {
+    e.preventDefault();
+    const url = playlistUrlInput.trim();
+    if (!url) {
+      setMusicError('Spotify playlist URL is required.');
+      return;
+    }
+
+    setMusicSaving(true);
+    try {
+      const res = await fetch('/api/music/playlists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+
+      if (!res.ok) {
+        const message = await readErrorMessage(res, 'Unable to add playlist.');
+        throw new Error(message);
+      }
+
+      const data = await res.json();
+      applyMusicPayload(data, setPlaylists, setActivePlaylistId);
+      setPlaylistUrlInput('');
+      setMusicError('');
+    } catch (err) {
+      console.error(err);
+      setMusicError(err.message || 'Unable to add playlist.');
+    } finally {
+      setMusicSaving(false);
+    }
+  };
+
+  const handleActivatePlaylist = async (playlistId) => {
+    if (!playlistId || playlistId === activePlaylistId) return;
+
+    setMusicSaving(true);
+    try {
+      const res = await fetch('/api/music/playlists/active', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playlistId })
+      });
+
+      if (!res.ok) {
+        const message = await readErrorMessage(res, 'Unable to set active playlist.');
+        throw new Error(message);
+      }
+
+      const data = await res.json();
+      applyMusicPayload(data, setPlaylists, setActivePlaylistId);
+      setMusicError('');
+    } catch (err) {
+      console.error(err);
+      setMusicError(err.message || 'Unable to set active playlist.');
+    } finally {
+      setMusicSaving(false);
+    }
+  };
+
+  const handleDeletePlaylist = async (playlistId) => {
+    if (!playlistId) return;
+    const shouldDelete = window.confirm('Delete this playlist?');
+    if (!shouldDelete) return;
+
+    setMusicSaving(true);
+    try {
+      const res = await fetch(`/api/music/playlists/${playlistId}`, {
+        method: 'DELETE'
+      });
+
+      if (!res.ok) {
+        const message = await readErrorMessage(res, 'Unable to delete playlist.');
+        throw new Error(message);
+      }
+
+      const data = await res.json();
+      applyMusicPayload(data, setPlaylists, setActivePlaylistId);
+      setMusicError('');
+    } catch (err) {
+      console.error(err);
+      setMusicError(err.message || 'Unable to delete playlist.');
+    } finally {
+      setMusicSaving(false);
     }
   };
 
@@ -366,23 +470,6 @@ function App() {
 
   const goToPrevPoem = () => goToPoem(-1);
   const goToNextPoem = () => goToPoem(1);
-
-  const toggleMusic = async () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    if (audio.paused) {
-      try {
-        await audio.play();
-      } catch (err) {
-        setIsMusicPlaying(false);
-        console.error('Unable to start music playback:', err);
-      }
-      return;
-    }
-
-    audio.pause();
-  };
 
   const addTagToForm = (tag) => {
     if (!tag) return;
@@ -483,16 +570,6 @@ function App() {
       <div className="mehrab-frame"></div>
       <FallingLeaves />
 
-      {/* 🎶 MYSTIC FLUTE (NEY) */}
-      <audio
-        ref={audioRef}
-        src={musicSrc}
-        preload="auto"
-        loop
-      />
-      <div className="music-control" onClick={toggleMusic} title="Toggle Mystic Flute">
-        {isMusicPlaying ? '🔇' : '🎵'}
-      </div>
       <button
         type="button"
         className="theme-control"
@@ -513,6 +590,7 @@ function App() {
         <nav>
           <button onClick={() => setView('gallery')} className={view === 'gallery' ? 'active' : ''}>The Sema</button>
           <button onClick={() => setView('plant')} className={view === 'plant' ? 'active' : ''}>Inscribe Verse</button>
+          <button onClick={() => setView('music')} className={view === 'music' ? 'active' : ''}>Music</button>
         </nav>
 
         <main>
@@ -691,6 +769,82 @@ function App() {
                 <button type="submit">Inscribe</button>
               </form>
             </div>
+          ) : view === 'music' ? (
+            <section className="music-section">
+              <h2>Spotify Mehfil</h2>
+              <p className="music-subtitle">Add Spotify playlist links and choose one as your active soundtrack.</p>
+
+              <form className="music-form" onSubmit={handleAddPlaylist}>
+                <input
+                  type="url"
+                  className="music-url-input"
+                  placeholder="https://open.spotify.com/playlist/..."
+                  value={playlistUrlInput}
+                  onChange={(e) => setPlaylistUrlInput(e.target.value)}
+                  required
+                />
+                <button type="submit" disabled={musicSaving}>
+                  {musicSaving ? 'Saving...' : 'Add Playlist'}
+                </button>
+              </form>
+
+              {musicError ? <p className="music-error">{musicError}</p> : null}
+
+              {musicLoading ? (
+                <p className="music-empty-state">Loading playlists...</p>
+              ) : playlists.length === 0 ? (
+                <p className="music-empty-state">No playlists added yet. Paste a Spotify playlist URL to start.</p>
+              ) : (
+                <ul className="playlist-list">
+                  {playlists.map((playlist, index) => {
+                    const isActive = playlist.playlistId === activePlaylistId;
+                    const shortId = String(playlist.playlistId || '').slice(0, 10);
+                    return (
+                      <li key={playlist.playlistId} className={`playlist-item ${isActive ? 'playlist-item-active' : ''}`}>
+                        <div className="playlist-item-meta">
+                          <strong>{`Playlist ${index + 1}`}</strong>
+                          <span>{`ID: ${shortId}${shortId.length >= 10 ? '...' : ''}`}</span>
+                          <a href={playlist.url} target="_blank" rel="noreferrer">Open on Spotify</a>
+                        </div>
+                        <div className="playlist-item-actions">
+                          <button
+                            type="button"
+                            onClick={() => handleActivatePlaylist(playlist.playlistId)}
+                            disabled={musicSaving || isActive}
+                          >
+                            {isActive ? 'Active' : 'Play'}
+                          </button>
+                          <button
+                            type="button"
+                            className="playlist-delete-btn"
+                            onClick={() => handleDeletePlaylist(playlist.playlistId)}
+                            disabled={musicSaving}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+
+              <div className="spotify-embed-wrap">
+                {activePlaylist ? (
+                  <iframe
+                    title="Spotify Playlist"
+                    src={`https://open.spotify.com/embed/playlist/${activePlaylistId}?utm_source=generator`}
+                    width="100%"
+                    height="352"
+                    frameBorder="0"
+                    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                    loading="lazy"
+                  ></iframe>
+                ) : (
+                  <p className="music-empty-state">Choose an active playlist to play music.</p>
+                )}
+              </div>
+            </section>
           ) : null}
         </main>
 
@@ -734,7 +888,6 @@ function App() {
               <button type="button" className="mehfil-btn" onClick={goToNextPoem}>Next Poem</button>
               <button type="button" className="mehfil-btn mehfil-btn-primary" onClick={revealNextLine}>Reveal Next Line</button>
               <button type="button" className="mehfil-btn" onClick={resetReveal}>Reset</button>
-              <button type="button" className="mehfil-btn mehfil-btn-ghost" onClick={toggleMusic}>{isMusicPlaying ? 'Mute Music' : 'Play Music'}</button>
               <button type="button" className="mehfil-btn mehfil-btn-ghost" onClick={() => setIsDarkMode((prev) => !prev)}>{isDarkMode ? 'Light Mode' : 'Lights Out'}</button>
               <button type="button" className="mehfil-btn mehfil-btn-ghost" onClick={closeMehfil}>Close</button>
             </div>
