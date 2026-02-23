@@ -103,6 +103,8 @@ const FallingLeaves = () => {
 };
 
 function App() {
+  const YOUTUBE_ONLY_MODE = true;
+
   const [poems, setPoems] = useState([]);
   const [view, setView] = useState('gallery');
   const [selectedPoemId, setSelectedPoemId] = useState(null);
@@ -395,7 +397,9 @@ function App() {
 
     fetchPoems();
     fetchYouTubePlaylists();
-    fetchSpotifySession();
+    if (!YOUTUBE_ONLY_MODE) {
+      fetchSpotifySession();
+    }
   }, []);
 
   useEffect(() => {
@@ -1321,102 +1325,11 @@ function App() {
               <div className="music-auth-bar">
                 <div className="music-auth-left">
                   <h2>Music Mehfil</h2>
-                  <p className="music-subtitle">Spotify login + YouTube playlists with continuous playback across tabs.</p>
-                </div>
-                <div className="music-auth-right">
-                  {!spotifyConfigured ? (
-                    <span className="music-auth-badge music-auth-badge-warning">Spotify not configured on server</span>
-                  ) : spotifyLoggedIn ? (
-                    <>
-                      <span className="music-auth-badge">Spotify: {spotifyProfile?.displayName || 'Connected'}</span>
-                      <button type="button" className="music-auth-btn" onClick={handleSpotifyLogout}>Logout</button>
-                    </>
-                  ) : (
-                    <button type="button" className="music-auth-btn" onClick={handleSpotifyLogin} disabled={spotifyAuthLoading}>
-                      {spotifyAuthLoading ? 'Checking...' : 'Login with Spotify'}
-                    </button>
-                  )}
+                  <p className="music-subtitle">YouTube playlists with continuous playback across tabs.</p>
                 </div>
               </div>
 
-              {spotifyAuthError ? <p className="music-error">{spotifyAuthError}</p> : null}
-
               <div className="music-source-grid">
-                <article className={`music-source-card ${!spotifyAvailable ? 'music-source-card-disabled' : ''}`}>
-                  <h3>Spotify Playlists</h3>
-                  {!spotifyAvailable ? (
-                    <p className="music-inline-note">Spotify is disabled until server env vars are configured.</p>
-                  ) : !spotifyLoggedIn ? (
-                    <p className="music-inline-note">Log in with Spotify to add and play playlists.</p>
-                  ) : null}
-                  <form className="music-form" onSubmit={handleAddSpotifyPlaylist}>
-                    <input
-                      type="url"
-                      className="music-url-input"
-                      placeholder="https://open.spotify.com/playlist/..."
-                      value={spotifyUrlInput}
-                      onChange={(e) => setSpotifyUrlInput(e.target.value)}
-                      required
-                      disabled={!canManageSpotify || spotifySaving}
-                    />
-                    <button type="submit" disabled={!canManageSpotify || spotifySaving}>
-                      {spotifySaving ? 'Saving...' : 'Add Spotify'}
-                    </button>
-                  </form>
-
-                  <div className="music-player-controls">
-                    <button type="button" onClick={pauseSpotifyPlayback} disabled={!spotifyAvailable || !spotifyNowPlaying || spotifySaving}>Pause Spotify</button>
-                    <span className="music-status">
-                      {!spotifyAvailable
-                        ? 'Unavailable · Configure Spotify env vars'
-                        : !spotifyLoggedIn
-                          ? 'Login required · Player offline'
-                          : `${spotifyNowPlaying ? 'Playing' : 'Paused'} · ${spotifyPlayerReady ? 'Player Ready' : 'Player Starting'}`}
-                    </span>
-                  </div>
-
-                  {spotifyError ? <p className="music-error">{spotifyError}</p> : null}
-                  {spotifyPlayerError ? <p className="music-error">{spotifyPlayerError}</p> : null}
-
-                  {spotifyLoading ? (
-                    <p className="music-empty-state">Loading Spotify playlists...</p>
-                  ) : spotifyPlaylists.length === 0 ? (
-                    <p className="music-empty-state">No Spotify playlists yet.</p>
-                  ) : (
-                    <ul className="playlist-list">
-                      {spotifyPlaylists.map((playlist, index) => {
-                        const isActive = playlist.playlistId === activeSpotifyPlaylistId;
-                        return (
-                          <li key={playlist.playlistId} className={`playlist-item ${isActive ? 'playlist-item-active' : ''}`}>
-                            <div className="playlist-item-meta">
-                              <strong>{`Spotify ${index + 1}`}</strong>
-                              <span>{isActive ? 'Active Playlist' : 'Saved Playlist'}</span>
-                              <a href={playlist.url} target="_blank" rel="noreferrer">Open on Spotify</a>
-                            </div>
-                            <div className="playlist-item-actions">
-                              <button
-                                type="button"
-                                onClick={() => handleActivateSpotifyPlaylist(playlist.playlistId)}
-                                disabled={!canManageSpotify || spotifySaving}
-                              >
-                                {isActive ? 'Play Active' : 'Activate + Play'}
-                              </button>
-                              <button
-                                type="button"
-                                className="playlist-delete-btn"
-                                onClick={() => handleDeleteSpotifyPlaylist(playlist.playlistId)}
-                                disabled={!canManageSpotify || spotifySaving}
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                </article>
-
                 <article className="music-source-card">
                   <h3>YouTube Playlists</h3>
                   <form className="music-form" onSubmit={handleAddYouTubePlaylist}>
