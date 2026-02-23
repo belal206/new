@@ -888,22 +888,10 @@ h1 {
     background-position: 0% 0%, 100% 0%, 0% 0%;
   }
   50% {
-    background-position: 12% 14%, 88% 12%, 100% 100%;
+    background-position: 5% 6%, 95% 6%, 100% 100%;
   }
   100% {
     background-position: 0% 0%, 100% 0%, 0% 0%;
-  }
-}
-
-@keyframes ishq-panel-float {
-  0%,
-  100% {
-    transform: translateY(0);
-    box-shadow: 0 14px 28px rgba(183, 61, 103, 0.16);
-  }
-  50% {
-    transform: translateY(-3px);
-    box-shadow: 0 24px 38px rgba(183, 61, 103, 0.26);
   }
 }
 
@@ -919,8 +907,8 @@ h1 {
 body.theme-ishq {
   background-color: #fff6f1;
   color: #5a1a36;
-  background-size: 120% 120%, 120% 120%, 100% 100%;
-  animation: ishq-bg-drift 24s ease-in-out infinite;
+  background-size: 110% 110%, 110% 110%, 100% 100%;
+  animation: ishq-bg-drift 52s ease-in-out infinite;
 }
 
 body.theme-ishq .poem-card {
@@ -991,8 +979,8 @@ body.theme-ishq .top-nav button:hover {
 
 body.theme-ishq .top-nav button.active {
   background-image: linear-gradient(120deg, #b73d67, #cf8a43, #b73d67);
-  background-size: 200% 200%;
-  animation: ishq-accent-sheen 6s linear infinite;
+  background-size: 150% 150%;
+  animation: ishq-accent-sheen 14s ease-in-out infinite;
 }
 
 body.theme-ishq .form-container {
@@ -1080,27 +1068,6 @@ body.theme-ishq .music-player-controls button {
   background: #fff8f3;
   color: #5a1a36;
   border-color: rgba(183, 61, 103, 0.28);
-}
-
-body.theme-ishq .poem-card,
-body.theme-ishq .poem-detail-card,
-body.theme-ishq .music-section,
-body.theme-ishq .music-source-card,
-body.theme-ishq .playlist-item,
-body.theme-ishq .mehfil-panel {
-  animation: ishq-panel-float 9s ease-in-out infinite;
-  will-change: transform, box-shadow;
-}
-
-body.theme-ishq .poem-detail-card,
-body.theme-ishq .music-section,
-body.theme-ishq .mehfil-panel {
-  animation-delay: 1.2s;
-}
-
-body.theme-ishq .music-source-card,
-body.theme-ishq .playlist-item {
-  animation-delay: 0.6s;
 }
 
 body.theme-fanaa {
@@ -1747,7 +1714,6 @@ body.theme-fanaa .music-player-controls button {
   body.theme-ishq .mehfil-panel,
   body.theme-ishq .top-nav button.active {
     animation: none !important;
-    transform: none;
   }
 }
 
