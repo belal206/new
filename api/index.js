@@ -57,7 +57,7 @@ const extractSpotifyPlaylistId = (rawUrl) => {
     }
 
     const pathParts = parsedUrl.pathname.split('/').filter(Boolean);
-    if (pathParts.length < 2 || pathParts[0] !== 'playlist') {
+    if (pathParts.length !== 2 || pathParts[0] !== 'playlist') {
         return null;
     }
 
@@ -155,7 +155,7 @@ app.get('/api/music/playlists', async (req, res) => {
 
 app.post('/api/music/playlists', async (req, res) => {
     try {
-        const playlistId = extractSpotifyPlaylistId(req.body.url);
+        const playlistId = extractSpotifyPlaylistId(req.body?.url);
         if (!playlistId) {
             return res.status(400).json({ error: 'Invalid Spotify playlist URL' });
         }
@@ -184,7 +184,7 @@ app.post('/api/music/playlists', async (req, res) => {
 
 app.patch('/api/music/playlists/active', async (req, res) => {
     try {
-        const playlistId = String(req.body.playlistId || '').trim();
+        const playlistId = String(req.body?.playlistId || '').trim();
         if (!playlistId) {
             return res.status(400).json({ error: 'Playlist ID is required' });
         }
