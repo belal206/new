@@ -1396,6 +1396,78 @@ body.theme-fanaa header::after {
   opacity: 0.95;
 }
 
+@keyframes fanaa-crimson-drift {
+  0% {
+    background-position: 50% 0%;
+  }
+  100% {
+    background-position: 50% 100%;
+  }
+}
+
+@keyframes fanaa-drip-pulse {
+  0%, 100% {
+    opacity: 0.86;
+    transform: scaleY(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1.14);
+  }
+}
+
+body.theme-fanaa h1,
+body.theme-fanaa .poem-card h2,
+body.theme-fanaa .poem-detail-card h2,
+body.theme-fanaa .mehfil-title,
+body.theme-fanaa .music-auth-left h2,
+body.theme-fanaa .music-source-card h3,
+body.theme-fanaa .levelup-meta h3,
+body.theme-fanaa .form-container h2 {
+  color: transparent;
+  background-image: linear-gradient(180deg, #ff8aa6 0%, #ff486f 35%, #d31843 68%, #7f0e27 100%);
+  background-size: 100% 220%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: none;
+  animation: fanaa-crimson-drift 4.2s ease-in-out infinite alternate;
+}
+
+body.theme-fanaa .poem-card h2,
+body.theme-fanaa .poem-detail-card h2,
+body.theme-fanaa .mehfil-title,
+body.theme-fanaa .music-auth-left h2,
+body.theme-fanaa .music-source-card h3,
+body.theme-fanaa .levelup-meta h3,
+body.theme-fanaa .form-container h2 {
+  position: relative;
+}
+
+body.theme-fanaa .poem-card h2::after,
+body.theme-fanaa .poem-detail-card h2::after,
+body.theme-fanaa .mehfil-title::after,
+body.theme-fanaa .music-auth-left h2::after,
+body.theme-fanaa .music-source-card h3::after,
+body.theme-fanaa .levelup-meta h3::after,
+body.theme-fanaa .form-container h2::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: -8px;
+  width: min(180px, 72%);
+  height: 10px;
+  background:
+    radial-gradient(circle at 14% 0, rgba(214, 41, 80, 0.95) 0 3px, transparent 3.5px),
+    radial-gradient(circle at 38% 0, rgba(194, 24, 58, 0.95) 0 4px, transparent 4.5px),
+    radial-gradient(circle at 62% 0, rgba(153, 17, 43, 0.95) 0 3.5px, transparent 4px),
+    radial-gradient(circle at 84% 0, rgba(214, 41, 80, 0.95) 0 4px, transparent 4.5px);
+  background-repeat: no-repeat;
+  pointer-events: none;
+  animation: fanaa-drip-pulse 2.1s ease-in-out infinite;
+}
+
 body.theme-fanaa .bismillah {
   color: #d21d43;
   text-shadow: none;
