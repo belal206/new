@@ -2110,6 +2110,53 @@ body.theme-fanaa .music-player-controls button {
   border-color: rgba(255, 255, 255, 0.24);
 }
 
+/* Final Fanaa text balance: red only for poem heading/body */
+body.theme-fanaa,
+body.theme-fanaa h1,
+body.theme-fanaa .music-auth-left h2,
+body.theme-fanaa .music-source-card h3,
+body.theme-fanaa .levelup-meta h3,
+body.theme-fanaa .form-container h2,
+body.theme-fanaa .music-subtitle,
+body.theme-fanaa .music-empty-state,
+body.theme-fanaa .music-status,
+body.theme-fanaa .music-inline-note,
+body.theme-fanaa .playlist-item-meta strong,
+body.theme-fanaa .playlist-item-meta span,
+body.theme-fanaa .playlist-item-meta a,
+body.theme-fanaa .poet-stamp,
+body.theme-fanaa .mehfil-poet,
+body.theme-fanaa .poem-read-hint,
+body.theme-fanaa .poem-tag-picker label,
+body.theme-fanaa .poem-tag,
+body.theme-fanaa .poem-tag-remove,
+body.theme-fanaa .poem-detail-btn,
+body.theme-fanaa .poem-action-btn,
+body.theme-fanaa .mehfil-btn,
+body.theme-fanaa .theme-control,
+body.theme-fanaa .form-container button,
+body.theme-fanaa .music-auth-btn,
+body.theme-fanaa .music-form button,
+body.theme-fanaa .playlist-item-actions button,
+body.theme-fanaa .music-player-controls button,
+body.theme-fanaa .music-url-input,
+body.theme-fanaa .poem-tag-picker select,
+body.theme-fanaa .form-container input,
+body.theme-fanaa .form-container textarea,
+body.theme-fanaa .form-container select {
+  color: #e8e1d2;
+}
+
+body.theme-fanaa .poem-card h2,
+body.theme-fanaa .poem-detail-card h2,
+body.theme-fanaa .mehfil-title,
+body.theme-fanaa .poem-card .content,
+body.theme-fanaa .poem-preview-line,
+body.theme-fanaa .poem-detail-content,
+body.theme-fanaa .mehfil-line {
+  color: #bd0606;
+}
+
 @media (prefers-reduced-motion: reduce) {
   body.theme-noor {
     animation: none;
