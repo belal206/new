@@ -174,7 +174,20 @@ const normalizeLevelUpPayload = (payload) => ({
   streakDays: Math.max(0, Number.parseInt(String(payload?.streakDays ?? 0), 10) || 0),
   isStreakGlowOn: Boolean(payload?.isStreakGlowOn),
   streakLastDate: typeof payload?.streakLastDate === 'string' ? payload.streakLastDate : null,
+  dailyGoalCount: Math.max(1, Number.parseInt(String(payload?.dailyGoalCount ?? 1), 10) || 1),
+  dailyProgressCount: Math.max(0, Number.parseInt(String(payload?.dailyProgressCount ?? 0), 10) || 0),
+  dailyCompleted: Boolean(payload?.dailyCompleted),
+  dailyQuestDateKey: typeof payload?.dailyQuestDateKey === 'string' ? payload.dailyQuestDateKey : null,
+  secondsUntilReset: Math.max(0, Number.parseInt(String(payload?.secondsUntilReset ?? 0), 10) || 0),
 });
+
+const formatResetCountdown = (totalSeconds) => {
+  const safeSeconds = Math.max(0, Number.isFinite(totalSeconds) ? totalSeconds : 0);
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const seconds = safeSeconds % 60;
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+};
 
 const readErrorMessage = async (res, fallbackMessage) => {
   try {
@@ -292,6 +305,12 @@ function App() {
   const [streakDays, setStreakDays] = useState(0);
   const [isStreakGlowOn, setIsStreakGlowOn] = useState(false);
   const [streakLastDate, setStreakLastDate] = useState(null);
+  const [dailyGoalCount, setDailyGoalCount] = useState(1);
+  const [dailyProgressCount, setDailyProgressCount] = useState(0);
+  const [dailyCompleted, setDailyCompleted] = useState(false);
+  const [dailyQuestDateKey, setDailyQuestDateKey] = useState(null);
+  const [secondsUntilReset, setSecondsUntilReset] = useState(0);
+  const [isQuestPulseOn, setIsQuestPulseOn] = useState(false);
   const [isCelebrating, setIsCelebrating] = useState(false);
   const [celebrationUntil, setCelebrationUntil] = useState(0);
   const galleryScrollYRef = useRef(0);
@@ -371,6 +390,10 @@ function App() {
   const levelState = resolveLevelState(selfCreatedCount);
   const levelRemaining = levelState.isMax ? 0 : Math.max(levelState.nextGoal - selfCreatedCount, 0);
   const goalRamp = getGoalRamp(levelState.progress);
+  const safeDailyGoal = Math.max(1, dailyGoalCount);
+  const safeDailyProgress = Math.min(Math.max(dailyProgressCount, 0), safeDailyGoal);
+  const dailyQuestProgressPercent = Math.min(100, Math.max(0, (safeDailyProgress / safeDailyGoal) * 100));
+  const dailyResetLabel = formatResetCountdown(secondsUntilReset);
 
   const fetchPoems = async () => {
     try {
@@ -389,6 +412,11 @@ function App() {
     setStreakDays(normalized.streakDays);
     setIsStreakGlowOn(normalized.isStreakGlowOn);
     setStreakLastDate(normalized.streakLastDate);
+    setDailyGoalCount(normalized.dailyGoalCount);
+    setDailyProgressCount(normalized.dailyProgressCount);
+    setDailyCompleted(normalized.dailyCompleted);
+    setDailyQuestDateKey(normalized.dailyQuestDateKey);
+    setSecondsUntilReset(normalized.secondsUntilReset);
   };
 
   const fetchLevelUp = async () => {
@@ -424,6 +452,9 @@ function App() {
     applyLevelUpPayload(data);
     if (data?.celebrate) {
       triggerCelebration(data?.celebrationSeconds || 10);
+    }
+    if (data?.questJustCompleted) {
+      setIsQuestPulseOn(true);
     }
   };
 
@@ -1059,6 +1090,20 @@ function App() {
     const timeout = window.setTimeout(() => setIsCelebrating(false), remainingMs || CELEBRATION_DURATION_MS);
     return () => window.clearTimeout(timeout);
   }, [isCelebrating, celebrationUntil]);
+
+  useEffect(() => {
+    if (secondsUntilReset <= 0) return undefined;
+    const interval = window.setInterval(() => {
+      setSecondsUntilReset((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [secondsUntilReset > 0]);
+
+  useEffect(() => {
+    if (!isQuestPulseOn) return undefined;
+    const timeout = window.setTimeout(() => setIsQuestPulseOn(false), 2200);
+    return () => window.clearTimeout(timeout);
+  }, [isQuestPulseOn]);
 
   useEffect(() => {
     if (!isCelebrating) return undefined;
@@ -1700,6 +1745,18 @@ function App() {
                     ? 'Max level reached: Fanaa.'
                     : `${levelRemaining} more to reach ${levelState.nextLevelTitle}.${streakDays >= 2 ? ` Streak alive since ${streakLastDate || 'today'}.` : ''}`}
                 </p>
+                <section className={`daily-quest-card${isQuestPulseOn ? ' daily-quest-card-pulse' : ''}`} aria-label="Daily quest">
+                  <div className="daily-quest-head">
+                    <strong>Daily Quest</strong>
+                    <span>{dailyCompleted ? 'Completed' : 'In Progress'}</span>
+                  </div>
+                  <div className="daily-quest-bar" role="progressbar" aria-valuemin={0} aria-valuemax={safeDailyGoal} aria-valuenow={safeDailyProgress}>
+                    <span style={{ width: `${dailyQuestProgressPercent}%` }}></span>
+                  </div>
+                  <p className="daily-quest-note">
+                    {`${safeDailyProgress}/${safeDailyGoal} verses today · resets in ${dailyResetLabel} UTC${dailyQuestDateKey ? ` · ${dailyQuestDateKey}` : ''}`}
+                  </p>
+                </section>
               </article>
 
               <div className="poem-list-toolbar" ref={semaMenuRef}>

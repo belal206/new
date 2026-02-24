@@ -333,6 +333,72 @@ h1 {
   color: rgba(36, 0, 70, 0.74);
 }
 
+.daily-quest-card {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(212, 175, 55, 0.42);
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.daily-quest-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.daily-quest-head strong {
+  font-size: 0.8rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--royal-purple);
+}
+
+.daily-quest-head span {
+  font-size: 0.74rem;
+  color: rgba(36, 0, 70, 0.72);
+}
+
+.daily-quest-bar {
+  margin-top: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(36, 0, 70, 0.14);
+  overflow: hidden;
+}
+
+.daily-quest-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--goal-a), var(--goal-b), var(--goal-c));
+  transition: width 0.28s ease;
+}
+
+.daily-quest-note {
+  margin: 8px 0 0;
+  font-size: 0.76rem;
+  letter-spacing: 0.2px;
+  color: rgba(36, 0, 70, 0.72);
+}
+
+.daily-quest-card-pulse {
+  animation: daily-quest-pulse 0.8s ease-in-out 2;
+}
+
+@keyframes daily-quest-pulse {
+  0% {
+    box-shadow: 0 0 0 rgba(212, 175, 55, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.55), 0 0 26px rgba(212, 175, 55, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 rgba(212, 175, 55, 0);
+  }
+}
+
 @keyframes levelup-gradient-drift {
   0% {
     background-position: 0% 50%;
@@ -466,6 +532,21 @@ body.theme-noor .levelup-bar {
 
 body.theme-noor .levelup-bar.levelup-bar-streak {
   box-shadow: 0 0 0 1px rgba(181, 141, 74, 0.42), 0 0 18px rgba(181, 141, 74, 0.36);
+}
+
+body.theme-noor .daily-quest-card {
+  background: rgba(255, 246, 232, 0.78);
+  border-color: rgba(181, 141, 74, 0.48);
+}
+
+body.theme-noor .daily-quest-head strong,
+body.theme-noor .daily-quest-head span,
+body.theme-noor .daily-quest-note {
+  color: #4b3a23;
+}
+
+body.theme-noor .daily-quest-bar {
+  background: rgba(75, 58, 35, 0.18);
 }
 
 body.theme-noor .sema-menu-trigger,
@@ -1107,6 +1188,20 @@ body.theme-noor .sema-menu-popover {
 
   .levelup-note {
     font-size: 0.76rem;
+  }
+
+  .daily-quest-card {
+    margin-top: 10px;
+    padding: 9px 10px;
+  }
+
+  .daily-quest-head strong {
+    font-size: 0.74rem;
+  }
+
+  .daily-quest-head span,
+  .daily-quest-note {
+    font-size: 0.7rem;
   }
 
   .poem-list-toolbar {
@@ -2038,6 +2133,21 @@ body.theme-shahi .levelup-bar.levelup-bar-streak {
   box-shadow: 0 0 0 1px rgba(201, 168, 106, 0.45), 0 0 18px rgba(201, 168, 106, 0.4);
 }
 
+body.theme-shahi .daily-quest-card {
+  background: rgba(15, 15, 15, 0.8);
+  border-color: rgba(181, 141, 74, 0.5);
+}
+
+body.theme-shahi .daily-quest-head strong,
+body.theme-shahi .daily-quest-head span,
+body.theme-shahi .daily-quest-note {
+  color: #d8cfbc;
+}
+
+body.theme-shahi .daily-quest-bar {
+  background: rgba(232, 225, 210, 0.16);
+}
+
 @media (prefers-reduced-motion: reduce) {
   body.theme-noor {
     animation: none;
@@ -2056,7 +2166,8 @@ body.theme-shahi .levelup-bar.levelup-bar-streak {
   .levelup-card::after,
   .levelup-fill,
   .levelup-fill.levelup-fill-streak,
-  .celebration-glow {
+  .celebration-glow,
+  .daily-quest-card-pulse {
     animation: none !important;
   }
 }
