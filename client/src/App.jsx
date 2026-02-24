@@ -33,16 +33,16 @@ const FEEL_TAGS = [
   'Devotion',
   'Grief',
 ];
-const THEMES = ['sukoon', 'noor', 'fanaa'];
+const THEMES = ['sukoon', 'noor', 'shahi'];
 const THEME_LABELS = {
   sukoon: 'Sukoon',
   noor: 'Noor',
-  fanaa: 'Fanaa',
+  shahi: 'Shahi',
 };
 const THEME_ICONS = {
   sukoon: '☀',
   noor: '✧',
-  fanaa: '☾',
+  shahi: '♛',
 };
 const THEME_STORAGE_KEY = 'sufi_dervish_theme';
 const RANDOMIZE_ENABLED_STORAGE_KEY = 'sufi_randomize_poems_enabled';
@@ -884,11 +884,16 @@ function App() {
   }, [isMehfilOpen, poems, activeMehfilPoemId, poemLines.length]);
 
   useEffect(() => {
-    const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+    const storedThemeRaw = window.localStorage.getItem(THEME_STORAGE_KEY);
+    let storedTheme = storedThemeRaw;
     if (storedTheme === 'ishq') {
       setCurrentTheme('noor');
       window.localStorage.setItem(THEME_STORAGE_KEY, 'noor');
       return;
+    }
+    if (storedTheme === 'fanaa') {
+      storedTheme = 'shahi';
+      window.localStorage.setItem(THEME_STORAGE_KEY, storedTheme);
     }
     if (THEMES.includes(storedTheme)) {
       setCurrentTheme(storedTheme);
