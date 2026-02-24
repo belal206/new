@@ -47,7 +47,7 @@ const THEME_ICONS = {
 const THEME_STORAGE_KEY = 'sufi_dervish_theme';
 const RANDOMIZE_ENABLED_STORAGE_KEY = 'sufi_randomize_poems_enabled';
 const RANDOMIZE_ORDER_STORAGE_KEY = 'sufi_randomize_poems_order';
-const SELF_CREATED_COUNT_STORAGE_KEY = 'sufi_self_created_count';
+const CELEBRATION_DURATION_MS = 10000;
 
 const normalizeTags = (tags) => [...new Set(
   (Array.isArray(tags) ? tags : [])
@@ -148,9 +148,8 @@ const resolveLevelState = (countValue) => {
   const isMax = currentLevel.max === Number.POSITIVE_INFINITY;
   const nextLevel = currentLevelIndex < LEVELS.length - 1 ? LEVELS[currentLevelIndex + 1] : null;
   const nextGoal = isMax ? currentLevel.min : currentLevel.max + 1;
-  const previousGoal = currentLevel.min;
-  const span = Math.max(1, nextGoal - previousGoal);
-  const progress = isMax ? 100 : Math.min(100, ((count - previousGoal) / span) * 100);
+  const span = Math.max(1, (currentLevel.max - currentLevel.min + 1));
+  const progress = isMax ? 100 : Math.min(100, Math.max(0, ((count - currentLevel.min + 1) / span) * 100));
 
   return {
     levelTitle: currentLevel.title,
@@ -160,6 +159,22 @@ const resolveLevelState = (countValue) => {
     isMax,
   };
 };
+
+const getGoalRamp = (progressValue) => {
+  const progress = Number.isFinite(progressValue) ? progressValue : 0;
+  if (progress >= 100) return 'r100';
+  if (progress >= 95) return 'r95';
+  if (progress >= 80) return 'r80';
+  if (progress >= 60) return 'r60';
+  return 'base';
+};
+
+const normalizeLevelUpPayload = (payload) => ({
+  count: Math.max(0, Number.parseInt(String(payload?.count ?? 0), 10) || 0),
+  streakDays: Math.max(0, Number.parseInt(String(payload?.streakDays ?? 0), 10) || 0),
+  isStreakGlowOn: Boolean(payload?.isStreakGlowOn),
+  streakLastDate: typeof payload?.streakLastDate === 'string' ? payload.streakLastDate : null,
+});
 
 const readErrorMessage = async (res, fallbackMessage) => {
   try {
@@ -274,8 +289,14 @@ function App() {
   const [randomOrderIds, setRandomOrderIds] = useState([]);
   const [isSemaMenuOpen, setIsSemaMenuOpen] = useState(false);
   const [selfCreatedCount, setSelfCreatedCount] = useState(0);
+  const [streakDays, setStreakDays] = useState(0);
+  const [isStreakGlowOn, setIsStreakGlowOn] = useState(false);
+  const [streakLastDate, setStreakLastDate] = useState(null);
+  const [isCelebrating, setIsCelebrating] = useState(false);
+  const [celebrationUntil, setCelebrationUntil] = useState(0);
   const galleryScrollYRef = useRef(0);
   const semaMenuRef = useRef(null);
+  const celebrationCanvasRef = useRef(null);
 
   const [formData, setFormData] = useState({ title: '', poet: 'Ahmad Faraz', content: '', tags: [] });
   const [editingPoemId, setEditingPoemId] = useState(null);
@@ -349,6 +370,7 @@ function App() {
   const displayPoems = isRandomOrderEnabled ? applyOrderIds(poems, randomOrderIds) : poems;
   const levelState = resolveLevelState(selfCreatedCount);
   const levelRemaining = levelState.isMax ? 0 : Math.max(levelState.nextGoal - selfCreatedCount, 0);
+  const goalRamp = getGoalRamp(levelState.progress);
 
   const fetchPoems = async () => {
     try {
@@ -358,6 +380,50 @@ function App() {
       setPoems(data);
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const applyLevelUpPayload = (payload) => {
+    const normalized = normalizeLevelUpPayload(payload);
+    setSelfCreatedCount(normalized.count);
+    setStreakDays(normalized.streakDays);
+    setIsStreakGlowOn(normalized.isStreakGlowOn);
+    setStreakLastDate(normalized.streakLastDate);
+  };
+
+  const fetchLevelUp = async () => {
+    try {
+      const res = await fetch('/api/levelup');
+      if (!res.ok) {
+        const message = await readErrorMessage(res, 'Unable to load level up progress.');
+        throw new Error(message);
+      }
+      const data = await res.json();
+      applyLevelUpPayload(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const triggerCelebration = (durationSeconds = 10) => {
+    const durationMs = Math.max(1000, Number.parseInt(String(durationSeconds || 10), 10) * 1000);
+    setCelebrationUntil(Date.now() + durationMs);
+    setIsCelebrating(true);
+  };
+
+  const incrementLevelUp = async () => {
+    const res = await fetch('/api/levelup/increment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!res.ok) {
+      const message = await readErrorMessage(res, 'Unable to update level up progress.');
+      throw new Error(message);
+    }
+    const data = await res.json();
+    applyLevelUpPayload(data);
+    if (data?.celebrate) {
+      triggerCelebration(data?.celebrationSeconds || 10);
     }
   };
 
@@ -639,6 +705,7 @@ function App() {
     }
 
     fetchPoems();
+    fetchLevelUp();
     fetchYouTubePlaylists();
     if (!YOUTUBE_ONLY_MODE) {
       fetchSpotifySession();
@@ -914,11 +981,6 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const storedCount = Number.parseInt(window.localStorage.getItem(SELF_CREATED_COUNT_STORAGE_KEY) || '0', 10);
-    setSelfCreatedCount(Number.isFinite(storedCount) && storedCount > 0 ? storedCount : 0);
-  }, []);
-
-  useEffect(() => {
     const themeClasses = THEMES.map((theme) => `theme-${theme}`);
     document.body.classList.remove(...themeClasses);
     document.body.classList.add(`theme-${currentTheme}`);
@@ -935,10 +997,6 @@ function App() {
   useEffect(() => {
     window.localStorage.setItem(RANDOMIZE_ORDER_STORAGE_KEY, JSON.stringify(randomOrderIds));
   }, [randomOrderIds]);
-
-  useEffect(() => {
-    window.localStorage.setItem(SELF_CREATED_COUNT_STORAGE_KEY, String(selfCreatedCount));
-  }, [selfCreatedCount]);
 
   useEffect(() => {
     if (!isRandomOrderEnabled) return;
@@ -995,6 +1053,113 @@ function App() {
     }
   }, [view, selectedPoemId, selectedPoem]);
 
+  useEffect(() => {
+    if (!isCelebrating) return undefined;
+    const remainingMs = Math.max(0, celebrationUntil - Date.now());
+    const timeout = window.setTimeout(() => setIsCelebrating(false), remainingMs || CELEBRATION_DURATION_MS);
+    return () => window.clearTimeout(timeout);
+  }, [isCelebrating, celebrationUntil]);
+
+  useEffect(() => {
+    if (!isCelebrating) return undefined;
+    const canvas = celebrationCanvasRef.current;
+    if (!canvas) return undefined;
+    const context = canvas.getContext('2d');
+    if (!context) return undefined;
+
+    const palettes = {
+      sukoon: ['#d4af37', '#f3cd73', '#7b2cbf', '#f6e6a6'],
+      noor: ['#b58d4a', '#d8be86', '#f2e1bb', '#9f7932'],
+      shahi: ['#c9a86a', '#b58d4a', '#f3deaf', '#e8e1d2'],
+    };
+    const colors = palettes[currentTheme] || palettes.sukoon;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const devicePixelRatio = window.devicePixelRatio || 1;
+    const particles = [];
+    let frameId = 0;
+    let lastSpawnAt = 0;
+
+    const resizeCanvas = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      canvas.width = Math.floor(width * devicePixelRatio);
+      canvas.height = Math.floor(height * devicePixelRatio);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      context.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+      context.clearRect(0, 0, width, height);
+    };
+
+    const spawnFireworkBurst = () => {
+      const width = canvas.width / devicePixelRatio;
+      const height = canvas.height / devicePixelRatio;
+      if (!width || !height) return;
+
+      const centerX = Math.random() * width * 0.8 + width * 0.1;
+      const centerY = Math.random() * height * 0.45 + height * 0.08;
+      const count = prefersReducedMotion ? 18 : 34;
+
+      for (let index = 0; index < count; index += 1) {
+        const angle = (Math.PI * 2 * index) / count + (Math.random() - 0.5) * 0.2;
+        const speed = (prefersReducedMotion ? 1.6 : 2.6) + Math.random() * (prefersReducedMotion ? 1.2 : 2.4);
+        const life = (prefersReducedMotion ? 30 : 42) + Math.floor(Math.random() * (prefersReducedMotion ? 20 : 28));
+        particles.push({
+          x: centerX,
+          y: centerY,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          radius: prefersReducedMotion ? 1.6 + Math.random() * 1.8 : 2 + Math.random() * 2.4,
+          life,
+          maxLife: life,
+          color: colors[Math.floor(Math.random() * colors.length)],
+        });
+      }
+    };
+
+    const drawFrame = (timestamp) => {
+      const width = canvas.width / devicePixelRatio;
+      const height = canvas.height / devicePixelRatio;
+      context.fillStyle = 'rgba(0, 0, 0, 0.1)';
+      context.fillRect(0, 0, width, height);
+
+      const spawnInterval = prefersReducedMotion ? 900 : 380;
+      if (timestamp - lastSpawnAt >= spawnInterval) {
+        spawnFireworkBurst();
+        lastSpawnAt = timestamp;
+      }
+
+      for (let index = particles.length - 1; index >= 0; index -= 1) {
+        const particle = particles[index];
+        particle.vy += prefersReducedMotion ? 0.01 : 0.02;
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+        particle.life -= 1;
+        if (particle.life <= 0) {
+          particles.splice(index, 1);
+          continue;
+        }
+        const alpha = particle.life / particle.maxLife;
+        context.globalAlpha = alpha;
+        context.fillStyle = particle.color;
+        context.beginPath();
+        context.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+        context.fill();
+      }
+      context.globalAlpha = 1;
+      frameId = window.requestAnimationFrame(drawFrame);
+    };
+
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    frameId = window.requestAnimationFrame(drawFrame);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener('resize', resizeCanvas);
+      context.clearRect(0, 0, canvas.width, canvas.height);
+    };
+  }, [isCelebrating, currentTheme]);
+
   const handlePlant = async (e) => {
     e.preventDefault();
     const poetName = formData.poet.trim();
@@ -1012,7 +1177,12 @@ function App() {
       if (!res.ok) throw new Error(`Save failed with status ${res.status}`);
       alert('Verse inscribed in the Sanctuary.');
       setFormData({ title: '', poet: 'Ahmad Faraz', content: '', tags: [] });
-      setSelfCreatedCount((prev) => prev + 1);
+      try {
+        await incrementLevelUp();
+      } catch (levelErr) {
+        console.error(levelErr);
+        await fetchLevelUp();
+      }
       setView('gallery');
       fetchPoems();
     } catch (err) {
@@ -1481,6 +1651,12 @@ function App() {
     <div className="sanctuary-root">
       <div className="mehrab-frame"></div>
       <FallingLeaves />
+      {isCelebrating ? (
+        <div className="celebration-overlay" aria-hidden="true">
+          <canvas ref={celebrationCanvasRef} className="celebration-canvas"></canvas>
+          <div className="celebration-glow"></div>
+        </div>
+      ) : null}
 
       <div className="theme-switcher">
         <button
@@ -1511,16 +1687,18 @@ function App() {
         <main>
           {view === 'gallery' ? (
             <section className="poem-gallery">
-              <article className="levelup-card" aria-label="The Level Up progress">
+              <article className="levelup-card" data-goal-ramp={goalRamp} aria-label="The Level Up progress">
                 <div className="levelup-meta">
                   <h3>The Level Up</h3>
-                  <span>{`${levelState.levelTitle} · ${selfCreatedCount} Verses`}</span>
+                  <span>{`${levelState.levelTitle} · ${selfCreatedCount} Verses${streakDays >= 2 ? ` · ${streakDays}-day streak` : ''}`}</span>
                 </div>
-                <div className="levelup-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(levelState.progress)}>
-                  <span className="levelup-fill" style={{ width: `${levelState.progress}%` }}></span>
+                <div className={`levelup-bar${isStreakGlowOn ? ' levelup-bar-streak' : ''}`} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(levelState.progress)}>
+                  <span className={`levelup-fill${isStreakGlowOn ? ' levelup-fill-streak' : ''}`} style={{ width: `${levelState.progress}%` }}></span>
                 </div>
                 <p className="levelup-note">
-                  {levelState.isMax ? 'Max level reached: Fanaa.' : `${levelRemaining} more to reach ${levelState.nextLevelTitle}.`}
+                  {levelState.isMax
+                    ? 'Max level reached: Fanaa.'
+                    : `${levelRemaining} more to reach ${levelState.nextLevelTitle}.${streakDays >= 2 ? ` Streak alive since ${streakLastDate || 'today'}.` : ''}`}
                 </p>
               </article>
 

@@ -73,7 +73,11 @@ const MusicSettings = mongoose.model('MusicSettings', new mongoose.Schema({
         url: { type: String, required: true },
         createdAt: { type: Date, default: Date.now }
     }],
-    activeYoutubePlaylistId: { type: String, default: null }
+    activeYoutubePlaylistId: { type: String, default: null },
+    selfCreatedCount: { type: Number, default: 0 },
+    lastCelebratedMilestone: { type: Number, default: 0 },
+    streakDays: { type: Number, default: 0 },
+    streakLastDate: { type: String, default: null }
 }, { timestamps: true }));
 
 const spotifyConfigured = () => Boolean(SPOTIFY_CLIENT_ID && SPOTIFY_CLIENT_SECRET && SPOTIFY_REDIRECT_URI);
@@ -232,6 +236,145 @@ const serializeSource = (playlists, activePlaylistId) => ({
     activePlaylistId: activePlaylistId || null
 });
 
+const LEVELS = [
+    { title: 'Murid', min: 0, max: 2 },
+    { title: 'Raahi', min: 3, max: 5 },
+    { title: 'Dervish', min: 6, max: 9 },
+    { title: 'Arif', min: 10, max: 14 },
+    { title: 'Fanaa', min: 15, max: Number.POSITIVE_INFINITY }
+];
+
+const LEVEL_COMPLETION_MILESTONES = [2, 5, 9, 14, 15];
+const CELEBRATION_SECONDS = 10;
+
+const normalizeNonNegativeInteger = (value, fallback = 0) => {
+    const parsed = Number.parseInt(String(value ?? ''), 10);
+    if (!Number.isFinite(parsed) || parsed < 0) return fallback;
+    return parsed;
+};
+
+const isValidDateKey = (value) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || ''));
+
+const toUtcDateKey = (value = new Date()) => {
+    const date = value instanceof Date ? value : new Date(value);
+    return date.toISOString().slice(0, 10);
+};
+
+const parseDateKeyToUtcMs = (dateKey) => {
+    if (!isValidDateKey(dateKey)) return null;
+    const parsed = new Date(`${dateKey}T00:00:00.000Z`);
+    const ms = parsed.getTime();
+    return Number.isFinite(ms) ? ms : null;
+};
+
+const getUtcDayDiff = (fromDateKey, toDateKey) => {
+    const fromMs = parseDateKeyToUtcMs(fromDateKey);
+    const toMs = parseDateKeyToUtcMs(toDateKey);
+    if (fromMs === null || toMs === null) return Number.POSITIVE_INFINITY;
+    return Math.floor((toMs - fromMs) / 86400000);
+};
+
+const resolveLevelState = (countValue) => {
+    const count = Math.max(0, normalizeNonNegativeInteger(countValue, 0));
+    let currentLevelIndex = LEVELS.length - 1;
+    let currentLevel = LEVELS[LEVELS.length - 1];
+
+    for (let index = 0; index < LEVELS.length; index += 1) {
+        const level = LEVELS[index];
+        if (count <= level.max) {
+            currentLevel = level;
+            currentLevelIndex = index;
+            break;
+        }
+    }
+
+    const isMax = currentLevel.max === Number.POSITIVE_INFINITY;
+    const nextLevel = currentLevelIndex < LEVELS.length - 1 ? LEVELS[currentLevelIndex + 1] : null;
+    const nextGoal = isMax ? currentLevel.min : currentLevel.max + 1;
+    const span = Math.max(1, (currentLevel.max - currentLevel.min + 1));
+    const progress = isMax
+        ? 100
+        : Math.min(100, Math.max(0, ((count - currentLevel.min + 1) / span) * 100));
+
+    return {
+        levelTitle: currentLevel.title,
+        nextLevelTitle: nextLevel?.title || currentLevel.title,
+        nextGoal,
+        progress,
+        isMax
+    };
+};
+
+const getCompletionMilestone = (count) => LEVEL_COMPLETION_MILESTONES.includes(count) ? count : null;
+
+const normalizeLevelUpFields = (musicSettings) => {
+    let changed = false;
+
+    const normalizedCount = normalizeNonNegativeInteger(musicSettings.selfCreatedCount, 0);
+    if (musicSettings.selfCreatedCount !== normalizedCount) {
+        musicSettings.selfCreatedCount = normalizedCount;
+        changed = true;
+    }
+
+    const normalizedMilestone = normalizeNonNegativeInteger(musicSettings.lastCelebratedMilestone, 0);
+    if (musicSettings.lastCelebratedMilestone !== normalizedMilestone) {
+        musicSettings.lastCelebratedMilestone = normalizedMilestone;
+        changed = true;
+    }
+
+    const normalizedStreakDays = normalizeNonNegativeInteger(musicSettings.streakDays, 0);
+    if (musicSettings.streakDays !== normalizedStreakDays) {
+        musicSettings.streakDays = normalizedStreakDays;
+        changed = true;
+    }
+
+    const normalizedStreakLastDate = isValidDateKey(musicSettings.streakLastDate) ? musicSettings.streakLastDate : null;
+    if (musicSettings.streakLastDate !== normalizedStreakLastDate) {
+        musicSettings.streakLastDate = normalizedStreakLastDate;
+        changed = true;
+    }
+
+    return changed;
+};
+
+const refreshStreakForToday = (musicSettings, todayKey = toUtcDateKey()) => {
+    const streakLastDate = isValidDateKey(musicSettings.streakLastDate) ? musicSettings.streakLastDate : null;
+    const dayGap = streakLastDate ? getUtcDayDiff(streakLastDate, todayKey) : Number.POSITIVE_INFINITY;
+    let changed = false;
+
+    if (streakLastDate && dayGap > 1) {
+        if (musicSettings.streakDays !== 0) {
+            musicSettings.streakDays = 0;
+            changed = true;
+        }
+    }
+
+    return {
+        changed,
+        dayGap: Number.isFinite(dayGap) ? dayGap : Number.POSITIVE_INFINITY
+    };
+};
+
+const serializeLevelUp = (musicSettings, todayKey = toUtcDateKey()) => {
+    const count = normalizeNonNegativeInteger(musicSettings.selfCreatedCount, 0);
+    const streakDays = normalizeNonNegativeInteger(musicSettings.streakDays, 0);
+    const streakLastDate = isValidDateKey(musicSettings.streakLastDate) ? musicSettings.streakLastDate : null;
+    const dayGap = streakLastDate ? getUtcDayDiff(streakLastDate, todayKey) : Number.POSITIVE_INFINITY;
+    const level = resolveLevelState(count);
+
+    return {
+        count,
+        levelTitle: level.levelTitle,
+        progress: level.progress,
+        nextLevelTitle: level.nextLevelTitle,
+        nextGoal: level.nextGoal,
+        isMax: level.isMax,
+        streakDays,
+        isStreakGlowOn: streakDays >= 2 && dayGap <= 1,
+        streakLastDate
+    };
+};
+
 const getOrCreateMusicSettings = async () => MusicSettings.findOneAndUpdate(
     { scope: 'global' },
     {
@@ -242,7 +385,11 @@ const getOrCreateMusicSettings = async () => MusicSettings.findOneAndUpdate(
             spotifyPlaylists: [],
             activeSpotifyPlaylistId: null,
             youtubePlaylists: [],
-            activeYoutubePlaylistId: null
+            activeYoutubePlaylistId: null,
+            selfCreatedCount: 0,
+            lastCelebratedMilestone: 0,
+            streakDays: 0,
+            streakLastDate: null
         }
     },
     { upsert: true, new: true }
@@ -250,6 +397,10 @@ const getOrCreateMusicSettings = async () => MusicSettings.findOneAndUpdate(
 
 const migrateLegacyMusicSettings = async (musicSettings) => {
     let changed = false;
+
+    if (normalizeLevelUpFields(musicSettings)) {
+        changed = true;
+    }
 
     const normalizedSpotifyPlaylists = normalizePlaylistArray(musicSettings.spotifyPlaylists);
     if (!playlistArraysEqual(normalizedSpotifyPlaylists, musicSettings.spotifyPlaylists)) {
@@ -461,6 +612,69 @@ app.delete('/api/poems/:id', async (req, res) => {
         res.json({ message: 'Deleted' });
     } catch (err) {
         res.status(500).json({ error: 'Failed to delete' });
+    }
+});
+
+app.get('/api/levelup', async (req, res) => {
+    try {
+        const musicSettings = await getMusicSettings();
+        const todayKey = toUtcDateKey();
+        const streakState = refreshStreakForToday(musicSettings, todayKey);
+        if (streakState.changed) {
+            await musicSettings.save();
+        }
+        res.json(serializeLevelUp(musicSettings, todayKey));
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch level up progress' });
+    }
+});
+
+app.post('/api/levelup/increment', async (req, res) => {
+    try {
+        const musicSettings = await getMusicSettings();
+        const todayKey = toUtcDateKey();
+
+        const currentCount = normalizeNonNegativeInteger(musicSettings.selfCreatedCount, 0);
+        const nextCount = currentCount + 1;
+        musicSettings.selfCreatedCount = nextCount;
+
+        const previousStreakDays = normalizeNonNegativeInteger(musicSettings.streakDays, 0);
+        const previousStreakDate = isValidDateKey(musicSettings.streakLastDate) ? musicSettings.streakLastDate : null;
+        const dayGap = previousStreakDate ? getUtcDayDiff(previousStreakDate, todayKey) : Number.POSITIVE_INFINITY;
+        let nextStreakDays = previousStreakDays;
+        let streakUpdated = false;
+
+        if (!previousStreakDate) {
+            nextStreakDays = 1;
+            streakUpdated = true;
+        } else if (dayGap === 1) {
+            nextStreakDays = previousStreakDays + 1;
+            streakUpdated = true;
+        } else if (dayGap > 1) {
+            nextStreakDays = 1;
+            streakUpdated = true;
+        }
+
+        musicSettings.streakDays = nextStreakDays;
+        musicSettings.streakLastDate = todayKey;
+
+        const milestone = getCompletionMilestone(nextCount);
+        const lastCelebratedMilestone = normalizeNonNegativeInteger(musicSettings.lastCelebratedMilestone, 0);
+        const celebrate = Boolean(milestone && milestone > lastCelebratedMilestone);
+        if (celebrate) {
+            musicSettings.lastCelebratedMilestone = milestone;
+        }
+
+        await musicSettings.save();
+
+        res.json({
+            ...serializeLevelUp(musicSettings, todayKey),
+            celebrate,
+            celebrationSeconds: CELEBRATION_SECONDS,
+            streakUpdated
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to increment level up progress' });
     }
 });
 

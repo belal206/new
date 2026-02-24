@@ -223,6 +223,54 @@ h1 {
     linear-gradient(155deg, rgba(255, 255, 255, 0.94), rgba(250, 247, 239, 0.9)),
     linear-gradient(120deg, rgba(212, 175, 55, 0.12), rgba(123, 44, 191, 0.08));
   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.08);
+  position: relative;
+  overflow: hidden;
+  --goal-a: var(--gold);
+  --goal-b: #f3cd73;
+  --goal-c: #fbe8b8;
+  --goal-card-opacity: 0.06;
+  --goal-anim-speed: 12s;
+}
+
+.levelup-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(125deg, var(--goal-a), var(--goal-b), var(--goal-c), var(--goal-a));
+  background-size: 230% 230%;
+  opacity: var(--goal-card-opacity);
+  animation: levelup-gradient-drift var(--goal-anim-speed) ease-in-out infinite;
+  pointer-events: none;
+}
+
+.levelup-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.levelup-card[data-goal-ramp='base'] {
+  --goal-card-opacity: 0.05;
+  --goal-anim-speed: 14s;
+}
+
+.levelup-card[data-goal-ramp='r60'] {
+  --goal-card-opacity: 0.09;
+  --goal-anim-speed: 11s;
+}
+
+.levelup-card[data-goal-ramp='r80'] {
+  --goal-card-opacity: 0.13;
+  --goal-anim-speed: 9s;
+}
+
+.levelup-card[data-goal-ramp='r95'] {
+  --goal-card-opacity: 0.17;
+  --goal-anim-speed: 7.5s;
+}
+
+.levelup-card[data-goal-ramp='r100'] {
+  --goal-card-opacity: 0.22;
+  --goal-anim-speed: 6.5s;
 }
 
 .levelup-meta {
@@ -259,14 +307,54 @@ h1 {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--gold), #f3cd73);
-  transition: width 0.28s ease;
+  background: linear-gradient(100deg, var(--goal-a), var(--goal-b), var(--goal-c), var(--goal-a));
+  background-size: 220% 220%;
+  animation: levelup-gradient-drift var(--goal-anim-speed) ease-in-out infinite;
+  transition: width 0.28s ease, filter 0.28s ease, box-shadow 0.28s ease;
+}
+
+.levelup-bar.levelup-bar-streak {
+  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.4), 0 0 18px rgba(212, 175, 55, 0.35);
+}
+
+.levelup-fill.levelup-fill-streak {
+  animation: levelup-gradient-drift var(--goal-anim-speed) ease-in-out infinite, levelup-streak-pulse 1.8s ease-in-out infinite;
+  filter: saturate(1.08) brightness(1.03);
+}
+
+.levelup-card[data-goal-ramp='r95'] .levelup-fill,
+.levelup-card[data-goal-ramp='r100'] .levelup-fill {
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.45);
 }
 
 .levelup-note {
   margin: 8px 0 0;
   font-size: 0.82rem;
   color: rgba(36, 0, 70, 0.74);
+}
+
+@keyframes levelup-gradient-drift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes levelup-streak-pulse {
+  0% {
+    box-shadow: 0 0 0 rgba(243, 205, 115, 0);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(243, 205, 115, 0.55);
+  }
+  100% {
+    box-shadow: 0 0 0 rgba(243, 205, 115, 0);
+  }
 }
 
 .poem-list-toolbar {
@@ -361,6 +449,9 @@ body.theme-noor .levelup-card {
     linear-gradient(160deg, rgba(255, 247, 232, 0.95), rgba(255, 237, 208, 0.92)),
     linear-gradient(120deg, rgba(181, 141, 74, 0.14), rgba(208, 173, 105, 0.12));
   border-color: rgba(181, 141, 74, 0.52);
+  --goal-a: #9f7932;
+  --goal-b: #d0ad69;
+  --goal-c: #f2ddae;
 }
 
 body.theme-noor .levelup-meta h3,
@@ -371,6 +462,10 @@ body.theme-noor .levelup-note {
 
 body.theme-noor .levelup-bar {
   background: rgba(75, 58, 35, 0.18);
+}
+
+body.theme-noor .levelup-bar.levelup-bar-streak {
+  box-shadow: 0 0 0 1px rgba(181, 141, 74, 0.42), 0 0 18px rgba(181, 141, 74, 0.36);
 }
 
 body.theme-noor .sema-menu-trigger,
@@ -901,6 +996,31 @@ body.theme-noor .sema-menu-popover {
   font-weight: 700;
 }
 
+.celebration-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3100;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.celebration-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.celebration-glow {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 18%, rgba(212, 175, 55, 0.26), transparent 42%),
+    radial-gradient(circle at 78% 15%, rgba(123, 44, 191, 0.2), transparent 44%),
+    radial-gradient(circle at 50% 86%, rgba(212, 175, 55, 0.18), transparent 48%);
+  animation: celebration-glow-shift 2.8s ease-in-out infinite alternate;
+}
+
 @keyframes mehfil-line-in {
   from {
     opacity: 0;
@@ -909,6 +1029,15 @@ body.theme-noor .sema-menu-popover {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes celebration-glow-shift {
+  from {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 0.9;
   }
 }
 
@@ -1895,9 +2024,18 @@ body.theme-shahi .mehfil-progress {
   background: #161616;
 }
 
-body.theme-shahi .levelup-fill,
+body.theme-shahi .levelup-card {
+  --goal-a: #b58d4a;
+  --goal-b: #d8be86;
+  --goal-c: #f3deaf;
+}
+
 body.theme-shahi .mehfil-progress > span {
   background: linear-gradient(90deg, #b58d4a, #d8be86);
+}
+
+body.theme-shahi .levelup-bar.levelup-bar-streak {
+  box-shadow: 0 0 0 1px rgba(201, 168, 106, 0.45), 0 0 18px rgba(201, 168, 106, 0.4);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1912,6 +2050,13 @@ body.theme-shahi .mehfil-progress > span {
   body.theme-noor .playlist-item,
   body.theme-noor .mehfil-panel,
   body.theme-noor .top-nav button.active {
+    animation: none !important;
+  }
+
+  .levelup-card::after,
+  .levelup-fill,
+  .levelup-fill.levelup-fill-streak,
+  .celebration-glow {
     animation: none !important;
   }
 }
