@@ -66,21 +66,21 @@ body.theme-noor {
 }
 
 body.theme-fanaa {
-  --royal-purple: #f2ebd9;
-  --gold: #c9a45c;
-  --gold-glow: 0 0 20px rgba(201, 164, 92, 0.34), 0 0 38px rgba(201, 164, 92, 0.12);
-  --marble: #090a0d;
-  --accent: #c9a45c;
-  --paper-bg: rgba(18, 20, 26, 0.95);
-  --paper-text: #f3ecda;
+  --royal-purple: #f7e8ec;
+  --gold: #c2183a;
+  --gold-glow: none;
+  --marble: #09090b;
+  --accent: #8f0f27;
+  --paper-bg: rgba(19, 12, 15, 0.96);
+  --paper-text: #f4e5e9;
   --theme-bg-image:
-    radial-gradient(circle at 20% 14%, rgba(201, 164, 92, 0.08), transparent 45%),
-    linear-gradient(155deg, #090a0d, #10131a);
-  --theme-chip-bg: rgba(16, 18, 24, 0.95);
-  --theme-chip-text: #f0e5cc;
-  --theme-chip-border: rgba(201, 164, 92, 0.45);
-  --theme-control-bg: #cfae6b;
-  --theme-control-text: #12161d;
+    radial-gradient(60% 40% at 50% -10%, rgba(194, 24, 58, 0.24), transparent 72%),
+    linear-gradient(180deg, #070708 0%, #11090d 45%, #09090b 100%);
+  --theme-chip-bg: rgba(20, 12, 15, 0.96);
+  --theme-chip-text: #f6d9e0;
+  --theme-chip-border: rgba(194, 24, 58, 0.62);
+  --theme-control-bg: #c2183a;
+  --theme-control-text: #fff2f4;
 }
 
 /* 🕌 MUGHAL ARCH MEHRAB */
@@ -399,51 +399,62 @@ body.theme-noor .sema-menu-popover {
 }
 
 body.theme-fanaa .random-toggle {
-  background: rgba(19, 23, 31, 0.95);
-  border-color: rgba(201, 164, 92, 0.85);
+  background: rgba(18, 11, 14, 0.96);
+  border-color: rgba(194, 24, 58, 0.74);
 }
 
 body.theme-fanaa .random-toggle::after {
-  background: #f2e6ca;
+  background: #f8e3e9;
 }
 
 body.theme-fanaa .random-toggle.random-toggle-on {
-  background: rgba(201, 164, 92, 0.85);
-  border-color: rgba(201, 164, 92, 1);
+  background: rgba(194, 24, 58, 0.9);
+  border-color: rgba(214, 33, 71, 1);
 }
 
 body.theme-fanaa .random-toggle.random-toggle-on::after {
-  background: #131720;
+  background: #180a0e;
 }
 
 body.theme-fanaa .levelup-card {
   background:
-    linear-gradient(160deg, rgba(15, 18, 24, 0.96), rgba(11, 14, 19, 0.95)),
-    linear-gradient(120deg, rgba(201, 164, 92, 0.12), rgba(201, 164, 92, 0.05));
-  border-color: rgba(201, 164, 92, 0.42);
-  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.3);
+    linear-gradient(160deg, rgba(16, 10, 13, 0.97), rgba(10, 8, 10, 0.96)),
+    linear-gradient(120deg, rgba(194, 24, 58, 0.14), rgba(194, 24, 58, 0.05));
+  border-color: rgba(194, 24, 58, 0.52);
+  box-shadow: none;
 }
 
 body.theme-fanaa .levelup-meta h3,
 body.theme-fanaa .levelup-meta span,
 body.theme-fanaa .levelup-note {
-  color: #f2e6ca;
+  color: #f6dfe4;
 }
 
 body.theme-fanaa .levelup-bar {
-  background: rgba(242, 230, 202, 0.18);
+  background: rgba(246, 223, 228, 0.16);
 }
 
 body.theme-fanaa .sema-menu-trigger {
-  background: rgba(18, 21, 30, 0.96);
-  border-color: rgba(201, 164, 92, 0.62);
-  color: #f2e6ca;
+  background: rgba(18, 11, 14, 0.96);
+  border-color: rgba(194, 24, 58, 0.68);
+  color: #f6dfe4;
 }
 
 body.theme-fanaa .sema-menu-popover {
-  background: rgba(12, 15, 21, 0.98);
-  border-color: rgba(201, 164, 92, 0.56);
-  box-shadow: 0 20px 36px rgba(0, 0, 0, 0.36);
+  background: rgba(10, 8, 10, 0.98);
+  border-color: rgba(194, 24, 58, 0.56);
+  box-shadow: none;
+}
+
+body.theme-fanaa .sema-menu-trigger:hover,
+body.theme-fanaa .sema-menu-trigger:focus-visible,
+body.theme-fanaa .random-toggle:focus-visible {
+  box-shadow: none;
+  border-color: #d92950;
+}
+
+body.theme-fanaa .levelup-fill {
+  background: linear-gradient(90deg, #99112b, #d92950);
 }
 
 .poem-card {
@@ -1348,169 +1359,191 @@ body.theme-noor .music-player-controls button {
 }
 
 body.theme-fanaa {
-  background-color: #090a0d;
-  color: #f2ebd9;
+  background-color: #09090b;
+  color: #f7e8ec;
+}
+
+body.theme-fanaa .bismillah {
+  color: #d21d43;
+  text-shadow: none;
+  animation: none;
+}
+
+body.theme-fanaa .mehfil-overlay {
+  background: linear-gradient(165deg, rgba(8, 8, 10, 0.95), rgba(42, 8, 17, 0.9));
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 body.theme-fanaa .poem-card {
-  background: rgba(20, 22, 29, 0.94);
+  background: rgba(19, 12, 15, 0.95);
 }
 
 body.theme-fanaa .poem-card:hover {
-  background: rgba(23, 26, 33, 0.95);
-  box-shadow: inset 0 0 0 1px rgba(201, 164, 92, 0.08);
+  background: rgba(24, 14, 18, 0.96);
+  box-shadow: none;
+}
+
+body.theme-fanaa .poem-card-clickable:focus-visible {
+  box-shadow: inset 0 0 0 2px rgba(194, 24, 58, 0.72);
 }
 
 body.theme-fanaa .poem-card h2 {
-  color: #f7f1df;
+  color: #f9eaf0;
 }
 
 body.theme-fanaa .poem-card .content {
-  color: #e7dec8;
+  color: #ecd9df;
 }
 
 body.theme-fanaa .poem-preview-line {
-  color: #e7dec8;
+  color: #ecd9df;
 }
 
 body.theme-fanaa .poem-read-hint {
-  color: rgba(231, 222, 200, 0.72);
+  color: rgba(236, 217, 223, 0.72);
 }
 
 body.theme-fanaa .poem-tag-picker label {
-  color: rgba(231, 222, 200, 0.78);
+  color: rgba(236, 217, 223, 0.78);
 }
 
 body.theme-fanaa .poem-tag-picker select {
-  background: #131721;
-  color: #eee1c6;
-  border-color: rgba(201, 164, 92, 0.55);
+  background: #120c10;
+  color: #f2dce2;
+  border-color: rgba(194, 24, 58, 0.62);
 }
 
 body.theme-fanaa .poem-tag {
-  background: rgba(22, 26, 34, 0.95);
-  border-color: rgba(201, 164, 92, 0.34);
-  color: #f2e6ca;
+  background: rgba(23, 13, 17, 0.96);
+  border-color: rgba(194, 24, 58, 0.4);
+  color: #f6dfe4;
 }
 
 body.theme-fanaa .poem-tag-remove {
-  background: rgba(19, 23, 31, 0.95);
-  color: #f2e6ca;
-  border-color: rgba(201, 164, 92, 0.3);
+  background: rgba(18, 11, 14, 0.96);
+  color: #f6dfe4;
+  border-color: rgba(194, 24, 58, 0.4);
 }
 
 body.theme-fanaa .poet-stamp {
-  background: #151922;
-  color: #d6b06a;
-  border-color: rgba(201, 164, 92, 0.46);
-  box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.48);
+  background: #170c11;
+  color: #e34f70;
+  border-color: rgba(194, 24, 58, 0.64);
+  box-shadow: none;
 }
 
 body.theme-fanaa .top-nav button {
-  background: #151922;
-  color: #eee3c9;
-  border-color: rgba(201, 164, 92, 0.55);
+  background: #150b0f;
+  color: #f2dde3;
+  border-color: rgba(194, 24, 58, 0.62);
 }
 
 body.theme-fanaa .top-nav button.active,
 body.theme-fanaa .top-nav button:hover {
-  background: #20242f;
-  border-color: #c9a45c;
-  color: #fff8e8;
-  box-shadow: 0 0 0 1px rgba(201, 164, 92, 0.36);
+  background: #a31433;
+  border-color: #c2183a;
+  color: #fff3f6;
+  box-shadow: none;
 }
 
 body.theme-fanaa .form-container {
-  background: #12151d;
-  border-color: rgba(201, 164, 92, 0.55);
-  box-shadow: 0 36px 96px rgba(0, 0, 0, 0.5);
+  background: #120b0f;
+  border-color: rgba(194, 24, 58, 0.6);
+  box-shadow: none;
 }
 
 body.theme-fanaa .form-container::before {
-  background: #12151d;
+  background: #120b0f;
 }
 
 body.theme-fanaa .form-container h2 {
-  color: #f2e6ca;
+  color: #f7e5ea;
 }
 
 body.theme-fanaa .form-container input,
 body.theme-fanaa .form-container textarea,
 body.theme-fanaa .form-container select {
-  background: #0f131b;
-  color: #eee1c6;
-  border-bottom-color: rgba(201, 164, 92, 0.6);
+  background: #0f090d;
+  color: #f2dce2;
+  border-bottom-color: rgba(194, 24, 58, 0.7);
 }
 
 body.theme-fanaa .form-container input:focus,
 body.theme-fanaa .form-container textarea:focus,
 body.theme-fanaa .form-container select:focus {
-  background: #151a23;
+  background: #160b10;
+  box-shadow: none;
 }
 
 body.theme-fanaa .poem-detail-card {
-  background: rgba(17, 20, 28, 0.96);
-  border-color: rgba(201, 164, 92, 0.42);
+  background: rgba(17, 10, 13, 0.96);
+  border-color: rgba(194, 24, 58, 0.48);
 }
 
 body.theme-fanaa .poem-detail-card h2,
 body.theme-fanaa .poem-detail-content {
-  color: #efe4cb;
+  color: #f3e0e6;
 }
 
 body.theme-fanaa .poem-detail-btn {
-  background: rgba(22, 26, 35, 0.95);
-  color: #f2e6ca;
-  border-color: rgba(201, 164, 92, 0.4);
+  background: rgba(20, 12, 16, 0.96);
+  color: #f6dfe4;
+  border-color: rgba(194, 24, 58, 0.52);
 }
 
 body.theme-fanaa .poem-action-btn {
-  background: rgba(17, 21, 30, 0.94);
-  color: #ece0c5;
+  background: rgba(18, 11, 14, 0.96);
+  color: #f4dee4;
+  border-color: rgba(194, 24, 58, 0.48);
 }
 
 body.theme-fanaa .mehfil-panel {
-  background:
-    radial-gradient(circle at 15% 14%, rgba(201, 164, 92, 0.14), transparent 40%),
-    linear-gradient(160deg, rgba(18, 21, 30, 0.96), rgba(13, 16, 23, 0.96));
+  background: linear-gradient(160deg, rgba(18, 10, 13, 0.97), rgba(10, 8, 10, 0.97));
+  border-color: rgba(194, 24, 58, 0.56);
+  box-shadow: none;
 }
 
 body.theme-fanaa .mehfil-title {
-  color: #f2e6ca;
+  color: #f7e8ec;
 }
 
 body.theme-fanaa .mehfil-poet {
-  color: rgba(242, 230, 202, 0.72);
+  color: rgba(247, 232, 236, 0.72);
 }
 
 body.theme-fanaa .mehfil-line {
-  color: #ece2cc;
+  color: #f0dde3;
 }
 
 body.theme-fanaa .mehfil-progress {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(247, 232, 236, 0.2);
+}
+
+body.theme-fanaa .mehfil-progress > span {
+  background: linear-gradient(90deg, #99112b, #d92950);
 }
 
 body.theme-fanaa .mehfil-btn {
-  background: rgba(20, 24, 33, 0.95);
-  color: #f2e6ca;
-  border-color: rgba(201, 164, 92, 0.38);
+  background: rgba(19, 11, 14, 0.96);
+  color: #f7e8ec;
+  border-color: rgba(194, 24, 58, 0.52);
 }
 
 body.theme-fanaa .mehfil-btn:hover {
-  color: #f3cb80;
-  border-color: #f3cb80;
+  color: #ffdce4;
+  border-color: #d92950;
 }
 
 body.theme-fanaa .mehfil-btn-primary {
-  background: #c9a45c;
-  border-color: #c9a45c;
-  color: #17130b;
+  background: #b81435;
+  border-color: #b81435;
+  color: #fff2f5;
 }
 
 body.theme-fanaa .theme-control {
-  background: #cfae6b;
-  color: #12161d;
+  background: #c2183a;
+  color: #fff2f5;
 }
 
 /* 🏺 MAJESTIC FORM STYLING */
@@ -1917,66 +1950,73 @@ body.theme-fanaa .theme-control {
 
 body.theme-fanaa .music-section {
   background:
-    radial-gradient(circle at 86% 12%, rgba(201, 164, 92, 0.14), transparent 44%),
-    linear-gradient(165deg, rgba(18, 21, 30, 0.96), rgba(13, 16, 23, 0.95));
-  border-color: rgba(201, 164, 92, 0.46);
+    linear-gradient(165deg, rgba(16, 10, 13, 0.97), rgba(10, 8, 10, 0.96)),
+    linear-gradient(120deg, rgba(194, 24, 58, 0.16), rgba(194, 24, 58, 0.06));
+  border-color: rgba(194, 24, 58, 0.56);
+  box-shadow: none;
 }
 
 body.theme-fanaa .music-auth-left h2,
 body.theme-fanaa .music-subtitle,
 body.theme-fanaa .music-empty-state,
 body.theme-fanaa .music-status {
-  color: #f1e6cc;
+  color: #f6e1e7;
 }
 
 body.theme-fanaa .music-auth-badge {
-  background: rgba(11, 13, 18, 0.94);
-  color: #f1e6cc;
-  border-color: rgba(201, 164, 92, 0.34);
+  background: rgba(16, 10, 13, 0.96);
+  color: #f6dfe4;
+  border-color: rgba(194, 24, 58, 0.46);
 }
 
 body.theme-fanaa .music-source-card {
-  background: rgba(18, 22, 30, 0.95);
-  border-color: rgba(201, 164, 92, 0.32);
+  background: rgba(17, 10, 13, 0.96);
+  border-color: rgba(194, 24, 58, 0.4);
 }
 
 body.theme-fanaa .music-source-card h3 {
-  color: #f2e6ca;
+  color: #f7e6eb;
 }
 
 body.theme-fanaa .music-inline-note {
-  color: rgba(242, 230, 202, 0.8);
+  color: rgba(247, 230, 235, 0.8);
 }
 
 body.theme-fanaa .music-url-input {
-  background: #0f131b;
-  color: #f1e6cc;
-  border-color: rgba(201, 164, 92, 0.56);
+  background: #0f090d;
+  color: #f7e3e8;
+  border-color: rgba(194, 24, 58, 0.66);
+}
+
+body.theme-fanaa .music-url-input:focus {
+  box-shadow: none;
+  border-color: #d92950;
 }
 
 body.theme-fanaa .playlist-item {
-  background: rgba(19, 23, 31, 0.95);
-  border-color: rgba(201, 164, 92, 0.34);
+  background: rgba(17, 10, 13, 0.96);
+  border-color: rgba(194, 24, 58, 0.42);
 }
 
 body.theme-fanaa .playlist-item-active {
-  border-color: rgba(201, 164, 92, 0.64);
+  border-color: rgba(214, 41, 80, 0.82);
+  box-shadow: none;
 }
 
 body.theme-fanaa .playlist-item-meta strong,
 body.theme-fanaa .playlist-item-meta span {
-  color: #f2e6ca;
+  color: #f7e3e8;
 }
 
 body.theme-fanaa .playlist-item-meta a {
-  color: #e7cb8f;
+  color: #f0607f;
 }
 
 body.theme-fanaa .playlist-item-actions button,
 body.theme-fanaa .music-player-controls button {
-  background: rgba(21, 25, 34, 0.95);
-  color: #f2e6ca;
-  border-color: rgba(201, 164, 92, 0.44);
+  background: rgba(18, 11, 14, 0.96);
+  color: #f7e3e8;
+  border-color: rgba(194, 24, 58, 0.56);
 }
 
 @media (prefers-reduced-motion: reduce) {
