@@ -46,7 +46,8 @@ const THEME_ICONS = {
 };
 const THEME_STORAGE_KEY = 'sufi_dervish_theme';
 const RANDOMIZE_ENABLED_STORAGE_KEY = 'sufi_randomize_poems_enabled';
-const RANDOMIZE_SEED_STORAGE_KEY = 'sufi_randomize_poems_seed';
+const RANDOMIZE_ORDER_STORAGE_KEY = 'sufi_randomize_poems_order';
+const SELF_CREATED_COUNT_STORAGE_KEY = 'sufi_self_created_count';
 
 const normalizeTags = (tags) => [...new Set(
   (Array.isArray(tags) ? tags : [])
@@ -54,33 +55,110 @@ const normalizeTags = (tags) => [...new Set(
     .filter(Boolean)
 )].slice(0, 6);
 
-const createShuffleSeed = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+const LEVELS = [
+  { title: 'Murid', min: 0, max: 2 },
+  { title: 'Raahi', min: 3, max: 5 },
+  { title: 'Dervish', min: 6, max: 9 },
+  { title: 'Arif', min: 10, max: 14 },
+  { title: 'Fanaa', min: 15, max: Number.POSITIVE_INFINITY },
+];
 
-const createSeededRandom = (seedText) => {
-  let hash = 2166136261;
-  const seed = String(seedText || '');
-  for (let index = 0; index < seed.length; index += 1) {
-    hash ^= seed.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
+const buildShuffledOrderIds = (items) => {
+  const ids = (Array.isArray(items) ? items : [])
+    .map((item) => String(item?._id || '').trim())
+    .filter(Boolean);
+  for (let index = ids.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    const temp = ids[index];
+    ids[index] = ids[swapIndex];
+    ids[swapIndex] = temp;
   }
-  let state = hash >>> 0;
-  return () => {
-    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
-    return state / 4294967296;
-  };
+  return ids;
 };
 
-const deterministicShuffle = (items, seedText) => {
-  const source = Array.isArray(items) ? [...items] : [];
-  if (!seedText || source.length < 2) return source;
-  const random = createSeededRandom(seedText);
-  for (let index = source.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(random() * (index + 1));
-    const temp = source[index];
-    source[index] = source[swapIndex];
-    source[swapIndex] = temp;
+const applyOrderIds = (items, orderIds) => {
+  const source = Array.isArray(items) ? items : [];
+  const order = Array.isArray(orderIds) ? orderIds : [];
+  if (!source.length) return [];
+  if (!order.length) return source;
+
+  const byId = new Map(source.map((item) => [String(item?._id || ''), item]));
+  const sorted = [];
+  const seen = new Set();
+
+  for (const rawId of order) {
+    const id = String(rawId || '').trim();
+    if (!id || seen.has(id)) continue;
+    const poem = byId.get(id);
+    if (!poem) continue;
+    sorted.push(poem);
+    seen.add(id);
   }
-  return source;
+
+  for (const poem of source) {
+    const id = String(poem?._id || '').trim();
+    if (!id || seen.has(id)) continue;
+    sorted.push(poem);
+  }
+
+  return sorted;
+};
+
+const areOrdersEqual = (leftOrder, rightOrder) => (
+  leftOrder.length === rightOrder.length
+  && leftOrder.every((id, index) => id === rightOrder[index])
+);
+
+const buildNextRandomOrderIds = (items, previousOrderIds) => {
+  const normalizedPrevious = applyOrderIds(items, previousOrderIds)
+    .map((item) => String(item?._id || '').trim())
+    .filter(Boolean);
+
+  if (normalizedPrevious.length < 2) {
+    return buildShuffledOrderIds(items);
+  }
+
+  let nextOrder = buildShuffledOrderIds(items);
+  let attempt = 0;
+  while (attempt < 5 && areOrdersEqual(nextOrder, normalizedPrevious)) {
+    nextOrder = buildShuffledOrderIds(items);
+    attempt += 1;
+  }
+
+  if (areOrdersEqual(nextOrder, normalizedPrevious)) {
+    nextOrder = [...nextOrder].reverse();
+  }
+
+  return nextOrder;
+};
+
+const resolveLevelState = (countValue) => {
+  const count = Math.max(0, Number.isFinite(countValue) ? countValue : 0);
+  let currentLevelIndex = LEVELS.length - 1;
+  let currentLevel = LEVELS[LEVELS.length - 1];
+  for (let index = 0; index < LEVELS.length; index += 1) {
+    const level = LEVELS[index];
+    if (count <= level.max) {
+      currentLevel = level;
+      currentLevelIndex = index;
+      break;
+    }
+  }
+
+  const isMax = currentLevel.max === Number.POSITIVE_INFINITY;
+  const nextLevel = currentLevelIndex < LEVELS.length - 1 ? LEVELS[currentLevelIndex + 1] : null;
+  const nextGoal = isMax ? currentLevel.min : currentLevel.max + 1;
+  const previousGoal = currentLevel.min;
+  const span = Math.max(1, nextGoal - previousGoal);
+  const progress = isMax ? 100 : Math.min(100, ((count - previousGoal) / span) * 100);
+
+  return {
+    levelTitle: currentLevel.title,
+    nextLevelTitle: nextLevel?.title || currentLevel.title,
+    nextGoal,
+    progress,
+    isMax,
+  };
 };
 
 const readErrorMessage = async (res, fallbackMessage) => {
@@ -193,8 +271,11 @@ function App() {
   const [selectedPoemId, setSelectedPoemId] = useState(null);
   const [currentTheme, setCurrentTheme] = useState('sukoon');
   const [isRandomOrderEnabled, setIsRandomOrderEnabled] = useState(false);
-  const [randomSeed, setRandomSeed] = useState('');
+  const [randomOrderIds, setRandomOrderIds] = useState([]);
+  const [isSemaMenuOpen, setIsSemaMenuOpen] = useState(false);
+  const [selfCreatedCount, setSelfCreatedCount] = useState(0);
   const galleryScrollYRef = useRef(0);
+  const semaMenuRef = useRef(null);
 
   const [formData, setFormData] = useState({ title: '', poet: 'Ahmad Faraz', content: '', tags: [] });
   const [editingPoemId, setEditingPoemId] = useState(null);
@@ -265,7 +346,9 @@ function App() {
   const totalMehfilLines = Math.max(poemLines.length, 1);
   const safeRevealedLineCount = Math.min(Math.max(revealedLineCount, 1), totalMehfilLines);
   const mehfilProgress = (safeRevealedLineCount / totalMehfilLines) * 100;
-  const displayPoems = isRandomOrderEnabled ? deterministicShuffle(poems, randomSeed) : poems;
+  const displayPoems = isRandomOrderEnabled ? applyOrderIds(poems, randomOrderIds) : poems;
+  const levelState = resolveLevelState(selfCreatedCount);
+  const levelRemaining = levelState.isMax ? 0 : Math.max(levelState.nextGoal - selfCreatedCount, 0);
 
   const fetchPoems = async () => {
     try {
@@ -814,23 +897,20 @@ function App() {
 
   useEffect(() => {
     const storedRandomize = window.localStorage.getItem(RANDOMIZE_ENABLED_STORAGE_KEY) === '1';
-    const storedSeed = window.localStorage.getItem(RANDOMIZE_SEED_STORAGE_KEY) || '';
+    let storedOrder = [];
+    try {
+      const parsed = JSON.parse(window.localStorage.getItem(RANDOMIZE_ORDER_STORAGE_KEY) || '[]');
+      storedOrder = Array.isArray(parsed) ? parsed.map((id) => String(id || '').trim()).filter(Boolean) : [];
+    } catch (err) {
+      storedOrder = [];
+    }
     setIsRandomOrderEnabled(storedRandomize);
+    setRandomOrderIds(storedOrder);
+  }, []);
 
-    if (storedRandomize) {
-      if (storedSeed) {
-        setRandomSeed(storedSeed);
-      } else {
-        const seed = createShuffleSeed();
-        setRandomSeed(seed);
-        window.localStorage.setItem(RANDOMIZE_SEED_STORAGE_KEY, seed);
-      }
-      return;
-    }
-
-    if (storedSeed) {
-      setRandomSeed(storedSeed);
-    }
+  useEffect(() => {
+    const storedCount = Number.parseInt(window.localStorage.getItem(SELF_CREATED_COUNT_STORAGE_KEY) || '0', 10);
+    setSelfCreatedCount(Number.isFinite(storedCount) && storedCount > 0 ? storedCount : 0);
   }, []);
 
   useEffect(() => {
@@ -848,9 +928,57 @@ function App() {
   }, [isRandomOrderEnabled]);
 
   useEffect(() => {
-    if (!randomSeed) return;
-    window.localStorage.setItem(RANDOMIZE_SEED_STORAGE_KEY, randomSeed);
-  }, [randomSeed]);
+    window.localStorage.setItem(RANDOMIZE_ORDER_STORAGE_KEY, JSON.stringify(randomOrderIds));
+  }, [randomOrderIds]);
+
+  useEffect(() => {
+    window.localStorage.setItem(SELF_CREATED_COUNT_STORAGE_KEY, String(selfCreatedCount));
+  }, [selfCreatedCount]);
+
+  useEffect(() => {
+    if (!isRandomOrderEnabled) return;
+    if (!poems.length) {
+      if (randomOrderIds.length) setRandomOrderIds([]);
+      return;
+    }
+
+    const normalizedOrderIds = randomOrderIds.map((id) => String(id || '').trim()).filter(Boolean);
+    if (!normalizedOrderIds.length) {
+      setRandomOrderIds(buildShuffledOrderIds(poems));
+      return;
+    }
+
+    const reconciledIds = applyOrderIds(poems, normalizedOrderIds)
+      .map((poem) => String(poem?._id || '').trim())
+      .filter(Boolean);
+
+    if (areOrdersEqual(reconciledIds, normalizedOrderIds)) return;
+    setRandomOrderIds(reconciledIds);
+  }, [isRandomOrderEnabled, poems, randomOrderIds]);
+
+  useEffect(() => {
+    if (!isSemaMenuOpen) return undefined;
+    const handlePointerDown = (event) => {
+      if (!semaMenuRef.current || semaMenuRef.current.contains(event.target)) return;
+      setIsSemaMenuOpen(false);
+    };
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setIsSemaMenuOpen(false);
+      }
+    };
+    window.addEventListener('mousedown', handlePointerDown);
+    window.addEventListener('keydown', handleEscape);
+    return () => {
+      window.removeEventListener('mousedown', handlePointerDown);
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, [isSemaMenuOpen]);
+
+  useEffect(() => {
+    if (view === 'gallery') return;
+    if (isSemaMenuOpen) setIsSemaMenuOpen(false);
+  }, [view, isSemaMenuOpen]);
 
   useEffect(() => {
     if (view === 'detail' && selectedPoemId && !selectedPoem) {
@@ -879,6 +1007,7 @@ function App() {
       if (!res.ok) throw new Error(`Save failed with status ${res.status}`);
       alert('Verse inscribed in the Sanctuary.');
       setFormData({ title: '', poet: 'Ahmad Faraz', content: '', tags: [] });
+      setSelfCreatedCount((prev) => prev + 1);
       setView('gallery');
       fetchPoems();
     } catch (err) {
@@ -1213,11 +1342,12 @@ function App() {
   const handleRandomizeToggle = () => {
     setIsRandomOrderEnabled((prev) => {
       const next = !prev;
-      if (next && !randomSeed) {
-        setRandomSeed(createShuffleSeed());
+      if (next) {
+        setRandomOrderIds((previousOrderIds) => buildNextRandomOrderIds(poems, previousOrderIds));
       }
       return next;
     });
+    setIsSemaMenuOpen(false);
   };
 
   const closeMehfil = () => {
@@ -1376,15 +1506,41 @@ function App() {
         <main>
           {view === 'gallery' ? (
             <section className="poem-gallery">
-              <div className="poem-list-toolbar">
+              <article className="levelup-card" aria-label="The Level Up progress">
+                <div className="levelup-meta">
+                  <h3>The Level Up</h3>
+                  <span>{`${levelState.levelTitle} · ${selfCreatedCount} Verses`}</span>
+                </div>
+                <div className="levelup-bar" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(levelState.progress)}>
+                  <span className="levelup-fill" style={{ width: `${levelState.progress}%` }}></span>
+                </div>
+                <p className="levelup-note">
+                  {levelState.isMax ? 'Max level reached: Fanaa.' : `${levelRemaining} more to reach ${levelState.nextLevelTitle}.`}
+                </p>
+              </article>
+
+              <div className="poem-list-toolbar" ref={semaMenuRef}>
                 <button
                   type="button"
-                  className={`random-toggle ${isRandomOrderEnabled ? 'random-toggle-on' : ''}`}
-                  onClick={handleRandomizeToggle}
-                  aria-label="Randomize poem order"
-                  aria-pressed={isRandomOrderEnabled}
-                  title={`Random order: ${isRandomOrderEnabled ? 'On' : 'Off'}`}
-                />
+                  className="sema-menu-trigger"
+                  aria-label="Open Sema controls"
+                  aria-expanded={isSemaMenuOpen}
+                  onClick={() => setIsSemaMenuOpen((prev) => !prev)}
+                >
+                  ⋯
+                </button>
+                {isSemaMenuOpen ? (
+                  <div className="sema-menu-popover">
+                    <button
+                      type="button"
+                      className={`random-toggle ${isRandomOrderEnabled ? 'random-toggle-on' : ''}`}
+                      onClick={handleRandomizeToggle}
+                      aria-label="Randomize poem order"
+                      aria-pressed={isRandomOrderEnabled}
+                      title={`Random order: ${isRandomOrderEnabled ? 'On' : 'Off'}`}
+                    />
+                  </div>
+                ) : null}
               </div>
               <div className="poem-list">
                 {displayPoems.map((poem) => (

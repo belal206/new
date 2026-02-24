@@ -231,12 +231,108 @@ h1 {
   gap: 16px;
 }
 
+.levelup-card {
+  width: min(100%, 1080px);
+  margin: 0 auto;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.94), rgba(250, 247, 239, 0.9)),
+    linear-gradient(120deg, rgba(212, 175, 55, 0.12), rgba(123, 44, 191, 0.08));
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.08);
+}
+
+.levelup-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.levelup-meta h3 {
+  margin: 0;
+  font-family: 'Cinzel Decorative', cursive;
+  font-size: 1.02rem;
+  color: var(--royal-purple);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.levelup-meta span {
+  color: rgba(36, 0, 70, 0.72);
+  font-size: 0.86rem;
+  letter-spacing: 0.2px;
+}
+
+.levelup-bar {
+  height: 10px;
+  margin-top: 10px;
+  border-radius: 999px;
+  background: rgba(36, 0, 70, 0.14);
+  overflow: hidden;
+}
+
+.levelup-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--gold), #f3cd73);
+  transition: width 0.28s ease;
+}
+
+.levelup-note {
+  margin: 8px 0 0;
+  font-size: 0.82rem;
+  color: rgba(36, 0, 70, 0.74);
+}
+
 .poem-list-toolbar {
   display: flex;
   justify-content: flex-end;
   padding: 0 10px;
   min-height: 40px;
   align-items: center;
+  position: relative;
+}
+
+.sema-menu-trigger {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid rgba(212, 175, 55, 0.58);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--royal-purple);
+  font-size: 1.38rem;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 2px;
+  transition: 0.22s ease;
+}
+
+.sema-menu-trigger:hover {
+  border-color: var(--gold);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+}
+
+.sema-menu-trigger:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.34), 0 8px 18px rgba(0, 0, 0, 0.18);
+}
+
+.sema-menu-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 10px;
+  z-index: 80;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.14);
 }
 
 .random-toggle {
@@ -278,6 +374,30 @@ h1 {
   box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.45), 0 8px 20px rgba(0, 0, 0, 0.18);
 }
 
+body.theme-noor .levelup-card {
+  background:
+    linear-gradient(160deg, rgba(255, 247, 232, 0.95), rgba(255, 237, 208, 0.92)),
+    linear-gradient(120deg, rgba(181, 141, 74, 0.14), rgba(208, 173, 105, 0.12));
+  border-color: rgba(181, 141, 74, 0.52);
+}
+
+body.theme-noor .levelup-meta h3,
+body.theme-noor .levelup-meta span,
+body.theme-noor .levelup-note {
+  color: #4b3a23;
+}
+
+body.theme-noor .levelup-bar {
+  background: rgba(75, 58, 35, 0.18);
+}
+
+body.theme-noor .sema-menu-trigger,
+body.theme-noor .sema-menu-popover {
+  background: rgba(255, 248, 235, 0.95);
+  border-color: rgba(181, 141, 74, 0.58);
+  color: #4b3a23;
+}
+
 body.theme-fanaa .random-toggle {
   background: rgba(19, 23, 31, 0.95);
   border-color: rgba(201, 164, 92, 0.85);
@@ -294,6 +414,36 @@ body.theme-fanaa .random-toggle.random-toggle-on {
 
 body.theme-fanaa .random-toggle.random-toggle-on::after {
   background: #131720;
+}
+
+body.theme-fanaa .levelup-card {
+  background:
+    linear-gradient(160deg, rgba(15, 18, 24, 0.96), rgba(11, 14, 19, 0.95)),
+    linear-gradient(120deg, rgba(201, 164, 92, 0.12), rgba(201, 164, 92, 0.05));
+  border-color: rgba(201, 164, 92, 0.42);
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.3);
+}
+
+body.theme-fanaa .levelup-meta h3,
+body.theme-fanaa .levelup-meta span,
+body.theme-fanaa .levelup-note {
+  color: #f2e6ca;
+}
+
+body.theme-fanaa .levelup-bar {
+  background: rgba(242, 230, 202, 0.18);
+}
+
+body.theme-fanaa .sema-menu-trigger {
+  background: rgba(18, 21, 30, 0.96);
+  border-color: rgba(201, 164, 92, 0.62);
+  color: #f2e6ca;
+}
+
+body.theme-fanaa .sema-menu-popover {
+  background: rgba(12, 15, 21, 0.98);
+  border-color: rgba(201, 164, 92, 0.56);
+  box-shadow: 0 20px 36px rgba(0, 0, 0, 0.36);
 }
 
 .poem-card {
@@ -872,9 +1022,46 @@ body.theme-fanaa .random-toggle.random-toggle-on::after {
     gap: 52px;
   }
 
+  .levelup-card {
+    padding: 12px 12px;
+    border-radius: 12px;
+  }
+
+  .levelup-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .levelup-meta h3 {
+    font-size: 0.9rem;
+    letter-spacing: 0.8px;
+  }
+
+  .levelup-meta span {
+    font-size: 0.8rem;
+  }
+
+  .levelup-note {
+    font-size: 0.76rem;
+  }
+
   .poem-list-toolbar {
     padding: 0 6px;
     min-height: 34px;
+  }
+
+  .sema-menu-trigger {
+    width: 34px;
+    height: 34px;
+    font-size: 1.2rem;
+  }
+
+  .sema-menu-popover {
+    right: 6px;
+    top: calc(100% + 6px);
+    padding: 8px;
+    border-radius: 10px;
   }
 
   .random-toggle {
