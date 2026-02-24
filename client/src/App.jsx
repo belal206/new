@@ -314,6 +314,7 @@ function App() {
   const [isCelebrating, setIsCelebrating] = useState(false);
   const [celebrationUntil, setCelebrationUntil] = useState(0);
   const galleryScrollYRef = useRef(0);
+  const poemDetailCardRef = useRef(null);
   const semaMenuRef = useRef(null);
   const celebrationCanvasRef = useRef(null);
 
@@ -1082,6 +1083,17 @@ function App() {
         window.scrollTo({ top: galleryScrollYRef.current, behavior: 'auto' });
       });
     }
+  }, [view, selectedPoemId, selectedPoem]);
+
+  useEffect(() => {
+    if (view !== 'detail' || !selectedPoem) return;
+    requestAnimationFrame(() => {
+      if (poemDetailCardRef.current) {
+        poemDetailCardRef.current.scrollIntoView({ block: 'start', behavior: 'auto' });
+        return;
+      }
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    });
   }, [view, selectedPoemId, selectedPoem]);
 
   useEffect(() => {
@@ -1866,7 +1878,7 @@ function App() {
             </section>
           ) : view === 'detail' && selectedPoem ? (
             <section className="poem-detail-view">
-              <article className="poem-detail-card">
+              <article className="poem-detail-card" ref={poemDetailCardRef}>
                 <div className="poem-detail-actions">
                   <button type="button" className="poem-detail-btn" onClick={closePoemDetail}>
                     Back
