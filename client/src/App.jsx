@@ -315,6 +315,7 @@ function App() {
   const [celebrationUntil, setCelebrationUntil] = useState(0);
   const galleryScrollYRef = useRef(0);
   const poemDetailCardRef = useRef(null);
+  const poemDetailHeadingRef = useRef(null);
   const semaMenuRef = useRef(null);
   const celebrationCanvasRef = useRef(null);
 
@@ -395,6 +396,15 @@ function App() {
   const safeDailyProgress = Math.min(Math.max(dailyProgressCount, 0), safeDailyGoal);
   const dailyQuestProgressPercent = Math.min(100, Math.max(0, (safeDailyProgress / safeDailyGoal) * 100));
   const dailyResetLabel = formatResetCountdown(secondsUntilReset);
+
+  const forcePageTop = () => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    if (document.scrollingElement) {
+      document.scrollingElement.scrollTop = 0;
+    }
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  };
 
   const fetchPoems = async () => {
     try {
@@ -1087,13 +1097,29 @@ function App() {
 
   useEffect(() => {
     if (view !== 'detail' || !selectedPoem) return;
-    requestAnimationFrame(() => {
-      if (poemDetailCardRef.current) {
-        poemDetailCardRef.current.scrollIntoView({ block: 'start', behavior: 'auto' });
-        return;
+    let rafA = 0;
+    const timeoutIds = [];
+
+    const scrollToDetailHeading = () => {
+      const targetNode = poemDetailHeadingRef.current || poemDetailCardRef.current;
+      forcePageTop();
+      if (targetNode) {
+        targetNode.scrollIntoView({ block: 'start', behavior: 'auto' });
       }
-      window.scrollTo({ top: 0, behavior: 'auto' });
+      forcePageTop();
+    };
+
+    rafA = window.requestAnimationFrame(() => {
+      scrollToDetailHeading();
     });
+    [80, 180, 320, 520, 900].forEach((delay) => {
+      timeoutIds.push(window.setTimeout(scrollToDetailHeading, delay));
+    });
+
+    return () => {
+      window.cancelAnimationFrame(rafA);
+      timeoutIds.forEach((timeoutId) => window.clearTimeout(timeoutId));
+    };
   }, [view, selectedPoemId, selectedPoem]);
 
   useEffect(() => {
@@ -1558,6 +1584,7 @@ function App() {
     setEditingPoemId(null);
     setIsSavingEdit(false);
     galleryScrollYRef.current = window.scrollY;
+    forcePageTop();
     setSelectedPoemId(poemId);
     setView('detail');
   };
@@ -1878,7 +1905,7 @@ function App() {
             </section>
           ) : view === 'detail' && selectedPoem ? (
             <section className="poem-detail-view">
-              <article className="poem-detail-card" ref={poemDetailCardRef}>
+              <article key={selectedPoem._id} className="poem-detail-card" ref={poemDetailCardRef}>
                 <div className="poem-detail-actions">
                   <button type="button" className="poem-detail-btn" onClick={closePoemDetail}>
                     Back
@@ -1894,7 +1921,7 @@ function App() {
                   renderEditForm()
                 ) : (
                   <>
-                    <h2>{selectedPoem.title}</h2>
+                    <h2 ref={poemDetailHeadingRef}>{selectedPoem.title}</h2>
                     {normalizeTags(selectedPoem.tags).length > 0 && (
                       <div className="poem-tag-list poem-tag-list-detail">
                         {normalizeTags(selectedPoem.tags).map((tag) => (
