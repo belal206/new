@@ -66,21 +66,19 @@ body.theme-noor {
 }
 
 body.theme-fanaa {
-  --royal-purple: #f7e8ec;
+  --royal-purple: #ff2d55;
   --gold: #c2183a;
   --gold-glow: none;
-  --marble: #09090b;
+  --marble: #050505;
   --accent: #8f0f27;
-  --paper-bg: rgba(19, 12, 15, 0.96);
-  --paper-text: #f4e5e9;
-  --theme-bg-image:
-    radial-gradient(60% 40% at 50% -10%, rgba(194, 24, 58, 0.24), transparent 72%),
-    linear-gradient(180deg, #070708 0%, #11090d 45%, #09090b 100%);
-  --theme-chip-bg: rgba(20, 12, 15, 0.96);
-  --theme-chip-text: #f6d9e0;
+  --paper-bg: #0b0b0b;
+  --paper-text: #ff4d6d;
+  --theme-bg-image: none;
+  --theme-chip-bg: #0c0c0c;
+  --theme-chip-text: #ff4d6d;
   --theme-chip-border: rgba(194, 24, 58, 0.62);
   --theme-control-bg: #c2183a;
-  --theme-control-text: #fff2f4;
+  --theme-control-text: #ffe8ed;
 }
 
 /* 🕌 MUGHAL ARCH MEHRAB */
@@ -1359,8 +1357,9 @@ body.theme-noor .music-player-controls button {
 }
 
 body.theme-fanaa {
-  background-color: #09090b;
-  color: #f7e8ec;
+  background-color: #050505;
+  background-image: none;
+  color: #ff4d6d;
 }
 
 body.theme-fanaa .mehrab-frame {
@@ -1374,46 +1373,6 @@ body.theme-fanaa .chinar-container {
 
 body.theme-fanaa header {
   border-bottom-color: #c2183a;
-  position: relative;
-}
-
-body.theme-fanaa header::after {
-  content: '';
-  display: block;
-  width: min(420px, 92%);
-  height: 26px;
-  margin: 16px auto 0;
-  background:
-    radial-gradient(circle at 8% 0, #d6284d 0 8px, transparent 9px),
-    radial-gradient(circle at 24% 0, #c2183a 0 11px, transparent 12px),
-    radial-gradient(circle at 39% 0, #9e102b 0 7px, transparent 8px),
-    radial-gradient(circle at 58% 0, #d6284d 0 10px, transparent 11px),
-    radial-gradient(circle at 76% 0, #b81435 0 8px, transparent 9px),
-    radial-gradient(circle at 92% 0, #c2183a 0 12px, transparent 13px),
-    linear-gradient(180deg, rgba(194, 24, 58, 0.95), rgba(120, 12, 33, 0.2));
-  background-repeat: no-repeat;
-  border-radius: 0 0 14px 14px;
-  opacity: 0.95;
-}
-
-@keyframes fanaa-crimson-drift {
-  0% {
-    background-position: 50% 0%;
-  }
-  100% {
-    background-position: 50% 100%;
-  }
-}
-
-@keyframes fanaa-drip-pulse {
-  0%, 100% {
-    opacity: 0.86;
-    transform: scaleY(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scaleY(1.14);
-  }
 }
 
 body.theme-fanaa h1,
@@ -1424,68 +1383,28 @@ body.theme-fanaa .music-auth-left h2,
 body.theme-fanaa .music-source-card h3,
 body.theme-fanaa .levelup-meta h3,
 body.theme-fanaa .form-container h2 {
-  color: transparent;
-  background-image: linear-gradient(180deg, #ff8aa6 0%, #ff486f 35%, #d31843 68%, #7f0e27 100%);
-  background-size: 100% 220%;
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  text-shadow: none;
-  animation: fanaa-crimson-drift 4.2s ease-in-out infinite alternate;
-}
-
-body.theme-fanaa .poem-card h2,
-body.theme-fanaa .poem-detail-card h2,
-body.theme-fanaa .mehfil-title,
-body.theme-fanaa .music-auth-left h2,
-body.theme-fanaa .music-source-card h3,
-body.theme-fanaa .levelup-meta h3,
-body.theme-fanaa .form-container h2 {
-  position: relative;
-}
-
-body.theme-fanaa .poem-card h2::after,
-body.theme-fanaa .poem-detail-card h2::after,
-body.theme-fanaa .mehfil-title::after,
-body.theme-fanaa .music-auth-left h2::after,
-body.theme-fanaa .music-source-card h3::after,
-body.theme-fanaa .levelup-meta h3::after,
-body.theme-fanaa .form-container h2::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: -8px;
-  width: min(180px, 72%);
-  height: 10px;
-  background:
-    radial-gradient(circle at 14% 0, rgba(214, 41, 80, 0.95) 0 3px, transparent 3.5px),
-    radial-gradient(circle at 38% 0, rgba(194, 24, 58, 0.95) 0 4px, transparent 4.5px),
-    radial-gradient(circle at 62% 0, rgba(153, 17, 43, 0.95) 0 3.5px, transparent 4px),
-    radial-gradient(circle at 84% 0, rgba(214, 41, 80, 0.95) 0 4px, transparent 4.5px);
-  background-repeat: no-repeat;
-  pointer-events: none;
-  animation: fanaa-drip-pulse 2.1s ease-in-out infinite;
+  color: #ff2d55;
+  text-shadow: 0 0 14px rgba(255, 45, 85, 0.28);
 }
 
 body.theme-fanaa .bismillah {
-  color: #d21d43;
+  color: #ff2d55;
   text-shadow: none;
   animation: none;
 }
 
 body.theme-fanaa .mehfil-overlay {
-  background: linear-gradient(165deg, rgba(8, 8, 10, 0.95), rgba(42, 8, 17, 0.9));
+  background: rgba(5, 5, 5, 0.96);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
 
 body.theme-fanaa .poem-card {
-  background: rgba(19, 12, 15, 0.95);
+  background: #0a0a0a;
 }
 
 body.theme-fanaa .poem-card:hover {
-  background: rgba(24, 14, 18, 0.96);
+  background: #101010;
   box-shadow: none;
 }
 
@@ -1494,135 +1413,135 @@ body.theme-fanaa .poem-card-clickable:focus-visible {
 }
 
 body.theme-fanaa .poem-card h2 {
-  color: #f9eaf0;
+  color: #ff2d55;
 }
 
 body.theme-fanaa .poem-card .content {
-  color: #ecd9df;
+  color: #ff5c78;
 }
 
 body.theme-fanaa .poem-preview-line {
-  color: #ecd9df;
+  color: #ff5c78;
 }
 
 body.theme-fanaa .poem-read-hint {
-  color: rgba(236, 217, 223, 0.72);
+  color: rgba(255, 92, 120, 0.72);
 }
 
 body.theme-fanaa .poem-tag-picker label {
-  color: rgba(236, 217, 223, 0.78);
+  color: rgba(255, 92, 120, 0.78);
 }
 
 body.theme-fanaa .poem-tag-picker select {
-  background: #120c10;
-  color: #f2dce2;
+  background: #0b0b0b;
+  color: #ff5c78;
   border-color: rgba(194, 24, 58, 0.62);
 }
 
 body.theme-fanaa .poem-tag {
-  background: rgba(23, 13, 17, 0.96);
+  background: #111111;
   border-color: rgba(194, 24, 58, 0.4);
-  color: #f6dfe4;
+  color: #ff6f88;
 }
 
 body.theme-fanaa .poem-tag-remove {
-  background: rgba(18, 11, 14, 0.96);
-  color: #f6dfe4;
+  background: #0b0b0b;
+  color: #ff6f88;
   border-color: rgba(194, 24, 58, 0.4);
 }
 
 body.theme-fanaa .poet-stamp {
-  background: #170c11;
+  background: #0b0b0b;
   color: #e34f70;
   border-color: rgba(194, 24, 58, 0.64);
   box-shadow: none;
 }
 
 body.theme-fanaa .top-nav button {
-  background: #150b0f;
-  color: #f2dde3;
+  background: #0c0c0c;
+  color: #ff6b86;
   border-color: rgba(194, 24, 58, 0.62);
 }
 
 body.theme-fanaa .top-nav button.active,
 body.theme-fanaa .top-nav button:hover {
-  background: #a31433;
+  background: #c2183a;
   border-color: #c2183a;
-  color: #fff3f6;
+  color: #ffe8ed;
   box-shadow: none;
 }
 
 body.theme-fanaa .form-container {
-  background: #120b0f;
+  background: #0a0a0a;
   border-color: rgba(194, 24, 58, 0.6);
   box-shadow: none;
 }
 
 body.theme-fanaa .form-container::before {
-  background: #120b0f;
+  background: #0a0a0a;
 }
 
 body.theme-fanaa .form-container h2 {
-  color: #f7e5ea;
+  color: #ff2d55;
 }
 
 body.theme-fanaa .form-container input,
 body.theme-fanaa .form-container textarea,
 body.theme-fanaa .form-container select {
-  background: #0f090d;
-  color: #f2dce2;
+  background: #080808;
+  color: #ff5c78;
   border-bottom-color: rgba(194, 24, 58, 0.7);
 }
 
 body.theme-fanaa .form-container input:focus,
 body.theme-fanaa .form-container textarea:focus,
 body.theme-fanaa .form-container select:focus {
-  background: #160b10;
+  background: #0d0d0d;
   box-shadow: none;
 }
 
 body.theme-fanaa .poem-detail-card {
-  background: rgba(17, 10, 13, 0.96);
+  background: #0a0a0a;
   border-color: rgba(194, 24, 58, 0.48);
 }
 
 body.theme-fanaa .poem-detail-card h2,
 body.theme-fanaa .poem-detail-content {
-  color: #f3e0e6;
+  color: #ff5c78;
 }
 
 body.theme-fanaa .poem-detail-btn {
-  background: rgba(20, 12, 16, 0.96);
-  color: #f6dfe4;
+  background: #0d0d0d;
+  color: #ff6f88;
   border-color: rgba(194, 24, 58, 0.52);
 }
 
 body.theme-fanaa .poem-action-btn {
-  background: rgba(18, 11, 14, 0.96);
-  color: #f4dee4;
+  background: #0d0d0d;
+  color: #ff6f88;
   border-color: rgba(194, 24, 58, 0.48);
 }
 
 body.theme-fanaa .mehfil-panel {
-  background: linear-gradient(160deg, rgba(18, 10, 13, 0.97), rgba(10, 8, 10, 0.97));
+  background: #0a0a0a;
   border-color: rgba(194, 24, 58, 0.56);
   box-shadow: none;
 }
 
 body.theme-fanaa .mehfil-title {
-  color: #f7e8ec;
+  color: #ff2d55;
 }
 
 body.theme-fanaa .mehfil-poet {
-  color: rgba(247, 232, 236, 0.72);
+  color: rgba(255, 107, 134, 0.72);
 }
 
 body.theme-fanaa .mehfil-line {
-  color: #f0dde3;
+  color: #ff5c78;
 }
 
 body.theme-fanaa .mehfil-progress {
-  background: rgba(247, 232, 236, 0.2);
+  background: rgba(255, 107, 134, 0.2);
 }
 
 body.theme-fanaa .mehfil-progress > span {
@@ -1630,25 +1549,25 @@ body.theme-fanaa .mehfil-progress > span {
 }
 
 body.theme-fanaa .mehfil-btn {
-  background: rgba(19, 11, 14, 0.96);
-  color: #f7e8ec;
+  background: #0d0d0d;
+  color: #ff6f88;
   border-color: rgba(194, 24, 58, 0.52);
 }
 
 body.theme-fanaa .mehfil-btn:hover {
-  color: #ffdce4;
+  color: #ff9ab0;
   border-color: #d92950;
 }
 
 body.theme-fanaa .mehfil-btn-primary {
   background: #b81435;
   border-color: #b81435;
-  color: #fff2f5;
+  color: #ffe8ed;
 }
 
 body.theme-fanaa .theme-control {
   background: #c2183a;
-  color: #fff2f5;
+  color: #ffe8ed;
 }
 
 /* 🏺 MAJESTIC FORM STYLING */
@@ -2054,9 +1973,7 @@ body.theme-fanaa .theme-control {
 }
 
 body.theme-fanaa .music-section {
-  background:
-    linear-gradient(165deg, rgba(16, 10, 13, 0.97), rgba(10, 8, 10, 0.96)),
-    linear-gradient(120deg, rgba(194, 24, 58, 0.16), rgba(194, 24, 58, 0.06));
+  background: #0a0a0a;
   border-color: rgba(194, 24, 58, 0.56);
   box-shadow: none;
 }
@@ -2065,31 +1982,31 @@ body.theme-fanaa .music-auth-left h2,
 body.theme-fanaa .music-subtitle,
 body.theme-fanaa .music-empty-state,
 body.theme-fanaa .music-status {
-  color: #f6e1e7;
+  color: #ff5c78;
 }
 
 body.theme-fanaa .music-auth-badge {
-  background: rgba(16, 10, 13, 0.96);
-  color: #f6dfe4;
+  background: #0b0b0b;
+  color: #ff6f88;
   border-color: rgba(194, 24, 58, 0.46);
 }
 
 body.theme-fanaa .music-source-card {
-  background: rgba(17, 10, 13, 0.96);
+  background: #0b0b0b;
   border-color: rgba(194, 24, 58, 0.4);
 }
 
 body.theme-fanaa .music-source-card h3 {
-  color: #f7e6eb;
+  color: #ff2d55;
 }
 
 body.theme-fanaa .music-inline-note {
-  color: rgba(247, 230, 235, 0.8);
+  color: rgba(255, 92, 120, 0.8);
 }
 
 body.theme-fanaa .music-url-input {
-  background: #0f090d;
-  color: #f7e3e8;
+  background: #080808;
+  color: #ff5c78;
   border-color: rgba(194, 24, 58, 0.66);
 }
 
@@ -2099,7 +2016,7 @@ body.theme-fanaa .music-url-input:focus {
 }
 
 body.theme-fanaa .playlist-item {
-  background: rgba(17, 10, 13, 0.96);
+  background: #0b0b0b;
   border-color: rgba(194, 24, 58, 0.42);
 }
 
@@ -2110,17 +2027,17 @@ body.theme-fanaa .playlist-item-active {
 
 body.theme-fanaa .playlist-item-meta strong,
 body.theme-fanaa .playlist-item-meta span {
-  color: #f7e3e8;
+  color: #ff6f88;
 }
 
 body.theme-fanaa .playlist-item-meta a {
-  color: #f0607f;
+  color: #ff7e98;
 }
 
 body.theme-fanaa .playlist-item-actions button,
 body.theme-fanaa .music-player-controls button {
-  background: rgba(18, 11, 14, 0.96);
-  color: #f7e3e8;
+  background: #0d0d0d;
+  color: #ff6f88;
   border-color: rgba(194, 24, 58, 0.56);
 }
 
