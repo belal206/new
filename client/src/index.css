@@ -225,6 +225,56 @@ h1 {
   margin-right: calc(50% - 50vw);
 }
 
+.poem-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.poem-list-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 8px;
+}
+
+.random-toggle {
+  position: relative;
+  width: 50px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid rgba(36, 0, 70, 0.32);
+  background: rgba(255, 255, 255, 0.74);
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+.random-toggle::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--royal-purple);
+  transition: transform 0.25s ease, background-color 0.25s ease;
+}
+
+.random-toggle.random-toggle-on {
+  background: rgba(212, 175, 55, 0.35);
+  border-color: rgba(212, 175, 55, 0.8);
+}
+
+.random-toggle.random-toggle-on::after {
+  transform: translateX(20px);
+  background: #f3cd73;
+}
+
+.random-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.35);
+}
+
 .poem-card {
   background: var(--paper-bg);
   padding: 64px 0;
@@ -799,6 +849,24 @@ h1 {
 
   .poem-list {
     gap: 52px;
+  }
+
+  .poem-list-toolbar {
+    padding: 0 6px;
+  }
+
+  .random-toggle {
+    width: 46px;
+    height: 28px;
+  }
+
+  .random-toggle::after {
+    width: 20px;
+    height: 20px;
+  }
+
+  .random-toggle.random-toggle-on::after {
+    transform: translateX(18px);
   }
 
   .poem-card {

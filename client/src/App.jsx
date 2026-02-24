@@ -45,12 +45,43 @@ const THEME_ICONS = {
   fanaa: '☾',
 };
 const THEME_STORAGE_KEY = 'sufi_dervish_theme';
+const RANDOMIZE_ENABLED_STORAGE_KEY = 'sufi_randomize_poems_enabled';
+const RANDOMIZE_SEED_STORAGE_KEY = 'sufi_randomize_poems_seed';
 
 const normalizeTags = (tags) => [...new Set(
   (Array.isArray(tags) ? tags : [])
     .map((tag) => String(tag).trim())
     .filter(Boolean)
 )].slice(0, 6);
+
+const createShuffleSeed = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+
+const createSeededRandom = (seedText) => {
+  let hash = 2166136261;
+  const seed = String(seedText || '');
+  for (let index = 0; index < seed.length; index += 1) {
+    hash ^= seed.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  let state = hash >>> 0;
+  return () => {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+};
+
+const deterministicShuffle = (items, seedText) => {
+  const source = Array.isArray(items) ? [...items] : [];
+  if (!seedText || source.length < 2) return source;
+  const random = createSeededRandom(seedText);
+  for (let index = source.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(random() * (index + 1));
+    const temp = source[index];
+    source[index] = source[swapIndex];
+    source[swapIndex] = temp;
+  }
+  return source;
+};
 
 const readErrorMessage = async (res, fallbackMessage) => {
   try {
@@ -161,6 +192,8 @@ function App() {
   const [view, setView] = useState('gallery');
   const [selectedPoemId, setSelectedPoemId] = useState(null);
   const [currentTheme, setCurrentTheme] = useState('sukoon');
+  const [isRandomOrderEnabled, setIsRandomOrderEnabled] = useState(false);
+  const [randomSeed, setRandomSeed] = useState('');
   const galleryScrollYRef = useRef(0);
 
   const [formData, setFormData] = useState({ title: '', poet: 'Ahmad Faraz', content: '', tags: [] });
@@ -232,6 +265,7 @@ function App() {
   const totalMehfilLines = Math.max(poemLines.length, 1);
   const safeRevealedLineCount = Math.min(Math.max(revealedLineCount, 1), totalMehfilLines);
   const mehfilProgress = (safeRevealedLineCount / totalMehfilLines) * 100;
+  const displayPoems = isRandomOrderEnabled ? deterministicShuffle(poems, randomSeed) : poems;
 
   const fetchPoems = async () => {
     try {
@@ -779,6 +813,27 @@ function App() {
   }, []);
 
   useEffect(() => {
+    const storedRandomize = window.localStorage.getItem(RANDOMIZE_ENABLED_STORAGE_KEY) === '1';
+    const storedSeed = window.localStorage.getItem(RANDOMIZE_SEED_STORAGE_KEY) || '';
+    setIsRandomOrderEnabled(storedRandomize);
+
+    if (storedRandomize) {
+      if (storedSeed) {
+        setRandomSeed(storedSeed);
+      } else {
+        const seed = createShuffleSeed();
+        setRandomSeed(seed);
+        window.localStorage.setItem(RANDOMIZE_SEED_STORAGE_KEY, seed);
+      }
+      return;
+    }
+
+    if (storedSeed) {
+      setRandomSeed(storedSeed);
+    }
+  }, []);
+
+  useEffect(() => {
     const themeClasses = THEMES.map((theme) => `theme-${theme}`);
     document.body.classList.remove(...themeClasses);
     document.body.classList.add(`theme-${currentTheme}`);
@@ -787,6 +842,15 @@ function App() {
       document.body.classList.remove(...themeClasses);
     };
   }, [currentTheme]);
+
+  useEffect(() => {
+    window.localStorage.setItem(RANDOMIZE_ENABLED_STORAGE_KEY, isRandomOrderEnabled ? '1' : '0');
+  }, [isRandomOrderEnabled]);
+
+  useEffect(() => {
+    if (!randomSeed) return;
+    window.localStorage.setItem(RANDOMIZE_SEED_STORAGE_KEY, randomSeed);
+  }, [randomSeed]);
 
   useEffect(() => {
     if (view === 'detail' && selectedPoemId && !selectedPoem) {
@@ -1146,6 +1210,16 @@ function App() {
     });
   };
 
+  const handleRandomizeToggle = () => {
+    setIsRandomOrderEnabled((prev) => {
+      const next = !prev;
+      if (next && !randomSeed) {
+        setRandomSeed(createShuffleSeed());
+      }
+      return next;
+    });
+  };
+
   const closeMehfil = () => {
     setIsMehfilOpen(false);
     setActiveMehfilPoemId(null);
@@ -1301,87 +1375,99 @@ function App() {
 
         <main>
           {view === 'gallery' ? (
-            <div className="poem-list">
-              {poems.map((poem) => (
-                <article
-                  key={poem._id}
-                  className={`poem-card ${editingPoemId !== poem._id ? 'poem-card-clickable' : ''}`}
-                  onClick={editingPoemId !== poem._id ? () => openPoemDetail(poem._id) : undefined}
-                  onKeyDown={editingPoemId !== poem._id ? (e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      openPoemDetail(poem._id);
-                    }
-                  } : undefined}
-                  role={editingPoemId !== poem._id ? 'button' : undefined}
-                  tabIndex={editingPoemId !== poem._id ? 0 : undefined}
-                  aria-label={editingPoemId !== poem._id ? `Open poem ${poem.title}` : undefined}
-                >
-                  <div className="poem-actions">
-                    <button
-                      type="button"
-                      className="poem-action-btn"
-                      aria-label="Edit poem"
-                      title="Edit"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        startEdit(poem);
-                      }}
-                    >
-                      ✎
-                    </button>
-                    <button
-                      type="button"
-                      className="poem-action-btn"
-                      aria-label="Delete poem"
-                      title="Delete"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(poem._id);
-                      }}
-                    >
-                      ✕
-                    </button>
-                    <button
-                      type="button"
-                      className="poem-action-btn poem-action-mehfil"
-                      aria-label="Enter Mehfil mode"
-                      title="Enter Mehfil"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openMehfil(poem._id);
-                      }}
-                    >
-                      ✦
-                    </button>
-                  </div>
+            <section className="poem-gallery">
+              <div className="poem-list-toolbar">
+                <button
+                  type="button"
+                  className={`random-toggle ${isRandomOrderEnabled ? 'random-toggle-on' : ''}`}
+                  onClick={handleRandomizeToggle}
+                  aria-label="Randomize poem order"
+                  aria-pressed={isRandomOrderEnabled}
+                  title={`Random order: ${isRandomOrderEnabled ? 'On' : 'Off'}`}
+                />
+              </div>
+              <div className="poem-list">
+                {displayPoems.map((poem) => (
+                  <article
+                    key={poem._id}
+                    className={`poem-card ${editingPoemId !== poem._id ? 'poem-card-clickable' : ''}`}
+                    onClick={editingPoemId !== poem._id ? () => openPoemDetail(poem._id) : undefined}
+                    onKeyDown={editingPoemId !== poem._id ? (e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        openPoemDetail(poem._id);
+                      }
+                    } : undefined}
+                    role={editingPoemId !== poem._id ? 'button' : undefined}
+                    tabIndex={editingPoemId !== poem._id ? 0 : undefined}
+                    aria-label={editingPoemId !== poem._id ? `Open poem ${poem.title}` : undefined}
+                  >
+                    <div className="poem-actions">
+                      <button
+                        type="button"
+                        className="poem-action-btn"
+                        aria-label="Edit poem"
+                        title="Edit"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          startEdit(poem);
+                        }}
+                      >
+                        ✎
+                      </button>
+                      <button
+                        type="button"
+                        className="poem-action-btn"
+                        aria-label="Delete poem"
+                        title="Delete"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(poem._id);
+                        }}
+                      >
+                        ✕
+                      </button>
+                      <button
+                        type="button"
+                        className="poem-action-btn poem-action-mehfil"
+                        aria-label="Enter Mehfil mode"
+                        title="Enter Mehfil"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openMehfil(poem._id);
+                        }}
+                      >
+                        ✦
+                      </button>
+                    </div>
 
-                  {editingPoemId === poem._id ? (
-                    renderEditForm()
-                  ) : (
-                    <>
-                      <h2>{poem.title}</h2>
-                      <div className="poem-preview" dir="auto">
-                        {getPreviewLines(poem.content).map((line, idx) => (
-                          <p key={`${poem._id}-preview-${idx}`} className="poem-preview-line">
-                            {line || '\u00A0'}
-                          </p>
-                        ))}
-                      </div>
-                      {normalizeTags(poem.tags).length > 0 && (
-                        <div className="poem-tag-list poem-tag-list-preview">
-                          {normalizeTags(poem.tags).map((tag) => (
-                            <span key={`${poem._id}-${tag}`} className="poem-tag">{tag}</span>
+                    {editingPoemId === poem._id ? (
+                      renderEditForm()
+                    ) : (
+                      <>
+                        <h2>{poem.title}</h2>
+                        <div className="poem-preview" dir="auto">
+                          {getPreviewLines(poem.content).map((line, idx) => (
+                            <p key={`${poem._id}-preview-${idx}`} className="poem-preview-line">
+                              {line || '\u00A0'}
+                            </p>
                           ))}
                         </div>
-                      )}
-                      <div className="poem-read-hint">Read full poem</div>
-                      <div className="poet-stamp">{poem.poet}</div>
-                    </>
-                  )}
-                </article>
-              ))}
-            </div>
+                        {normalizeTags(poem.tags).length > 0 && (
+                          <div className="poem-tag-list poem-tag-list-preview">
+                            {normalizeTags(poem.tags).map((tag) => (
+                              <span key={`${poem._id}-${tag}`} className="poem-tag">{tag}</span>
+                            ))}
+                          </div>
+                        )}
+                        <div className="poem-read-hint">Read full poem</div>
+                        <div className="poet-stamp">{poem.poet}</div>
+                      </>
+                    )}
+                  </article>
+                ))}
+              </div>
+            </section>
           ) : view === 'detail' && selectedPoem ? (
             <section className="poem-detail-view">
               <article className="poem-detail-card">
