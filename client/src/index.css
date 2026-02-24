@@ -2110,44 +2110,55 @@ body.theme-fanaa .music-player-controls button {
   border-color: #bd0606;
 }
 
-/* Final Fanaa lock: only two colors across theme */
+/* Final Fanaa authority: green structure + red poems + leaves visible */
 body.theme-fanaa {
-  --royal-purple: #bd0606;
-  --gold: #bd0606;
-  --accent: #bd0606;
+  --royal-purple: #004225;
+  --gold: #004225;
+  --accent: #004225;
+  --gold-glow: none;
   --marble: #004225;
   --paper-bg: #004225;
-  --paper-text: #bd0606;
+  --paper-text: #004225;
   --theme-bg-image: none;
   --theme-chip-bg: #004225;
-  --theme-chip-text: #bd0606;
-  --theme-chip-border: #bd0606;
+  --theme-chip-text: #004225;
+  --theme-chip-border: #004225;
   --theme-control-bg: #004225;
-  --theme-control-text: #bd0606;
-  background: #004225;
-  color: #bd0606;
+  --theme-control-text: #004225;
+  background: #004225 !important;
+  color: #004225 !important;
+}
+
+body.theme-fanaa .chinar-container {
+  display: block !important;
 }
 
 body.theme-fanaa .leaf {
-  background: linear-gradient(145deg, #004225 0%, #bd0606 100%);
-  box-shadow: none;
+  background: linear-gradient(145deg, #004225 0%, #bd0606 100%) !important;
+  box-shadow: none !important;
 }
 
 body.theme-fanaa .leaf::before {
-  background: #bd0606;
+  background: #bd0606 !important;
 }
 
 body.theme-fanaa .leaf::after {
-  background: #004225;
+  background: #004225 !important;
 }
 
 body.theme-fanaa *,
 body.theme-fanaa *::before,
 body.theme-fanaa *::after {
-  color: #bd0606;
-  border-color: #bd0606;
+  color: #004225 !important;
+  border-color: #004225 !important;
+  box-shadow: none !important;
 }
 
+body.theme-fanaa .mehrab-frame,
+body.theme-fanaa header,
+body.theme-fanaa .top-nav button,
+body.theme-fanaa .top-nav button.active,
+body.theme-fanaa .top-nav button:hover,
 body.theme-fanaa .poem-card,
 body.theme-fanaa .poem-detail-card,
 body.theme-fanaa .form-container,
@@ -2159,9 +2170,8 @@ body.theme-fanaa .levelup-card,
 body.theme-fanaa .sema-menu-popover,
 body.theme-fanaa .sema-menu-trigger,
 body.theme-fanaa .theme-control,
-body.theme-fanaa .top-nav button,
-body.theme-fanaa .top-nav button.active,
-body.theme-fanaa .top-nav button:hover,
+body.theme-fanaa .random-toggle,
+body.theme-fanaa .random-toggle.random-toggle-on,
 body.theme-fanaa .form-container button,
 body.theme-fanaa .music-auth-btn,
 body.theme-fanaa .music-form button,
@@ -2169,9 +2179,9 @@ body.theme-fanaa .poem-detail-btn,
 body.theme-fanaa .poem-action-btn,
 body.theme-fanaa .mehfil-btn,
 body.theme-fanaa .mehfil-btn-primary,
-body.theme-fanaa .random-toggle,
-body.theme-fanaa .random-toggle.random-toggle-on,
 body.theme-fanaa .music-url-input,
+body.theme-fanaa .playlist-item-actions button,
+body.theme-fanaa .music-player-controls button,
 body.theme-fanaa .poem-edit-form input,
 body.theme-fanaa .poem-edit-form select,
 body.theme-fanaa .poem-edit-form textarea,
@@ -2180,7 +2190,29 @@ body.theme-fanaa .form-container input,
 body.theme-fanaa .form-container textarea,
 body.theme-fanaa .form-container select {
   background: #004225 !important;
-  box-shadow: none !important;
+}
+
+body.theme-fanaa .bismillah,
+body.theme-fanaa .levelup-bar,
+body.theme-fanaa .levelup-fill,
+body.theme-fanaa .mehfil-progress,
+body.theme-fanaa .mehfil-progress > span {
+  background: #004225 !important;
+  color: #004225 !important;
+}
+
+body.theme-fanaa .bismillah {
+  color: #004225 !important;
+}
+
+body.theme-fanaa .poem-card h2,
+body.theme-fanaa .poem-card .content,
+body.theme-fanaa .poem-preview-line,
+body.theme-fanaa .poem-detail-card h2,
+body.theme-fanaa .poem-detail-content,
+body.theme-fanaa .mehfil-title,
+body.theme-fanaa .mehfil-line {
+  color: #bd0606 !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
