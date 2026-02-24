@@ -824,6 +824,7 @@ body.theme-noor .sema-menu-popover {
   line-height: 1.34;
   letter-spacing: 0.5px;
   font-family: var(--poem-title-font);
+  scroll-margin-top: 0;
 }
 
 .poem-detail-content {

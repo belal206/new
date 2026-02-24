@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import './index.css';
 
 const POETS = [
@@ -396,15 +396,6 @@ function App() {
   const safeDailyProgress = Math.min(Math.max(dailyProgressCount, 0), safeDailyGoal);
   const dailyQuestProgressPercent = Math.min(100, Math.max(0, (safeDailyProgress / safeDailyGoal) * 100));
   const dailyResetLabel = formatResetCountdown(secondsUntilReset);
-
-  const forcePageTop = () => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-    if (document.scrollingElement) {
-      document.scrollingElement.scrollTop = 0;
-    }
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-  };
 
   const fetchPoems = async () => {
     try {
@@ -1095,32 +1086,36 @@ function App() {
     }
   }, [view, selectedPoemId, selectedPoem]);
 
-  useEffect(() => {
-    if (view !== 'detail' || !selectedPoem) return;
-    let rafA = 0;
+  useLayoutEffect(() => {
+    if (view !== 'detail' || !selectedPoemId) return undefined;
+    let rafId = 0;
     const timeoutIds = [];
+    let isCancelled = false;
 
-    const scrollToDetailHeading = () => {
+    const scrollToHeadingAnchor = () => {
+      if (isCancelled) return;
       const targetNode = poemDetailHeadingRef.current || poemDetailCardRef.current;
-      forcePageTop();
-      if (targetNode) {
-        targetNode.scrollIntoView({ block: 'start', behavior: 'auto' });
-      }
-      forcePageTop();
+      if (!targetNode) return;
+      const targetTop = window.scrollY + targetNode.getBoundingClientRect().top;
+      window.scrollTo({
+        top: Math.max(0, targetTop),
+        left: 0,
+        behavior: 'auto',
+      });
     };
 
-    rafA = window.requestAnimationFrame(() => {
-      scrollToDetailHeading();
-    });
-    [80, 180, 320, 520, 900].forEach((delay) => {
-      timeoutIds.push(window.setTimeout(scrollToDetailHeading, delay));
+    scrollToHeadingAnchor();
+    rafId = window.requestAnimationFrame(scrollToHeadingAnchor);
+    [120, 300, 600].forEach((delay) => {
+      timeoutIds.push(window.setTimeout(scrollToHeadingAnchor, delay));
     });
 
     return () => {
-      window.cancelAnimationFrame(rafA);
+      isCancelled = true;
+      window.cancelAnimationFrame(rafId);
       timeoutIds.forEach((timeoutId) => window.clearTimeout(timeoutId));
     };
-  }, [view, selectedPoemId, selectedPoem]);
+  }, [view, selectedPoemId]);
 
   useEffect(() => {
     if (!isCelebrating) return undefined;
@@ -1584,7 +1579,6 @@ function App() {
     setEditingPoemId(null);
     setIsSavingEdit(false);
     galleryScrollYRef.current = window.scrollY;
-    forcePageTop();
     setSelectedPoemId(poemId);
     setView('detail');
   };
