@@ -387,6 +387,193 @@ h1 {
   animation: daily-quest-pulse 0.8s ease-in-out 2;
 }
 
+.kalam-launch-row {
+  width: min(100%, 1080px);
+  margin: 0 auto;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.kalam-launch-btn {
+  min-height: 42px;
+  padding: 0 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(36, 0, 70, 0.34);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--royal-purple);
+  font-family: 'Cinzel Decorative', cursive;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.kalam-launch-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.kalam-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2800;
+  background: rgba(8, 6, 14, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.kalam-modal {
+  width: min(980px, 100%);
+  height: min(86vh, 900px);
+  border-radius: 18px;
+  border: 1px solid rgba(212, 175, 55, 0.48);
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.95), rgba(250, 247, 239, 0.92)),
+    linear-gradient(120deg, rgba(212, 175, 55, 0.12), rgba(123, 44, 191, 0.08));
+  box-shadow: 0 28px 64px rgba(0, 0, 0, 0.28);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.kalam-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.42);
+}
+
+.kalam-header h2 {
+  margin: 0;
+  font-family: 'Cinzel Decorative', cursive;
+  color: var(--royal-purple);
+  font-size: 1.2rem;
+  letter-spacing: 1px;
+}
+
+.kalam-close-btn {
+  min-height: 36px;
+  border-radius: 999px;
+  border: 1px solid rgba(36, 0, 70, 0.34);
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--royal-purple);
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.kalam-room-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+}
+
+.kalam-room-tab {
+  min-height: 36px;
+  border-radius: 999px;
+  border: 1px solid rgba(36, 0, 70, 0.28);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--royal-purple);
+  padding: 0 12px;
+  cursor: pointer;
+  font-family: 'Playfair Display', serif;
+}
+
+.kalam-room-tab-active {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.18);
+  color: var(--gold);
+}
+
+.kalam-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2px 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.kalam-message {
+  align-self: flex-start;
+  max-width: min(88%, 700px);
+  border-radius: 14px 14px 14px 4px;
+  border: 1px solid rgba(36, 0, 70, 0.16);
+  background: rgba(255, 255, 255, 0.88);
+  padding: 10px 12px 8px;
+}
+
+.kalam-message p {
+  margin: 0;
+  color: var(--royal-purple);
+  white-space: pre-wrap;
+  line-height: 1.45;
+}
+
+.kalam-meta {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.72rem;
+  color: rgba(36, 0, 70, 0.64);
+}
+
+.kalam-empty {
+  margin: auto;
+  color: rgba(36, 0, 70, 0.7);
+}
+
+.kalam-composer {
+  border-top: 1px solid rgba(212, 175, 55, 0.4);
+  padding: 12px 18px 16px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.kalam-input {
+  width: 100%;
+  min-height: 84px;
+  resize: none;
+  border-radius: 12px;
+  border: 1px solid rgba(212, 175, 55, 0.44);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--royal-purple);
+  padding: 10px 12px;
+  font-family: 'Playfair Display', serif;
+}
+
+.kalam-input:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.16);
+}
+
+.kalam-send-btn {
+  min-height: 42px;
+  border-radius: 10px;
+  border: 1px solid var(--royal-purple);
+  background: var(--royal-purple);
+  color: #fff;
+  padding: 0 16px;
+  cursor: pointer;
+}
+
+.kalam-send-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.kalam-error {
+  margin: 0 18px 6px;
+  color: #b64040;
+  font-size: 0.9rem;
+}
+
 @keyframes daily-quest-pulse {
   0% {
     box-shadow: 0 0 0 rgba(212, 175, 55, 0);
@@ -553,6 +740,35 @@ body.theme-noor .sema-menu-trigger,
 body.theme-noor .sema-menu-popover {
   background: rgba(255, 248, 235, 0.95);
   border-color: rgba(181, 141, 74, 0.58);
+  color: #4b3a23;
+}
+
+body.theme-noor .kalam-launch-btn,
+body.theme-noor .kalam-close-btn,
+body.theme-noor .kalam-room-tab {
+  background: rgba(255, 248, 235, 0.95);
+  border-color: rgba(181, 141, 74, 0.54);
+  color: #4b3a23;
+}
+
+body.theme-noor .kalam-modal {
+  background:
+    linear-gradient(165deg, rgba(255, 248, 235, 0.96), rgba(255, 238, 210, 0.94)),
+    linear-gradient(120deg, rgba(181, 141, 74, 0.14), rgba(208, 173, 105, 0.1));
+  border-color: rgba(181, 141, 74, 0.56);
+}
+
+body.theme-noor .kalam-header h2,
+body.theme-noor .kalam-message p,
+body.theme-noor .kalam-empty,
+body.theme-noor .kalam-meta {
+  color: #4b3a23;
+}
+
+body.theme-noor .kalam-message,
+body.theme-noor .kalam-input {
+  background: rgba(255, 249, 238, 0.95);
+  border-color: rgba(181, 141, 74, 0.34);
   color: #4b3a23;
 }
 
@@ -1307,6 +1523,62 @@ body.theme-noor .sema-menu-popover {
     max-height: 50vh;
     padding: 4px 8px;
   }
+
+  .kalam-overlay {
+    padding: 10px;
+  }
+
+  .kalam-modal {
+    width: 100%;
+    height: 100%;
+    border-radius: 14px;
+  }
+
+  .kalam-launch-row {
+    justify-content: flex-start;
+  }
+
+  .kalam-launch-btn {
+    min-height: 38px;
+    padding: 0 16px;
+    font-size: 0.86rem;
+    letter-spacing: 1px;
+  }
+
+  .kalam-header {
+    padding: 12px;
+  }
+
+  .kalam-room-tabs {
+    padding: 10px 12px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .kalam-room-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .kalam-messages {
+    padding: 0 12px 10px;
+  }
+
+  .kalam-message {
+    max-width: 94%;
+  }
+
+  .kalam-composer {
+    grid-template-columns: 1fr;
+    padding: 10px 12px 12px;
+  }
+
+  .kalam-input {
+    min-height: 78px;
+  }
+
+  .kalam-send-btn {
+    width: 100%;
+  }
 }
 
 @media (max-width: 640px) {
@@ -1982,11 +2254,16 @@ body.theme-shahi .form-container,
 body.theme-shahi .music-section,
 body.theme-shahi .music-source-card,
 body.theme-shahi .playlist-item,
+body.theme-shahi .kalam-modal,
+body.theme-shahi .kalam-message,
 body.theme-shahi .mehfil-panel,
 body.theme-shahi .levelup-card,
 body.theme-shahi .sema-menu-popover,
 body.theme-shahi .sema-menu-trigger,
 body.theme-shahi .theme-control,
+body.theme-shahi .kalam-launch-btn,
+body.theme-shahi .kalam-close-btn,
+body.theme-shahi .kalam-room-tab,
 body.theme-shahi .random-toggle,
 body.theme-shahi .poem-tag,
 body.theme-shahi .poem-action-btn,
@@ -2008,7 +2285,8 @@ body.theme-shahi .form-container select,
 body.theme-shahi .poem-edit-form input,
 body.theme-shahi .poem-edit-form select,
 body.theme-shahi .poem-edit-form textarea,
-body.theme-shahi .poem-tag-picker select {
+body.theme-shahi .poem-tag-picker select,
+body.theme-shahi .kalam-input {
   background: #050505;
   border-color: rgba(181, 141, 74, 0.42);
   color: #e8e1d2;
@@ -2021,7 +2299,8 @@ body.theme-shahi .form-container select:focus,
 body.theme-shahi .poem-edit-form input:focus,
 body.theme-shahi .poem-edit-form select:focus,
 body.theme-shahi .poem-edit-form textarea:focus,
-body.theme-shahi .poem-tag-picker select:focus {
+body.theme-shahi .poem-tag-picker select:focus,
+body.theme-shahi .kalam-input:focus {
   border-color: #c9a86a;
   box-shadow: none;
 }
@@ -2031,6 +2310,7 @@ body.theme-shahi .top-nav button:hover,
 body.theme-shahi .form-container button,
 body.theme-shahi .music-auth-btn,
 body.theme-shahi .music-form button,
+body.theme-shahi .kalam-send-btn,
 body.theme-shahi .mehfil-btn-primary {
   background: #b58d4a;
   border-color: #c9a86a;
@@ -2040,6 +2320,9 @@ body.theme-shahi .mehfil-btn-primary {
 body.theme-shahi .theme-control:hover,
 body.theme-shahi .sema-menu-trigger:hover,
 body.theme-shahi .sema-menu-trigger:focus-visible,
+body.theme-shahi .kalam-launch-btn:hover,
+body.theme-shahi .kalam-close-btn:hover,
+body.theme-shahi .kalam-room-tab:hover,
 body.theme-shahi .poem-action-btn:hover,
 body.theme-shahi .poem-detail-btn:hover,
 body.theme-shahi .mehfil-btn:hover,
@@ -2086,6 +2369,8 @@ body.theme-shahi .music-status,
 body.theme-shahi .playlist-item-meta strong,
 body.theme-shahi .playlist-item-meta span,
 body.theme-shahi .playlist-item-meta a,
+body.theme-shahi .kalam-meta,
+body.theme-shahi .kalam-empty,
 body.theme-shahi .music-inline-note,
 body.theme-shahi .poem-read-hint,
 body.theme-shahi .poem-tag-picker label,
@@ -2113,6 +2398,18 @@ body.theme-shahi .mehfil-overlay {
   background: rgba(5, 5, 5, 0.92);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+}
+
+body.theme-shahi .kalam-overlay {
+  background: rgba(5, 5, 5, 0.9);
+}
+
+body.theme-shahi .kalam-header {
+  border-bottom-color: rgba(181, 141, 74, 0.42);
+}
+
+body.theme-shahi .kalam-composer {
+  border-top-color: rgba(181, 141, 74, 0.42);
 }
 
 body.theme-shahi .levelup-bar,

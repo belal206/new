@@ -80,7 +80,21 @@ const MusicSettings = mongoose.model('MusicSettings', new mongoose.Schema({
     streakLastDate: { type: String, default: null },
     dailyGoalCount: { type: Number, default: 1 },
     dailyProgressCount: { type: Number, default: 0 },
-    dailyQuestDateKey: { type: String, default: null }
+    dailyQuestDateKey: { type: String, default: null },
+    kalamRooms: {
+        rutbah: [{
+            _id: false,
+            noteId: { type: String, required: true },
+            text: { type: String, required: true },
+            createdAt: { type: Date, default: Date.now }
+        }],
+        belal: [{
+            _id: false,
+            noteId: { type: String, required: true },
+            text: { type: String, required: true },
+            createdAt: { type: Date, default: Date.now }
+        }]
+    }
 }, { timestamps: true }));
 
 const spotifyConfigured = () => Boolean(SPOTIFY_CLIENT_ID && SPOTIFY_CLIENT_SECRET && SPOTIFY_REDIRECT_URI);
@@ -239,6 +253,113 @@ const serializeSource = (playlists, activePlaylistId) => ({
     activePlaylistId: activePlaylistId || null
 });
 
+const parseKalamRoom = (value) => {
+    const normalized = String(value || '').trim().toLowerCase();
+    return KALAM_ROOMS.includes(normalized) ? normalized : null;
+};
+
+const buildKalamNoteId = () => (
+    typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : crypto.randomBytes(16).toString('hex')
+);
+
+const sanitizeKalamText = (value) => {
+    const normalized = String(value || '').replace(/\r\n/g, '\n').trim();
+    if (!normalized) {
+        return { text: null, error: 'Note text is required' };
+    }
+    if (normalized.length > KALAM_MAX_TEXT_LENGTH) {
+        return { text: null, error: `Note is too long. Max ${KALAM_MAX_TEXT_LENGTH} characters.` };
+    }
+    return { text: normalized, error: null };
+};
+
+const normalizeKalamNotes = (notes) => {
+    const seen = new Set();
+    const normalized = [];
+
+    for (const note of Array.isArray(notes) ? notes : []) {
+        const rawText = String(note?.text || '').replace(/\r\n/g, '\n').trim();
+        if (!rawText) continue;
+        const text = rawText.length > KALAM_MAX_TEXT_LENGTH
+            ? rawText.slice(0, KALAM_MAX_TEXT_LENGTH)
+            : rawText;
+        const noteId = String(note?.noteId || '').trim() || buildKalamNoteId();
+        if (seen.has(noteId)) continue;
+        seen.add(noteId);
+
+        const parsedCreatedAt = new Date(note?.createdAt || Date.now());
+        const createdAt = Number.isFinite(parsedCreatedAt.getTime()) ? parsedCreatedAt : new Date();
+
+        normalized.push({ noteId, text, createdAt });
+    }
+
+    normalized.sort((left, right) => new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime());
+
+    if (normalized.length > KALAM_MAX_NOTES_PER_ROOM) {
+        return normalized.slice(normalized.length - KALAM_MAX_NOTES_PER_ROOM);
+    }
+    return normalized;
+};
+
+const kalamNotesEqual = (left, right) => {
+    const sourceLeft = Array.isArray(left) ? left : [];
+    const sourceRight = Array.isArray(right) ? right : [];
+    if (sourceLeft.length !== sourceRight.length) return false;
+
+    for (let index = 0; index < sourceLeft.length; index += 1) {
+        const leftNote = sourceLeft[index];
+        const rightNote = sourceRight[index];
+        const leftId = String(leftNote?.noteId || '').trim();
+        const rightId = String(rightNote?.noteId || '').trim();
+        const leftText = String(leftNote?.text || '');
+        const rightText = String(rightNote?.text || '');
+        const leftDate = new Date(leftNote?.createdAt || 0);
+        const rightDate = new Date(rightNote?.createdAt || 0);
+        const leftCreatedAt = Number.isFinite(leftDate.getTime()) ? leftDate.toISOString() : '';
+        const rightCreatedAt = Number.isFinite(rightDate.getTime()) ? rightDate.toISOString() : '';
+
+        if (leftId !== rightId || leftText !== rightText || leftCreatedAt !== rightCreatedAt) {
+            return false;
+        }
+    }
+
+    return true;
+};
+
+const normalizeKalamRooms = (musicSettings) => {
+    const existingRooms = musicSettings.kalamRooms && typeof musicSettings.kalamRooms === 'object'
+        ? musicSettings.kalamRooms
+        : {};
+    const normalizedRutbah = normalizeKalamNotes(existingRooms.rutbah);
+    const normalizedBelal = normalizeKalamNotes(existingRooms.belal);
+    const existingRutbah = Array.isArray(existingRooms.rutbah) ? existingRooms.rutbah : [];
+    const existingBelal = Array.isArray(existingRooms.belal) ? existingRooms.belal : [];
+
+    const changed = (
+        !musicSettings.kalamRooms
+        || !kalamNotesEqual(existingRutbah, normalizedRutbah)
+        || !kalamNotesEqual(existingBelal, normalizedBelal)
+    );
+
+    musicSettings.kalamRooms = {
+        rutbah: normalizedRutbah,
+        belal: normalizedBelal
+    };
+
+    return changed;
+};
+
+const serializeKalamRoom = (room, notes) => ({
+    room,
+    notes: normalizeKalamNotes(notes).map((note) => ({
+        noteId: note.noteId,
+        text: note.text,
+        createdAt: note.createdAt
+    }))
+});
+
 const LEVELS = [
     { title: 'Murid', min: 0, max: 2 },
     { title: 'Raahi', min: 3, max: 5 },
@@ -249,6 +370,9 @@ const LEVELS = [
 
 const CELEBRATION_SECONDS = 10;
 const DAILY_GOAL_DEFAULT = 1;
+const KALAM_ROOMS = ['rutbah', 'belal'];
+const KALAM_MAX_TEXT_LENGTH = 500;
+const KALAM_MAX_NOTES_PER_ROOM = 300;
 
 const normalizeNonNegativeInteger = (value, fallback = 0) => {
     const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -475,7 +599,11 @@ const getOrCreateMusicSettings = async () => MusicSettings.findOneAndUpdate(
             streakLastDate: null,
             dailyGoalCount: DAILY_GOAL_DEFAULT,
             dailyProgressCount: 0,
-            dailyQuestDateKey: null
+            dailyQuestDateKey: null,
+            kalamRooms: {
+                rutbah: [],
+                belal: []
+            }
         }
     },
     { upsert: true, new: true }
@@ -485,6 +613,10 @@ const migrateLegacyMusicSettings = async (musicSettings) => {
     let changed = false;
 
     if (normalizeLevelUpFields(musicSettings)) {
+        changed = true;
+    }
+
+    if (normalizeKalamRooms(musicSettings)) {
         changed = true;
     }
 
@@ -1121,6 +1253,57 @@ app.delete('/api/music/youtube/playlists/:playlistId', async (req, res) => {
         res.json(serializeSource(musicSettings.youtubePlaylists, musicSettings.activeYoutubePlaylistId));
     } catch (err) {
         res.status(500).json({ error: 'Failed to delete YouTube playlist' });
+    }
+});
+
+app.get('/api/kalam/notes', async (req, res) => {
+    try {
+        const room = parseKalamRoom(req.query?.room);
+        if (!room) {
+            return res.status(400).json({ error: 'Valid room is required: rutbah or belal' });
+        }
+
+        const musicSettings = await getMusicSettings();
+        const notes = musicSettings?.kalamRooms?.[room] || [];
+        res.json(serializeKalamRoom(room, notes));
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch Kalam notes' });
+    }
+});
+
+app.post('/api/kalam/notes', async (req, res) => {
+    try {
+        const room = parseKalamRoom(req.body?.room);
+        if (!room) {
+            return res.status(400).json({ error: 'Valid room is required: rutbah or belal' });
+        }
+
+        const sanitizedText = sanitizeKalamText(req.body?.text);
+        if (sanitizedText.error || !sanitizedText.text) {
+            return res.status(400).json({ error: sanitizedText.error || 'Note text is required' });
+        }
+
+        const musicSettings = await getMusicSettings();
+        const currentNotes = musicSettings?.kalamRooms?.[room] || [];
+        const nextNotes = normalizeKalamNotes([
+            ...currentNotes,
+            {
+                noteId: buildKalamNoteId(),
+                text: sanitizedText.text,
+                createdAt: new Date()
+            }
+        ]);
+
+        musicSettings.kalamRooms = {
+            ...musicSettings.kalamRooms,
+            [room]: nextNotes
+        };
+        musicSettings.markModified('kalamRooms');
+        await musicSettings.save();
+
+        res.status(201).json(serializeKalamRoom(room, nextNotes));
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to save Kalam note' });
     }
 });
 

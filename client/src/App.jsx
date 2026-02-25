@@ -48,6 +48,12 @@ const THEME_STORAGE_KEY = 'sufi_dervish_theme';
 const RANDOMIZE_ENABLED_STORAGE_KEY = 'sufi_randomize_poems_enabled';
 const RANDOMIZE_ORDER_STORAGE_KEY = 'sufi_randomize_poems_order';
 const CELEBRATION_DURATION_MS = 10000;
+const KALAM_MAX_TEXT_LENGTH = 500;
+const KALAM_POLL_INTERVAL_MS = 10000;
+const KALAM_ROOMS = {
+  rutbah: 'Rutbah Chat',
+  belal: 'Belal Chat',
+};
 
 const normalizeTags = (tags) => [...new Set(
   (Array.isArray(tags) ? tags : [])
@@ -198,6 +204,44 @@ const readErrorMessage = async (res, fallbackMessage) => {
   }
 };
 
+const normalizeKalamPayload = (payload, fallbackRoom = 'rutbah') => {
+  const nextRoom = ['rutbah', 'belal'].includes(payload?.room) ? payload.room : fallbackRoom;
+  const nextNotes = Array.isArray(payload?.notes)
+    ? payload.notes
+      .map((note) => ({
+        parsedDate: new Date(note?.createdAt || Date.now()),
+        noteId: String(note?.noteId || '').trim(),
+        text: String(note?.text || '').trim(),
+        createdAt: null,
+      }))
+      .map((note) => {
+        const createdAt = Number.isFinite(note.parsedDate.getTime()) ? note.parsedDate.toISOString() : new Date().toISOString();
+        return {
+          noteId: note.noteId,
+          text: note.text,
+          createdAt,
+        };
+      })
+      .filter((note) => note.noteId && note.text)
+    : [];
+
+  return {
+    room: nextRoom,
+    notes: nextNotes,
+  };
+};
+
+const formatKalamTimestamp = (value) => {
+  const parsed = new Date(value);
+  if (!Number.isFinite(parsed.getTime())) return '';
+  return parsed.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
 const applySourcePayload = (payload, setPlaylists, setActivePlaylistId) => {
   const nextPlaylists = Array.isArray(payload?.playlists) ? payload.playlists : [];
   const nextActivePlaylistId = typeof payload?.activePlaylistId === 'string' ? payload.activePlaylistId : null;
@@ -313,11 +357,20 @@ function App() {
   const [isQuestPulseOn, setIsQuestPulseOn] = useState(false);
   const [isCelebrating, setIsCelebrating] = useState(false);
   const [celebrationUntil, setCelebrationUntil] = useState(0);
+  const [isKalamOpen, setIsKalamOpen] = useState(false);
+  const [kalamRoom, setKalamRoom] = useState('rutbah');
+  const [kalamNotes, setKalamNotes] = useState([]);
+  const [kalamInput, setKalamInput] = useState('');
+  const [kalamLoading, setKalamLoading] = useState(false);
+  const [kalamSaving, setKalamSaving] = useState(false);
+  const [kalamError, setKalamError] = useState('');
   const galleryScrollYRef = useRef(0);
   const poemDetailCardRef = useRef(null);
   const poemDetailHeadingRef = useRef(null);
   const semaMenuRef = useRef(null);
   const celebrationCanvasRef = useRef(null);
+  const kalamMessagesRef = useRef(null);
+  const kalamFetchSeqRef = useRef(0);
 
   const [formData, setFormData] = useState({ title: '', poet: 'Ahmad Faraz', content: '', tags: [] });
   const [editingPoemId, setEditingPoemId] = useState(null);
@@ -432,6 +485,91 @@ function App() {
       applyLevelUpPayload(data);
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const fetchKalamNotes = async (room = kalamRoom, options = {}) => {
+    const normalizedRoom = ['rutbah', 'belal'].includes(room) ? room : 'rutbah';
+    const { silent = false } = options;
+    const requestSeq = kalamFetchSeqRef.current + 1;
+    kalamFetchSeqRef.current = requestSeq;
+
+    if (!silent) {
+      setKalamLoading(true);
+    }
+
+    try {
+      const res = await fetch(`/api/kalam/notes?room=${encodeURIComponent(normalizedRoom)}`);
+      if (!res.ok) {
+        const message = await readErrorMessage(res, 'Unable to load Kalam notes.');
+        throw new Error(message);
+      }
+      const data = await res.json();
+      if (kalamFetchSeqRef.current !== requestSeq) return;
+      const normalized = normalizeKalamPayload(data, normalizedRoom);
+      setKalamNotes(normalized.notes);
+      setKalamError('');
+    } catch (err) {
+      if (kalamFetchSeqRef.current !== requestSeq) return;
+      console.error(err);
+      setKalamError(err.message || 'Unable to load Kalam notes.');
+    } finally {
+      if (kalamFetchSeqRef.current === requestSeq && !silent) {
+        setKalamLoading(false);
+      }
+    }
+  };
+
+  const handleOpenKalam = () => {
+    setIsKalamOpen(true);
+    fetchKalamNotes(kalamRoom);
+  };
+
+  const handleCloseKalam = () => {
+    setIsKalamOpen(false);
+    setKalamError('');
+  };
+
+  const handleSwitchKalamRoom = (room) => {
+    const normalizedRoom = ['rutbah', 'belal'].includes(room) ? room : 'rutbah';
+    if (normalizedRoom === kalamRoom) return;
+    setKalamRoom(normalizedRoom);
+    setKalamNotes([]);
+    setKalamError('');
+    fetchKalamNotes(normalizedRoom);
+  };
+
+  const handleSendKalamNote = async (e) => {
+    e.preventDefault();
+    const text = kalamInput.trim();
+    if (!text) {
+      setKalamError('Note text is required.');
+      return;
+    }
+
+    kalamFetchSeqRef.current += 1;
+    setKalamSaving(true);
+    try {
+      const res = await fetch('/api/kalam/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ room: kalamRoom, text })
+      });
+      if (!res.ok) {
+        const message = await readErrorMessage(res, 'Unable to save Kalam note.');
+        throw new Error(message);
+      }
+
+      const data = await res.json();
+      const normalized = normalizeKalamPayload(data, kalamRoom);
+      setKalamNotes(normalized.notes);
+      setKalamInput('');
+      setKalamError('');
+    } catch (err) {
+      console.error(err);
+      setKalamError(err.message || 'Unable to save Kalam note.');
+    } finally {
+      setKalamSaving(false);
     }
   };
 
@@ -939,7 +1077,7 @@ function App() {
   }, [isMehfilOpen, poems, activeMehfilPoemId]);
 
   useEffect(() => {
-    if (!isMehfilOpen) return undefined;
+    if (!isMehfilOpen && !isKalamOpen) return undefined;
 
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -947,7 +1085,20 @@ function App() {
     return () => {
       document.body.style.overflow = originalOverflow;
     };
-  }, [isMehfilOpen]);
+  }, [isMehfilOpen, isKalamOpen]);
+
+  useEffect(() => {
+    if (!isKalamOpen) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setIsKalamOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isKalamOpen]);
 
   useEffect(() => {
     if (!isMehfilOpen) return undefined;
@@ -1030,6 +1181,21 @@ function App() {
   useEffect(() => {
     window.localStorage.setItem(RANDOMIZE_ORDER_STORAGE_KEY, JSON.stringify(randomOrderIds));
   }, [randomOrderIds]);
+
+  useEffect(() => {
+    if (!isKalamOpen) return undefined;
+    const interval = window.setInterval(() => {
+      fetchKalamNotes(kalamRoom, { silent: true });
+    }, KALAM_POLL_INTERVAL_MS);
+    return () => window.clearInterval(interval);
+  }, [isKalamOpen, kalamRoom]);
+
+  useEffect(() => {
+    if (!isKalamOpen) return;
+    const container = kalamMessagesRef.current;
+    if (!container) return;
+    container.scrollTop = container.scrollHeight;
+  }, [isKalamOpen, kalamRoom, kalamNotes.length]);
 
   useEffect(() => {
     if (!isRandomOrderEnabled) return;
@@ -1792,6 +1958,16 @@ function App() {
                 </section>
               </article>
 
+              <div className="kalam-launch-row">
+                <button
+                  type="button"
+                  className="kalam-launch-btn"
+                  onClick={handleOpenKalam}
+                >
+                  Kalam
+                </button>
+              </div>
+
               <div className="poem-list-toolbar" ref={semaMenuRef}>
                 <button
                   type="button"
@@ -2081,6 +2257,70 @@ function App() {
           The only lasting beauty is the beauty of the heart
         </footer>
       </div>
+
+      {isKalamOpen ? (
+        <div className="kalam-overlay" role="dialog" aria-modal="true" aria-label="Kalam chat" onClick={handleCloseKalam}>
+          <section className="kalam-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="kalam-header">
+              <h2>Kalam</h2>
+              <button type="button" className="kalam-close-btn" onClick={handleCloseKalam}>Close</button>
+            </div>
+
+            <div className="kalam-room-tabs" role="tablist" aria-label="Kalam rooms">
+              {Object.entries(KALAM_ROOMS).map(([roomKey, roomLabel]) => (
+                <button
+                  key={roomKey}
+                  type="button"
+                  role="tab"
+                  aria-selected={kalamRoom === roomKey}
+                  className={`kalam-room-tab ${kalamRoom === roomKey ? 'kalam-room-tab-active' : ''}`}
+                  onClick={() => handleSwitchKalamRoom(roomKey)}
+                >
+                  {roomLabel}
+                </button>
+              ))}
+            </div>
+
+            <div className="kalam-messages" ref={kalamMessagesRef}>
+              {kalamLoading ? (
+                <p className="kalam-empty">Loading notes...</p>
+              ) : kalamNotes.length === 0 ? (
+                <p className="kalam-empty">No notes yet. Start the conversation.</p>
+              ) : (
+                kalamNotes.map((note) => (
+                  <article key={note.noteId} className="kalam-message">
+                    <p>{note.text}</p>
+                    <time className="kalam-meta">{formatKalamTimestamp(note.createdAt)}</time>
+                  </article>
+                ))
+              )}
+            </div>
+
+            {kalamError ? <p className="kalam-error">{kalamError}</p> : null}
+
+            <form className="kalam-composer" onSubmit={handleSendKalamNote}>
+              <textarea
+                className="kalam-input"
+                rows="3"
+                placeholder={`Write in ${KALAM_ROOMS[kalamRoom]}...`}
+                value={kalamInput}
+                onChange={(e) => setKalamInput(e.target.value)}
+                maxLength={KALAM_MAX_TEXT_LENGTH}
+                disabled={kalamSaving}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    e.currentTarget.form?.requestSubmit();
+                  }
+                }}
+              />
+              <button type="submit" className="kalam-send-btn" disabled={kalamSaving}>
+                {kalamSaving ? 'Sending...' : 'Send'}
+              </button>
+            </form>
+          </section>
+        </div>
+      ) : null}
 
       {isMehfilOpen && activeMehfilPoem && (
         <div className="mehfil-overlay" role="dialog" aria-modal="true" aria-label="Mehfil Mode" onClick={closeMehfil}>
