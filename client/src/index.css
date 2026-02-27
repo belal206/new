@@ -3668,6 +3668,25 @@ body.theme-shahi .mefil-chat-message {
   border: none;
 }
 
+body.theme-shahi .mefil-chat-bubble {
+  border-color: rgba(181, 141, 74, 0.48);
+  background: #0f0f0f;
+}
+
+body.theme-shahi .mefil-chat-message-partner .mefil-chat-bubble-end::after,
+body.theme-shahi .mefil-chat-message-partner .mefil-chat-bubble-single::after {
+  border-left-color: rgba(181, 141, 74, 0.48);
+  border-bottom-color: rgba(181, 141, 74, 0.48);
+  background: #0f0f0f;
+}
+
+body.theme-shahi .mefil-chat-message-self .mefil-chat-bubble-end::after,
+body.theme-shahi .mefil-chat-message-self .mefil-chat-bubble-single::after {
+  border-right-color: rgba(181, 141, 74, 0.48);
+  border-bottom-color: rgba(181, 141, 74, 0.48);
+  background: #0f0f0f;
+}
+
 body.theme-shahi .daily-quest-card {
   background: rgba(15, 15, 15, 0.8);
   border-color: rgba(181, 141, 74, 0.5);
