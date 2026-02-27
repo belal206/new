@@ -118,6 +118,26 @@ const MusicSettings = mongoose.model('MusicSettings', new mongoose.Schema({
             createdAt: { type: Date, default: Date.now }
         }]
     },
+    mefilTodos: {
+        rutbah: [{
+            _id: false,
+            todoId: { type: String, required: true },
+            text: { type: String, required: true },
+            isCompleted: { type: Boolean, default: false },
+            createdAt: { type: Date, default: Date.now },
+            updatedAt: { type: Date, default: Date.now },
+            completedAt: { type: Date, default: null }
+        }],
+        belal: [{
+            _id: false,
+            todoId: { type: String, required: true },
+            text: { type: String, required: true },
+            isCompleted: { type: Boolean, default: false },
+            createdAt: { type: Date, default: Date.now },
+            updatedAt: { type: Date, default: Date.now },
+            completedAt: { type: Date, default: null }
+        }]
+    },
     mefilQuest: {
         bossName: { type: String, default: 'The Aadhaar OTP Rakshas' },
         bossHp: { type: Number, default: 500 },
@@ -362,6 +382,145 @@ const normalizeMefilNotes = (notes) => {
         const createdAtMs = new Date(note.createdAt).getTime();
         return Number.isFinite(createdAtMs) && createdAtMs >= cutoffMs;
     });
+};
+
+const sanitizeMefilTodoText = (value) => {
+    const normalized = String(value || '').replace(/\r\n/g, '\n').trim();
+    if (!normalized) {
+        return { text: null, error: 'Todo text is required' };
+    }
+    if (normalized.length > MEFIL_TODO_MAX_TEXT_LENGTH) {
+        return { text: null, error: `Todo is too long. Max ${MEFIL_TODO_MAX_TEXT_LENGTH} characters.` };
+    }
+    return { text: normalized, error: null };
+};
+
+const normalizeMefilTodoList = (todos) => {
+    const seen = new Set();
+    const normalized = [];
+    const nowMs = Date.now();
+
+    for (const todo of Array.isArray(todos) ? todos : []) {
+        const todoId = String(todo?.todoId || '').trim() || buildKalamNoteId();
+        if (!todoId || seen.has(todoId)) continue;
+        seen.add(todoId);
+
+        const sanitizedText = sanitizeMefilTodoText(todo?.text);
+        if (sanitizedText.error || !sanitizedText.text) continue;
+
+        const createdAtDate = new Date(todo?.createdAt || Date.now());
+        const createdAt = Number.isFinite(createdAtDate.getTime()) ? createdAtDate : new Date();
+        const updatedAtDate = new Date(todo?.updatedAt || createdAt);
+        const updatedAt = Number.isFinite(updatedAtDate.getTime()) ? updatedAtDate : createdAt;
+        const isCompleted = Boolean(todo?.isCompleted);
+        const completedAtDate = todo?.completedAt ? new Date(todo.completedAt) : null;
+        const completedAt = completedAtDate && Number.isFinite(completedAtDate.getTime()) ? completedAtDate : null;
+
+        if (isCompleted && completedAt) {
+            const completedAtMs = completedAt.getTime();
+            if (nowMs - completedAtMs > MEFIL_TODO_COMPLETED_TTL_MS) {
+                continue;
+            }
+        }
+
+        normalized.push({
+            todoId,
+            text: sanitizedText.text,
+            isCompleted,
+            createdAt,
+            updatedAt,
+            completedAt: isCompleted ? completedAt : null
+        });
+    }
+
+    normalized.sort((left, right) => {
+        if (left.isCompleted !== right.isCompleted) {
+            return left.isCompleted ? 1 : -1;
+        }
+        return new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime();
+    });
+
+    if (normalized.length > MEFIL_TODO_MAX_ITEMS_PER_ROLE) {
+        return normalized.slice(0, MEFIL_TODO_MAX_ITEMS_PER_ROLE);
+    }
+    return normalized;
+};
+
+const mefilTodoListEqual = (left, right) => {
+    const sourceLeft = Array.isArray(left) ? left : [];
+    const sourceRight = Array.isArray(right) ? right : [];
+    if (sourceLeft.length !== sourceRight.length) return false;
+
+    for (let index = 0; index < sourceLeft.length; index += 1) {
+        const leftTodo = sourceLeft[index];
+        const rightTodo = sourceRight[index];
+        const leftCreatedAt = new Date(leftTodo?.createdAt || 0);
+        const rightCreatedAt = new Date(rightTodo?.createdAt || 0);
+        const leftUpdatedAt = new Date(leftTodo?.updatedAt || 0);
+        const rightUpdatedAt = new Date(rightTodo?.updatedAt || 0);
+        const leftCompletedAt = leftTodo?.completedAt ? new Date(leftTodo.completedAt) : null;
+        const rightCompletedAt = rightTodo?.completedAt ? new Date(rightTodo.completedAt) : null;
+        if (
+            String(leftTodo?.todoId || '').trim() !== String(rightTodo?.todoId || '').trim()
+            || String(leftTodo?.text || '') !== String(rightTodo?.text || '')
+            || Boolean(leftTodo?.isCompleted) !== Boolean(rightTodo?.isCompleted)
+            || (Number.isFinite(leftCreatedAt.getTime()) ? leftCreatedAt.toISOString() : '') !== (Number.isFinite(rightCreatedAt.getTime()) ? rightCreatedAt.toISOString() : '')
+            || (Number.isFinite(leftUpdatedAt.getTime()) ? leftUpdatedAt.toISOString() : '') !== (Number.isFinite(rightUpdatedAt.getTime()) ? rightUpdatedAt.toISOString() : '')
+            || (leftCompletedAt && Number.isFinite(leftCompletedAt.getTime()) ? leftCompletedAt.toISOString() : '') !== (rightCompletedAt && Number.isFinite(rightCompletedAt.getTime()) ? rightCompletedAt.toISOString() : '')
+        ) {
+            return false;
+        }
+    }
+
+    return true;
+};
+
+const normalizeMefilTodos = (musicSettings) => {
+    const existingTodos = musicSettings.mefilTodos && typeof musicSettings.mefilTodos === 'object'
+        ? musicSettings.mefilTodos
+        : {};
+    const normalizedRutbah = normalizeMefilTodoList(existingTodos.rutbah);
+    const normalizedBelal = normalizeMefilTodoList(existingTodos.belal);
+    const existingRutbah = Array.isArray(existingTodos.rutbah) ? existingTodos.rutbah : [];
+    const existingBelal = Array.isArray(existingTodos.belal) ? existingTodos.belal : [];
+
+    const changed = (
+        !musicSettings.mefilTodos
+        || !mefilTodoListEqual(existingRutbah, normalizedRutbah)
+        || !mefilTodoListEqual(existingBelal, normalizedBelal)
+    );
+
+    musicSettings.mefilTodos = {
+        rutbah: normalizedRutbah,
+        belal: normalizedBelal
+    };
+    if (changed) {
+        musicSettings.markModified('mefilTodos');
+    }
+
+    return changed;
+};
+
+const serializeMefilTodos = (todosSource) => {
+    const source = todosSource && typeof todosSource === 'object' ? todosSource : {};
+    return {
+        rutbah: normalizeMefilTodoList(source.rutbah).map((todo) => ({
+            todoId: todo.todoId,
+            text: todo.text,
+            isCompleted: todo.isCompleted,
+            createdAt: todo.createdAt,
+            updatedAt: todo.updatedAt,
+            completedAt: todo.completedAt
+        })),
+        belal: normalizeMefilTodoList(source.belal).map((todo) => ({
+            todoId: todo.todoId,
+            text: todo.text,
+            isCompleted: todo.isCompleted,
+            createdAt: todo.createdAt,
+            updatedAt: todo.updatedAt,
+            completedAt: todo.completedAt
+        }))
+    };
 };
 
 const kalamNotesEqual = (left, right) => {
@@ -774,9 +933,14 @@ const serializeMefilPresence = (presenceSource) => {
 
 const serializeMefilState = async (musicSettings, options = {}) => {
     await resolveMefilPresence(musicSettings, options);
+    const todosChanged = normalizeMefilTodos(musicSettings);
+    if (todosChanged) {
+        await musicSettings.save();
+    }
     return {
         quest: serializeMefilQuest(musicSettings.mefilQuest),
-        presence: serializeMefilPresence(musicSettings.mefilPresence)
+        presence: serializeMefilPresence(musicSettings.mefilPresence),
+        todos: serializeMefilTodos(musicSettings.mefilTodos)
     };
 };
 
@@ -800,6 +964,9 @@ const MEFIL_DISTRACT_DAMAGE = 20;
 const MEFIL_POMODORO_SECONDS = 25 * 60;
 const MEFIL_STATUS_VALUES = ['active', 'break', 'not_studying'];
 const MEFIL_CHAT_TTL_MS = 24 * 60 * 60 * 1000;
+const MEFIL_TODO_MAX_TEXT_LENGTH = 160;
+const MEFIL_TODO_MAX_ITEMS_PER_ROLE = 300;
+const MEFIL_TODO_COMPLETED_TTL_MS = 24 * 60 * 60 * 1000;
 
 const normalizeNonNegativeInteger = (value, fallback = 0) => {
     const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -1035,6 +1202,10 @@ const getOrCreateMusicSettings = async () => MusicSettings.findOneAndUpdate(
                 rutbah: [],
                 belal: []
             },
+            mefilTodos: {
+                rutbah: [],
+                belal: []
+            },
             mefilQuest: {
                 bossName: 'The Aadhaar OTP Rakshas',
                 bossHp: MEFIL_BOSS_MAX_HP,
@@ -1081,6 +1252,10 @@ const migrateLegacyMusicSettings = async (musicSettings) => {
     }
 
     if (normalizeMefilRooms(musicSettings)) {
+        changed = true;
+    }
+
+    if (normalizeMefilTodos(musicSettings)) {
         changed = true;
     }
 
@@ -2030,6 +2205,119 @@ app.post('/api/mefil/reset', requireMefilAuth, async (req, res) => {
     } catch (err) {
         console.error('[MEFIL /api/mefil/reset]', err?.message || err);
         res.status(500).json({ error: 'Failed to reset Mefil quest' });
+    }
+});
+
+app.post('/api/mefil/todos', requireMefilAuth, async (req, res) => {
+    try {
+        const roleResolution = readMefilRequestedRole(req, req.body?.role, 'role');
+        if (roleResolution.error) {
+            return res.status(roleResolution.status || 400).json({ error: roleResolution.error });
+        }
+        const role = roleResolution.role;
+        const sanitizedText = sanitizeMefilTodoText(req.body?.text);
+        if (sanitizedText.error || !sanitizedText.text) {
+            return res.status(400).json({ error: sanitizedText.error || 'Todo text is required' });
+        }
+
+        const musicSettings = await getMusicSettings();
+        normalizeMefilTodos(musicSettings);
+        const currentTodos = normalizeMefilTodoList(musicSettings?.mefilTodos?.[role]);
+        const now = new Date();
+        const nextTodos = normalizeMefilTodoList([
+            {
+                todoId: buildKalamNoteId(),
+                text: sanitizedText.text,
+                isCompleted: false,
+                createdAt: now,
+                updatedAt: now,
+                completedAt: null
+            },
+            ...currentTodos
+        ]);
+
+        musicSettings.set(`mefilTodos.${role}`, nextTodos);
+        musicSettings.markModified(`mefilTodos.${role}`);
+        await musicSettings.save();
+        return res.status(201).json({ todos: serializeMefilTodos(musicSettings.mefilTodos) });
+    } catch (err) {
+        console.error('[MEFIL /api/mefil/todos POST]', err?.message || err);
+        return res.status(500).json({ error: 'Failed to add todo' });
+    }
+});
+
+app.patch('/api/mefil/todos/:todoId', requireMefilAuth, async (req, res) => {
+    try {
+        const roleResolution = readMefilRequestedRole(req, req.body?.role, 'role');
+        if (roleResolution.error) {
+            return res.status(roleResolution.status || 400).json({ error: roleResolution.error });
+        }
+        const role = roleResolution.role;
+        const todoId = String(req.params.todoId || '').trim();
+        if (!todoId) {
+            return res.status(400).json({ error: 'Todo ID is required' });
+        }
+        if (typeof req.body?.isCompleted !== 'boolean') {
+            return res.status(400).json({ error: 'isCompleted must be a boolean' });
+        }
+
+        const isCompleted = req.body.isCompleted;
+        const musicSettings = await getMusicSettings();
+        normalizeMefilTodos(musicSettings);
+        const currentTodos = normalizeMefilTodoList(musicSettings?.mefilTodos?.[role]);
+        const todoIndex = currentTodos.findIndex((todo) => todo.todoId === todoId);
+        if (todoIndex < 0) {
+            return res.status(404).json({ error: 'Todo not found' });
+        }
+
+        const now = new Date();
+        const nextTodos = [...currentTodos];
+        nextTodos[todoIndex] = {
+            ...nextTodos[todoIndex],
+            isCompleted,
+            updatedAt: now,
+            completedAt: isCompleted ? now : null
+        };
+
+        const normalizedTodos = normalizeMefilTodoList(nextTodos);
+        musicSettings.set(`mefilTodos.${role}`, normalizedTodos);
+        musicSettings.markModified(`mefilTodos.${role}`);
+        await musicSettings.save();
+        return res.json({ todos: serializeMefilTodos(musicSettings.mefilTodos) });
+    } catch (err) {
+        console.error('[MEFIL /api/mefil/todos PATCH]', err?.message || err);
+        return res.status(500).json({ error: 'Failed to update todo' });
+    }
+});
+
+app.delete('/api/mefil/todos/:todoId', requireMefilAuth, async (req, res) => {
+    try {
+        const roleResolution = readMefilRequestedRole(req, req.body?.role, 'role');
+        if (roleResolution.error) {
+            return res.status(roleResolution.status || 400).json({ error: roleResolution.error });
+        }
+        const role = roleResolution.role;
+        const todoId = String(req.params.todoId || '').trim();
+        if (!todoId) {
+            return res.status(400).json({ error: 'Todo ID is required' });
+        }
+
+        const musicSettings = await getMusicSettings();
+        normalizeMefilTodos(musicSettings);
+        const currentTodos = normalizeMefilTodoList(musicSettings?.mefilTodos?.[role]);
+        const nextTodos = currentTodos.filter((todo) => todo.todoId !== todoId);
+        if (nextTodos.length === currentTodos.length) {
+            return res.status(404).json({ error: 'Todo not found' });
+        }
+
+        const normalizedTodos = normalizeMefilTodoList(nextTodos);
+        musicSettings.set(`mefilTodos.${role}`, normalizedTodos);
+        musicSettings.markModified(`mefilTodos.${role}`);
+        await musicSettings.save();
+        return res.json({ todos: serializeMefilTodos(musicSettings.mefilTodos) });
+    } catch (err) {
+        console.error('[MEFIL /api/mefil/todos DELETE]', err?.message || err);
+        return res.status(500).json({ error: 'Failed to delete todo' });
     }
 });
 

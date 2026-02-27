@@ -601,25 +601,53 @@ h1 {
   z-index: 2850;
   background: rgba(8, 6, 14, 0.86);
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 14px;
+  align-items: stretch;
+  justify-content: stretch;
+  padding: 0;
 }
 
 .mefil-modal {
-  width: min(1120px, 100%);
-  height: min(92vh, 980px);
-  border-radius: 18px;
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  border-radius: 0;
   border: 1px solid rgba(212, 175, 55, 0.5);
   background:
     linear-gradient(165deg, rgba(255, 255, 255, 0.95), rgba(250, 247, 239, 0.9)),
     linear-gradient(120deg, rgba(212, 175, 55, 0.12), rgba(123, 44, 191, 0.08));
   box-shadow: 0 34px 70px rgba(0, 0, 0, 0.3);
-  overflow: auto;
+  overflow: hidden;
   padding: 16px 16px 18px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.mefil-body {
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mefil-top-scroll {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 2px;
+}
+
+.mefil-bottom-stack {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid rgba(36, 0, 70, 0.18);
+  padding-top: 10px;
 }
 
 .mefil-header {
@@ -898,7 +926,6 @@ h1 {
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.78);
   padding: 10px;
-  margin-top: auto;
 }
 
 .mefil-chat-head {
@@ -922,9 +949,9 @@ h1 {
 }
 
 .mefil-chat-messages {
-  height: 180px;
-  min-height: 180px;
-  max-height: 180px;
+  height: 130px;
+  min-height: 130px;
+  max-height: 130px;
   overflow: auto;
   border: 1px solid rgba(36, 0, 70, 0.18);
   border-radius: 12px;
@@ -977,8 +1004,8 @@ h1 {
   background: rgba(255, 255, 255, 0.92);
   color: rgba(36, 0, 70, 0.9);
   padding: 7px 9px;
-  min-height: 48px;
-  max-height: 76px;
+  min-height: 40px;
+  max-height: 62px;
   resize: none;
   font-family: inherit;
   font-size: 0.84rem;
@@ -1005,6 +1032,176 @@ h1 {
 .mefil-chat-error {
   margin: 8px 0 0;
   font-size: 0.84rem;
+  color: #b64040;
+}
+
+.mefil-todo-section {
+  border: 1px solid rgba(212, 175, 55, 0.42);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 10px;
+}
+
+.mefil-todo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mefil-todo-card {
+  border: 1px solid rgba(36, 0, 70, 0.18);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.82);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.mefil-todo-card-self {
+  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.24);
+}
+
+.mefil-todo-card-partner {
+  opacity: 0.95;
+}
+
+.mefil-todo-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mefil-todo-head h3 {
+  margin: 0;
+  font-size: 0.88rem;
+  letter-spacing: 0.4px;
+  color: var(--royal-purple);
+}
+
+.mefil-todo-head span {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: rgba(36, 0, 70, 0.62);
+}
+
+.mefil-todo-list {
+  height: 170px;
+  min-height: 170px;
+  max-height: 170px;
+  overflow: auto;
+  border: 1px solid rgba(36, 0, 70, 0.16);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.88);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mefil-todo-item {
+  border: 1px solid rgba(36, 0, 70, 0.2);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mefil-todo-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.mefil-todo-check input {
+  margin-top: 2px;
+}
+
+.mefil-todo-check span {
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: rgba(36, 0, 70, 0.88);
+  white-space: pre-wrap;
+}
+
+.mefil-todo-item-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.mefil-todo-item-meta time {
+  font-size: 0.66rem;
+  color: rgba(36, 0, 70, 0.58);
+}
+
+.mefil-todo-item-meta button {
+  min-height: 24px;
+  border-radius: 999px;
+  border: 1px solid rgba(182, 64, 64, 0.34);
+  background: rgba(255, 255, 255, 0.94);
+  color: #b64040;
+  padding: 0 8px;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.mefil-todo-item-meta button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.mefil-todo-item-completed .mefil-todo-check span {
+  text-decoration: line-through;
+  opacity: 0.62;
+}
+
+.mefil-todo-composer {
+  display: flex;
+  gap: 6px;
+}
+
+.mefil-todo-composer input {
+  flex: 1;
+  min-height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(36, 0, 70, 0.24);
+  background: rgba(255, 255, 255, 0.95);
+  color: rgba(36, 0, 70, 0.9);
+  padding: 0 8px;
+  font-size: 0.8rem;
+}
+
+.mefil-todo-composer button {
+  min-height: 32px;
+  border-radius: 999px;
+  border: 1px solid rgba(36, 0, 70, 0.34);
+  background: rgba(255, 255, 255, 0.94);
+  color: var(--royal-purple);
+  padding: 0 10px;
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+
+.mefil-todo-composer button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mefil-todo-empty {
+  margin: 0;
+  font-size: 0.78rem;
+  color: rgba(36, 0, 70, 0.68);
+}
+
+.mefil-todo-error {
+  margin: 8px 0 0;
+  font-size: 0.82rem;
   color: #b64040;
 }
 
@@ -1364,6 +1561,9 @@ body.theme-noor .mefil-login-field input,
 body.theme-noor .mefil-status-select,
 body.theme-noor .mefil-controls-row button,
 body.theme-noor .mefil-chat-send-btn,
+body.theme-noor .mefil-todo-composer button,
+body.theme-noor .mefil-todo-item-meta button,
+body.theme-noor .mefil-todo-composer input,
 body.theme-noor .pomodoro-controls button {
   background: rgba(255, 248, 235, 0.95);
   border-color: rgba(181, 141, 74, 0.54);
@@ -1375,6 +1575,10 @@ body.theme-noor .boss-card,
 body.theme-noor .pomodoro-card,
 body.theme-noor .mefil-role-card,
 body.theme-noor .mefil-login-card,
+body.theme-noor .mefil-todo-section,
+body.theme-noor .mefil-todo-card,
+body.theme-noor .mefil-todo-list,
+body.theme-noor .mefil-todo-item,
 body.theme-noor .mefil-chat-card,
 body.theme-noor .mefil-chat-message,
 body.theme-noor .mefil-chat-messages {
@@ -1395,6 +1599,11 @@ body.theme-noor .mefil-profile-pill,
 body.theme-noor .mefil-login-card h3,
 body.theme-noor .mefil-login-field span,
 body.theme-noor .mefil-role-card-head h3,
+body.theme-noor .mefil-todo-head h3,
+body.theme-noor .mefil-todo-head span,
+body.theme-noor .mefil-todo-check span,
+body.theme-noor .mefil-todo-item-meta time,
+body.theme-noor .mefil-todo-empty,
 body.theme-noor .mefil-timer-label,
 body.theme-noor .mefil-timer-value,
 body.theme-noor .boss-head strong,
@@ -2218,14 +2427,18 @@ body.theme-noor .pomodoro-display {
   }
 
   .mefil-overlay {
-    padding: 10px;
+    padding: 0;
   }
 
   .mefil-modal {
     width: 100%;
     height: 100%;
-    border-radius: 14px;
+    border-radius: 0;
     padding: 12px;
+  }
+
+  .mefil-body {
+    gap: 8px;
   }
 
   .mefil-launch-btn {
@@ -2247,6 +2460,16 @@ body.theme-noor .pomodoro-display {
 
   .mefil-presence-grid {
     grid-template-columns: 1fr;
+  }
+
+  .mefil-todo-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mefil-todo-list {
+    height: 140px;
+    min-height: 140px;
+    max-height: 140px;
   }
 
   .mefil-role-card-head {
@@ -2273,14 +2496,22 @@ body.theme-noor .pomodoro-display {
     width: 100%;
   }
 
+  .mefil-todo-composer {
+    flex-direction: column;
+  }
+
+  .mefil-todo-composer button {
+    width: 100%;
+  }
+
   .mefil-chat-composer {
     flex-direction: column;
   }
 
   .mefil-chat-messages {
-    height: 150px;
-    min-height: 150px;
-    max-height: 150px;
+    height: 120px;
+    min-height: 120px;
+    max-height: 120px;
   }
 
   .mefil-chat-input {
@@ -2970,6 +3201,10 @@ body.theme-shahi .mefil-role-card,
 body.theme-shahi .mefil-login-card,
 body.theme-shahi .boss-card,
 body.theme-shahi .pomodoro-card,
+body.theme-shahi .mefil-todo-section,
+body.theme-shahi .mefil-todo-card,
+body.theme-shahi .mefil-todo-list,
+body.theme-shahi .mefil-todo-item,
 body.theme-shahi .mefil-chat-card,
 body.theme-shahi .mefil-chat-messages,
 body.theme-shahi .mefil-chat-message,
@@ -2989,6 +3224,8 @@ body.theme-shahi .mefil-login-field select,
 body.theme-shahi .mefil-login-field input,
 body.theme-shahi .mefil-status-select,
 body.theme-shahi .mefil-controls-row button,
+body.theme-shahi .mefil-todo-composer button,
+body.theme-shahi .mefil-todo-item-meta button,
 body.theme-shahi .mefil-chat-send-btn,
 body.theme-shahi .kalam-launch-btn,
 body.theme-shahi .kalam-close-btn,
@@ -3017,7 +3254,8 @@ body.theme-shahi .poem-edit-form textarea,
 body.theme-shahi .poem-tag-picker select,
 body.theme-shahi .mefil-status-select,
 body.theme-shahi .kalam-input,
-body.theme-shahi .mefil-chat-input {
+body.theme-shahi .mefil-chat-input,
+body.theme-shahi .mefil-todo-composer input {
   background: #050505;
   border-color: rgba(181, 141, 74, 0.42);
   color: #e8e1d2;
@@ -3112,6 +3350,11 @@ body.theme-shahi .mefil-profile-pill,
 body.theme-shahi .mefil-login-card h3,
 body.theme-shahi .mefil-login-field span,
 body.theme-shahi .mefil-role-card-head h3,
+body.theme-shahi .mefil-todo-head h3,
+body.theme-shahi .mefil-todo-head span,
+body.theme-shahi .mefil-todo-check span,
+body.theme-shahi .mefil-todo-item-meta time,
+body.theme-shahi .mefil-todo-empty,
 body.theme-shahi .mefil-timer-label,
 body.theme-shahi .mefil-timer-value,
 body.theme-shahi .boss-head strong,
@@ -3169,9 +3412,17 @@ body.theme-shahi .kalam-header {
 body.theme-shahi .mefil-header,
 body.theme-shahi .mefil-chat-card,
 body.theme-shahi .mefil-role-card,
+body.theme-shahi .mefil-todo-section,
+body.theme-shahi .mefil-todo-card,
+body.theme-shahi .mefil-todo-list,
+body.theme-shahi .mefil-todo-item,
 body.theme-shahi .pomodoro-card,
 body.theme-shahi .boss-card {
   border-color: rgba(181, 141, 74, 0.42);
+}
+
+body.theme-shahi .mefil-bottom-stack {
+  border-top-color: rgba(181, 141, 74, 0.28);
 }
 
 body.theme-shahi .kalam-composer {
