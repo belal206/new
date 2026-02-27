@@ -897,7 +897,8 @@ h1 {
   border: 1px solid rgba(212, 175, 55, 0.42);
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.78);
-  padding: 12px;
+  padding: 10px;
+  margin-top: auto;
 }
 
 .mefil-chat-head {
@@ -905,65 +906,68 @@ h1 {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .mefil-chat-head h3 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.94rem;
   color: var(--royal-purple);
   letter-spacing: 0.4px;
 }
 
 .mefil-chat-head span {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   color: rgba(36, 0, 70, 0.62);
 }
 
 .mefil-chat-messages {
-  max-height: 220px;
+  height: 180px;
+  min-height: 180px;
+  max-height: 180px;
   overflow: auto;
   border: 1px solid rgba(36, 0, 70, 0.18);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.82);
-  padding: 10px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .mefil-chat-message {
   border: 1px solid rgba(36, 0, 70, 0.2);
   border-radius: 10px;
-  padding: 8px 10px;
+  padding: 6px 8px;
   background: rgba(255, 255, 255, 0.9);
 }
 
 .mefil-chat-message p {
   margin: 0;
   white-space: pre-wrap;
-  font-size: 0.86rem;
-  line-height: 1.4;
+  font-size: 0.82rem;
+  line-height: 1.35;
   color: rgba(36, 0, 70, 0.85);
 }
 
 .mefil-chat-meta {
   display: block;
   margin-top: 4px;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   color: rgba(36, 0, 70, 0.56);
 }
 
 .mefil-chat-empty {
   margin: 0;
-  font-size: 0.84rem;
+  font-size: 0.8rem;
   color: rgba(36, 0, 70, 0.72);
 }
 
 .mefil-chat-composer {
-  margin-top: 8px;
+  margin-top: 6px;
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  align-items: flex-end;
 }
 
 .mefil-chat-input {
@@ -972,19 +976,24 @@ h1 {
   border: 1px solid rgba(36, 0, 70, 0.24);
   background: rgba(255, 255, 255, 0.92);
   color: rgba(36, 0, 70, 0.9);
-  padding: 8px 10px;
-  resize: vertical;
+  padding: 7px 9px;
+  min-height: 48px;
+  max-height: 76px;
+  resize: none;
   font-family: inherit;
+  font-size: 0.84rem;
+  line-height: 1.35;
 }
 
 .mefil-chat-send-btn {
-  min-height: 36px;
+  min-height: 34px;
   align-self: flex-end;
   border-radius: 999px;
   border: 1px solid var(--royal-purple);
   background: var(--royal-purple);
   color: #fff;
-  padding: 0 14px;
+  padding: 0 12px;
+  font-size: 0.8rem;
   cursor: pointer;
 }
 
@@ -2266,6 +2275,16 @@ body.theme-noor .pomodoro-display {
 
   .mefil-chat-composer {
     flex-direction: column;
+  }
+
+  .mefil-chat-messages {
+    height: 150px;
+    min-height: 150px;
+    max-height: 150px;
+  }
+
+  .mefil-chat-input {
+    max-height: 68px;
   }
 
   .mefil-chat-send-btn {

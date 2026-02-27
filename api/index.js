@@ -355,6 +355,15 @@ const normalizeKalamNotes = (notes) => {
     return normalized;
 };
 
+const normalizeMefilNotes = (notes) => {
+    const normalized = normalizeKalamNotes(notes);
+    const cutoffMs = Date.now() - MEFIL_CHAT_TTL_MS;
+    return normalized.filter((note) => {
+        const createdAtMs = new Date(note.createdAt).getTime();
+        return Number.isFinite(createdAtMs) && createdAtMs >= cutoffMs;
+    });
+};
+
 const kalamNotesEqual = (left, right) => {
     const sourceLeft = Array.isArray(left) ? left : [];
     const sourceRight = Array.isArray(right) ? right : [];
@@ -590,8 +599,8 @@ const normalizeMefilRooms = (musicSettings) => {
     const existingRooms = musicSettings.mefilRooms && typeof musicSettings.mefilRooms === 'object'
         ? musicSettings.mefilRooms
         : {};
-    const normalizedRutbah = normalizeKalamNotes(existingRooms.rutbah);
-    const normalizedBelal = normalizeKalamNotes(existingRooms.belal);
+    const normalizedRutbah = normalizeMefilNotes(existingRooms.rutbah);
+    const normalizedBelal = normalizeMefilNotes(existingRooms.belal);
     const existingRutbah = Array.isArray(existingRooms.rutbah) ? existingRooms.rutbah : [];
     const existingBelal = Array.isArray(existingRooms.belal) ? existingRooms.belal : [];
 
@@ -609,7 +618,14 @@ const normalizeMefilRooms = (musicSettings) => {
     return changed;
 };
 
-const serializeMefilRoom = (room, notes) => serializeKalamRoom(room, notes);
+const serializeMefilRoom = (room, notes) => ({
+    room,
+    notes: normalizeMefilNotes(notes).map((note) => ({
+        noteId: note.noteId,
+        text: note.text,
+        createdAt: note.createdAt
+    }))
+});
 const serializeMefilQuest = (quest) => normalizeMefilQuest(quest);
 
 const parseMefilStatus = (value) => {
@@ -783,6 +799,7 @@ const MEFIL_ATTACK_DAMAGE = 25;
 const MEFIL_DISTRACT_DAMAGE = 20;
 const MEFIL_POMODORO_SECONDS = 25 * 60;
 const MEFIL_STATUS_VALUES = ['active', 'break', 'not_studying'];
+const MEFIL_CHAT_TTL_MS = 24 * 60 * 60 * 1000;
 
 const normalizeNonNegativeInteger = (value, fallback = 0) => {
     const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -2046,7 +2063,7 @@ app.post('/api/mefil/chat', requireMefilAuth, async (req, res) => {
 
         const musicSettings = await getMusicSettings();
         const currentNotes = musicSettings?.mefilRooms?.[room] || [];
-        const nextNotes = normalizeKalamNotes([
+        const nextNotes = normalizeMefilNotes([
             ...currentNotes,
             {
                 noteId: buildKalamNoteId(),

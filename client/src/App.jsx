@@ -494,6 +494,7 @@ function App() {
   const kalamMessagesRef = useRef(null);
   const kalamFetchSeqRef = useRef(0);
   const mefilChatMessagesRef = useRef(null);
+  const mefilChatInputRef = useRef(null);
   const mefilChatFetchSeqRef = useRef(0);
   const mefilStateFetchSeqRef = useRef(0);
 
@@ -1806,12 +1807,21 @@ function App() {
     };
   }, [isMefilOpen, mefilLoggedIn, mefilRole]);
 
-  useEffect(() => {
-    if (!isMefilOpen || !mefilLoggedIn) return;
+  useLayoutEffect(() => {
+    if (!isMefilOpen || !mefilLoggedIn || !mefilRole) return;
     const container = mefilChatMessagesRef.current;
-    if (!container) return;
-    container.scrollTop = container.scrollHeight;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
   }, [isMefilOpen, mefilLoggedIn, mefilRole, mefilChatNotes.length]);
+
+  useEffect(() => {
+    if (!isMefilOpen || !mefilLoggedIn || !mefilRole) return undefined;
+    const focusId = window.requestAnimationFrame(() => {
+      mefilChatInputRef.current?.focus();
+    });
+    return () => window.cancelAnimationFrame(focusId);
+  }, [isMefilOpen, mefilLoggedIn, mefilRole]);
 
   useEffect(() => {
     if (!isRandomOrderEnabled) return;
@@ -2939,48 +2949,6 @@ function App() {
               </article>
             ) : (
               <>
-                <div className="mefil-chat-card" aria-label="Mefil chat">
-                  <div className="mefil-chat-head">
-                    <h3>{`${MEFIL_ROLES[mefilRole]} Chat`}</h3>
-                    <span>Live update: 1s</span>
-                  </div>
-                  <div className="mefil-chat-messages" ref={mefilChatMessagesRef}>
-                    {mefilChatLoading ? (
-                      <p className="mefil-chat-empty">Loading chat...</p>
-                    ) : mefilChatNotes.length === 0 ? (
-                      <p className="mefil-chat-empty">No messages yet. Start the thread.</p>
-                    ) : (
-                      mefilChatNotes.map((note) => (
-                        <article key={note.noteId} className="mefil-chat-message">
-                          <p>{note.text}</p>
-                          <time className="mefil-chat-meta">{formatKalamTimestamp(note.createdAt)}</time>
-                        </article>
-                      ))
-                    )}
-                  </div>
-                  {mefilChatError ? <p className="mefil-chat-error">{mefilChatError}</p> : null}
-                  <form className="mefil-chat-composer" onSubmit={handleSendMefilNote}>
-                    <textarea
-                      className="mefil-chat-input"
-                      rows="2"
-                      placeholder={`Write as ${MEFIL_ROLES[mefilRole]}...`}
-                      value={mefilChatInput}
-                      onChange={(e) => setMefilChatInput(e.target.value)}
-                      maxLength={KALAM_MAX_TEXT_LENGTH}
-                      disabled={mefilChatSaving}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          e.currentTarget.form?.requestSubmit();
-                        }
-                      }}
-                    />
-                    <button type="submit" className="mefil-chat-send-btn" disabled={mefilChatSaving}>
-                      {mefilChatSaving ? 'Sending...' : 'Send'}
-                    </button>
-                  </form>
-                </div>
-
                 <div className="boss-card">
                   <div className="boss-head">
                     <strong>{questState.bossName || 'The Aadhaar OTP Rakshas'}</strong>
@@ -3061,6 +3029,49 @@ function App() {
 
                 {questLoading ? <p className="mefil-status">Syncing quest...</p> : null}
                 {questError ? <p className="mefil-error">{questError}</p> : null}
+
+                <div className="mefil-chat-card" aria-label="Mefil chat">
+                  <div className="mefil-chat-head">
+                    <h3>{`${MEFIL_ROLES[mefilRole]} Chat`}</h3>
+                    <span>Live update: 1s · 24h only</span>
+                  </div>
+                  <div className="mefil-chat-messages" ref={mefilChatMessagesRef}>
+                    {mefilChatLoading ? (
+                      <p className="mefil-chat-empty">Loading chat...</p>
+                    ) : mefilChatNotes.length === 0 ? (
+                      <p className="mefil-chat-empty">No recent messages in the last 24 hours.</p>
+                    ) : (
+                      mefilChatNotes.map((note) => (
+                        <article key={note.noteId} className="mefil-chat-message">
+                          <p>{note.text}</p>
+                          <time className="mefil-chat-meta">{formatKalamTimestamp(note.createdAt)}</time>
+                        </article>
+                      ))
+                    )}
+                  </div>
+                  {mefilChatError ? <p className="mefil-chat-error">{mefilChatError}</p> : null}
+                  <form className="mefil-chat-composer" onSubmit={handleSendMefilNote}>
+                    <textarea
+                      ref={mefilChatInputRef}
+                      className="mefil-chat-input"
+                      rows="2"
+                      placeholder={`Write as ${MEFIL_ROLES[mefilRole]}...`}
+                      value={mefilChatInput}
+                      onChange={(e) => setMefilChatInput(e.target.value)}
+                      maxLength={KALAM_MAX_TEXT_LENGTH}
+                      disabled={mefilChatSaving}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          e.currentTarget.form?.requestSubmit();
+                        }
+                      }}
+                    />
+                    <button type="submit" className="mefil-chat-send-btn" disabled={mefilChatSaving}>
+                      {mefilChatSaving ? 'Sending...' : 'Send'}
+                    </button>
+                  </form>
+                </div>
               </>
             )}
           </section>
