@@ -57,7 +57,7 @@ const TEAM_MAX_HP = 100;
 const ATTACK_DAMAGE = 25;
 const DISTRACT_DAMAGE = 20;
 const defaultQuestState = {
-  bossName: 'The DBMS Final',
+  bossName: 'The Aadhaar OTP Rakshas',
   bossHp: BOSS_MAX_HP,
   bossMaxHp: BOSS_MAX_HP,
   teamHp: TEAM_MAX_HP,
@@ -2983,7 +2983,7 @@ function App() {
 
                 <div className="boss-card">
                   <div className="boss-head">
-                    <strong>{questState.bossName || 'The DBMS Final'}</strong>
+                    <strong>{questState.bossName || 'The Aadhaar OTP Rakshas'}</strong>
                     <span className={`status-pill status-pill-${questState.status}`}>{questState.status}</span>
                   </div>
                   <div className="boss-stat">

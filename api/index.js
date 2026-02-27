@@ -119,7 +119,7 @@ const MusicSettings = mongoose.model('MusicSettings', new mongoose.Schema({
         }]
     },
     mefilQuest: {
-        bossName: { type: String, default: 'The DBMS Final' },
+        bossName: { type: String, default: 'The Aadhaar OTP Rakshas' },
         bossHp: { type: Number, default: 500 },
         bossMaxHp: { type: Number, default: 500 },
         teamHp: { type: Number, default: 100 },
@@ -558,7 +558,7 @@ const normalizeMefilQuest = (quest) => {
     const lastDamage = Number.isFinite(parsedLastDamage) ? parsedLastDamage : null;
 
     return {
-        bossName: String(source.bossName || 'The DBMS Final').trim() || 'The DBMS Final',
+        bossName: String(source.bossName || 'The Aadhaar OTP Rakshas').trim() || 'The Aadhaar OTP Rakshas',
         bossHp,
         bossMaxHp,
         teamHp,
@@ -1019,7 +1019,7 @@ const getOrCreateMusicSettings = async () => MusicSettings.findOneAndUpdate(
                 belal: []
             },
             mefilQuest: {
-                bossName: 'The DBMS Final',
+                bossName: 'The Aadhaar OTP Rakshas',
                 bossHp: MEFIL_BOSS_MAX_HP,
                 bossMaxHp: MEFIL_BOSS_MAX_HP,
                 teamHp: MEFIL_TEAM_MAX_HP,
@@ -1996,7 +1996,7 @@ app.post('/api/mefil/reset', requireMefilAuth, async (req, res) => {
 
         const musicSettings = await getMusicSettings();
         const resetQuest = normalizeMefilQuest({
-            bossName: 'The DBMS Final',
+            bossName: 'The Aadhaar OTP Rakshas',
             bossHp: MEFIL_BOSS_MAX_HP,
             bossMaxHp: MEFIL_BOSS_MAX_HP,
             teamHp: MEFIL_TEAM_MAX_HP,
