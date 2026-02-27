@@ -978,9 +978,9 @@ h1 {
 }
 
 .mefil-chat-messages {
-  height: 220px;
-  min-height: 220px;
-  max-height: 220px;
+  height: 300px;
+  min-height: 300px;
+  max-height: 300px;
   overflow: auto;
   border: 1px solid rgba(36, 0, 70, 0.18);
   border-radius: 12px;
@@ -988,17 +988,49 @@ h1 {
   padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .mefil-chat-message {
+  width: 100%;
+  display: flex;
+}
+
+.mefil-chat-message-self {
+  justify-content: flex-end;
+}
+
+.mefil-chat-message-partner {
+  justify-content: flex-start;
+}
+
+.mefil-chat-bubble {
+  width: fit-content;
+  max-width: min(82%, 700px);
   border: 1px solid rgba(36, 0, 70, 0.2);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 8px 10px;
   background: rgba(255, 255, 255, 0.9);
 }
 
-.mefil-chat-message p {
+.mefil-chat-message-self .mefil-chat-bubble {
+  border-bottom-right-radius: 6px;
+}
+
+.mefil-chat-message-partner .mefil-chat-bubble {
+  border-bottom-left-radius: 6px;
+}
+
+.mefil-chat-author {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 0.68rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: rgba(36, 0, 70, 0.65);
+}
+
+.mefil-chat-bubble p {
   margin: 0;
   white-space: pre-wrap;
   font-size: 0.9rem;
@@ -1680,7 +1712,8 @@ body.theme-noor .boss-stat label,
 body.theme-noor .boss-last-action,
 body.theme-noor .mefil-chat-head h3,
 body.theme-noor .mefil-chat-head span,
-body.theme-noor .mefil-chat-message p,
+body.theme-noor .mefil-chat-bubble p,
+body.theme-noor .mefil-chat-author,
 body.theme-noor .mefil-chat-meta,
 body.theme-noor .mefil-chat-empty,
 body.theme-noor .pomodoro-display {
@@ -2605,9 +2638,9 @@ body.theme-noor .boss-icon {
   }
 
   .mefil-chat-messages {
-    height: 190px;
-    min-height: 190px;
-    max-height: 190px;
+    height: 250px;
+    min-height: 250px;
+    max-height: 250px;
   }
 
   .mefil-chat-input {
@@ -3465,7 +3498,8 @@ body.theme-shahi .mefil-chat-head h3,
 body.theme-shahi .mefil-chat-head span,
 body.theme-shahi .mefil-chat-meta,
 body.theme-shahi .mefil-chat-empty,
-body.theme-shahi .mefil-chat-message p,
+body.theme-shahi .mefil-chat-bubble p,
+body.theme-shahi .mefil-chat-author,
 body.theme-shahi .pomodoro-display,
 body.theme-shahi .kalam-meta,
 body.theme-shahi .kalam-empty,

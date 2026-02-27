@@ -3437,10 +3437,10 @@ function App() {
                         mefilChatNotes.map((note) => (
                           <article
                             key={note.noteId}
-                            className={`mefil-chat-message ${note.actor === mefilRole ? 'mefil-chat-message-self' : 'mefil-chat-message-partner'}`}
+                            className={`mefil-chat-message ${note.actor === 'rutbah' ? 'mefil-chat-message-self' : 'mefil-chat-message-partner'}`}
                           >
                             <div className="mefil-chat-bubble">
-                              <span className="mefil-chat-author">{note.actor === mefilRole ? 'You' : (MEFIL_ROLES[note.actor] || 'Partner')}</span>
+                              <span className="mefil-chat-author">{MEFIL_ROLES[note.actor] || 'Partner'}</span>
                               <p>{note.text}</p>
                               <time className="mefil-chat-meta">{formatKalamTimestamp(note.createdAt)}</time>
                             </div>
@@ -3471,7 +3471,6 @@ function App() {
                         className="mefil-chat-send-btn"
                         disabled={mefilChatSaving}
                         onMouseDown={(e) => e.preventDefault()}
-                        onTouchStart={(e) => e.preventDefault()}
                       >
                         {mefilChatSaving ? 'Sending...' : 'Send'}
                       </button>
