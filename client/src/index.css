@@ -889,6 +889,36 @@ h1 {
   padding: 0 10px;
 }
 
+.mefil-duration-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mefil-duration-row span {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: rgba(36, 0, 70, 0.62);
+}
+
+.mefil-duration-select {
+  min-height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(36, 0, 70, 0.26);
+  background: rgba(255, 255, 255, 0.95);
+  color: rgba(36, 0, 70, 0.88);
+  padding: 0 10px;
+  min-width: 170px;
+}
+
+.mefil-points-hint {
+  margin: 0;
+  font-size: 0.76rem;
+  color: rgba(36, 0, 70, 0.62);
+}
+
 .mefil-controls-row {
   display: flex;
   flex-wrap: wrap;
@@ -1309,6 +1339,25 @@ h1 {
   color: rgba(36, 0, 70, 0.7);
 }
 
+.mefil-points-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mefil-points-strip span {
+  min-height: 26px;
+  border-radius: 999px;
+  border: 1px solid rgba(36, 0, 70, 0.22);
+  background: rgba(255, 255, 255, 0.88);
+  color: rgba(36, 0, 70, 0.82);
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.74rem;
+  letter-spacing: 0.4px;
+}
+
 .pomodoro-card {
   border: 1px solid rgba(36, 0, 70, 0.2);
   border-radius: 14px;
@@ -1576,6 +1625,7 @@ body.theme-noor .mefil-login-btn,
 body.theme-noor .mefil-login-field select,
 body.theme-noor .mefil-login-field input,
 body.theme-noor .mefil-status-select,
+body.theme-noor .mefil-duration-select,
 body.theme-noor .mefil-controls-row button,
 body.theme-noor .mefil-chat-send-btn,
 body.theme-noor .mefil-todo-composer button,
@@ -1618,6 +1668,8 @@ body.theme-noor .mefil-login-field span,
 body.theme-noor .mefil-role-card-head h3,
 body.theme-noor .mefil-todo-head h3,
 body.theme-noor .mefil-todo-head span,
+body.theme-noor .mefil-duration-row span,
+body.theme-noor .mefil-points-hint,
 body.theme-noor .mefil-todo-check span,
 body.theme-noor .mefil-todo-item-meta time,
 body.theme-noor .mefil-todo-empty,
@@ -1633,6 +1685,12 @@ body.theme-noor .mefil-chat-meta,
 body.theme-noor .mefil-chat-empty,
 body.theme-noor .pomodoro-display {
   color: #4b3a23;
+}
+
+body.theme-noor .mefil-points-strip span {
+  color: #4b3a23;
+  border-color: rgba(181, 141, 74, 0.54);
+  background: rgba(255, 248, 235, 0.95);
 }
 
 body.theme-noor .boss-icon {
@@ -2508,6 +2566,16 @@ body.theme-noor .boss-icon {
     width: fit-content;
   }
 
+  .mefil-duration-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .mefil-duration-select {
+    width: 100%;
+    min-width: 0;
+  }
+
   .mefil-controls-row {
     flex-direction: column;
   }
@@ -3251,7 +3319,9 @@ body.theme-shahi .mefil-login-btn,
 body.theme-shahi .mefil-login-field select,
 body.theme-shahi .mefil-login-field input,
 body.theme-shahi .mefil-status-select,
+body.theme-shahi .mefil-duration-select,
 body.theme-shahi .mefil-controls-row button,
+body.theme-shahi .pomodoro-controls button,
 body.theme-shahi .mefil-todo-composer button,
 body.theme-shahi .mefil-todo-item-meta button,
 body.theme-shahi .mefil-chat-send-btn,
@@ -3324,6 +3394,7 @@ body.theme-shahi .mefil-close-btn:hover,
 body.theme-shahi .mefil-logout-btn:hover,
 body.theme-shahi .mefil-login-btn:hover,
 body.theme-shahi .mefil-controls-row button:hover,
+body.theme-shahi .pomodoro-controls button:hover,
 body.theme-shahi .kalam-launch-btn:hover,
 body.theme-shahi .kalam-close-btn:hover,
 body.theme-shahi .kalam-room-tab:hover,
@@ -3380,6 +3451,8 @@ body.theme-shahi .mefil-login-field span,
 body.theme-shahi .mefil-role-card-head h3,
 body.theme-shahi .mefil-todo-head h3,
 body.theme-shahi .mefil-todo-head span,
+body.theme-shahi .mefil-duration-row span,
+body.theme-shahi .mefil-points-hint,
 body.theme-shahi .mefil-todo-check span,
 body.theme-shahi .mefil-todo-item-meta time,
 body.theme-shahi .mefil-todo-empty,
@@ -3408,6 +3481,12 @@ body.theme-shahi .poem-preview-line,
 body.theme-shahi .poem-detail-content,
 body.theme-shahi .mehfil-line {
   color: #d8cfbc;
+}
+
+body.theme-shahi .mefil-points-strip span {
+  color: #d8cfbc;
+  border-color: rgba(181, 141, 74, 0.42);
+  background: #101010;
 }
 
 body.theme-shahi .boss-icon {

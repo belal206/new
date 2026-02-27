@@ -175,6 +175,11 @@ const MusicSettings = mongoose.model('MusicSettings', new mongoose.Schema({
             endsAt: { type: Date, default: null },
             updatedAt: { type: Date, default: null }
         }
+    },
+    mefilPoints: {
+        belal: { type: Number, default: 0 },
+        rutbah: { type: Number, default: 0 },
+        total: { type: Number, default: 0 }
     }
 }, { timestamps: true }));
 
@@ -908,13 +913,21 @@ const parseMefilStatus = (value) => {
     return MEFIL_STATUS_VALUES.includes(normalized) ? normalized : null;
 };
 
+const parseMefilPomodoroDuration = (value) => {
+    const parsed = Number.parseInt(String(value ?? ''), 10);
+    if (!Number.isFinite(parsed)) return null;
+    return MEFIL_POMODORO_DURATION_OPTIONS.includes(parsed) ? parsed : null;
+};
+
+const getMefilPomodoroPoints = (durationSeconds) => {
+    const normalizedDuration = parseMefilPomodoroDuration(durationSeconds) || MEFIL_POMODORO_SECONDS;
+    return MEFIL_POMODORO_POINTS_BY_DURATION[normalizedDuration] || Math.max(1, Math.round(normalizedDuration / 60));
+};
+
 const normalizeMefilPresenceEntry = (entry) => {
     const source = entry && typeof entry === 'object' ? entry : {};
     const status = parseMefilStatus(source.status) || 'not_studying';
-    const parsedDuration = Number.parseInt(String(source.durationSeconds ?? MEFIL_POMODORO_SECONDS), 10);
-    const durationSeconds = Number.isFinite(parsedDuration) && parsedDuration > 0
-        ? parsedDuration
-        : MEFIL_POMODORO_SECONDS;
+    const durationSeconds = parseMefilPomodoroDuration(source.durationSeconds) || MEFIL_POMODORO_SECONDS;
     const parsedRemaining = Number.parseInt(String(source.remainingSeconds ?? durationSeconds), 10);
     const remainingSeconds = Number.isFinite(parsedRemaining)
         ? Math.max(0, Math.min(durationSeconds, parsedRemaining))
@@ -987,6 +1000,35 @@ const normalizeMefilPresence = (musicSettings) => {
     return changed;
 };
 
+const normalizeMefilPoints = (musicSettings) => {
+    const source = musicSettings.mefilPoints && typeof musicSettings.mefilPoints === 'object'
+        ? musicSettings.mefilPoints
+        : {};
+    const belal = normalizeNonNegativeInteger(source.belal, 0);
+    const rutbah = normalizeNonNegativeInteger(source.rutbah, 0);
+    const total = normalizeNonNegativeInteger(source.total, belal + rutbah);
+    const normalized = { belal, rutbah, total };
+    const changed = (
+        !musicSettings.mefilPoints
+        || normalizeNonNegativeInteger(source.belal, -1) !== belal
+        || normalizeNonNegativeInteger(source.rutbah, -1) !== rutbah
+        || normalizeNonNegativeInteger(source.total, -1) !== total
+    );
+    if (changed) {
+        musicSettings.mefilPoints = normalized;
+        musicSettings.markModified('mefilPoints');
+    }
+    return changed;
+};
+
+const serializeMefilPoints = (pointsSource) => {
+    const source = pointsSource && typeof pointsSource === 'object' ? pointsSource : {};
+    const belal = normalizeNonNegativeInteger(source.belal, 0);
+    const rutbah = normalizeNonNegativeInteger(source.rutbah, 0);
+    const total = normalizeNonNegativeInteger(source.total, belal + rutbah);
+    return { belal, rutbah, total };
+};
+
 const resolveMefilPresence = (musicSettings, { persistCompletion = false } = {}) => {
     const now = new Date();
     const sourcePresence = musicSettings.mefilPresence && typeof musicSettings.mefilPresence === 'object'
@@ -1050,13 +1092,15 @@ const serializeMefilPresence = (presenceSource) => {
 const serializeMefilState = async (musicSettings, options = {}) => {
     await resolveMefilPresence(musicSettings, options);
     const todosChanged = normalizeMefilTodos(musicSettings);
-    if (todosChanged) {
+    const pointsChanged = normalizeMefilPoints(musicSettings);
+    if (todosChanged || pointsChanged) {
         await musicSettings.save();
     }
     return {
         quest: serializeMefilQuest(musicSettings.mefilQuest),
         presence: serializeMefilPresence(musicSettings.mefilPresence),
-        todos: serializeMefilTodos(musicSettings.mefilTodos)
+        todos: serializeMefilTodos(musicSettings.mefilTodos),
+        points: serializeMefilPoints(musicSettings.mefilPoints)
     };
 };
 
@@ -1083,6 +1127,13 @@ const MEFIL_CHAT_TTL_MS = 24 * 60 * 60 * 1000;
 const MEFIL_TODO_MAX_TEXT_LENGTH = 160;
 const MEFIL_TODO_MAX_ITEMS_PER_ROLE = 300;
 const MEFIL_TODO_COMPLETED_TTL_MS = 24 * 60 * 60 * 1000;
+const MEFIL_POMODORO_DURATION_OPTIONS = [15 * 60, 25 * 60, 45 * 60, 60 * 60];
+const MEFIL_POMODORO_POINTS_BY_DURATION = {
+    [15 * 60]: 15,
+    [25 * 60]: 25,
+    [45 * 60]: 45,
+    [60 * 60]: 60
+};
 
 const normalizeNonNegativeInteger = (value, fallback = 0) => {
     const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -1351,6 +1402,11 @@ const getOrCreateMusicSettings = async () => MusicSettings.findOneAndUpdate(
                     endsAt: null,
                     updatedAt: null
                 }
+            },
+            mefilPoints: {
+                belal: 0,
+                rutbah: 0,
+                total: 0
             }
         }
     },
@@ -1381,6 +1437,10 @@ const migrateLegacyMusicSettings = async (musicSettings) => {
     }
 
     if (normalizeMefilPresence(musicSettings)) {
+        changed = true;
+    }
+
+    if (normalizeMefilPoints(musicSettings)) {
         changed = true;
     }
 
@@ -2109,6 +2169,38 @@ app.patch('/api/mefil/status', requireMefilAuth, async (req, res) => {
     }
 });
 
+app.patch('/api/mefil/pomodoro/duration', requireMefilAuth, async (req, res) => {
+    try {
+        const roleResolution = readMefilRequestedRole(req, req.body?.role, 'role');
+        if (roleResolution.error) {
+            return res.status(roleResolution.status || 400).json({ error: roleResolution.error });
+        }
+        const role = roleResolution.role;
+        const durationSeconds = parseMefilPomodoroDuration(req.body?.durationSeconds);
+        if (!durationSeconds) {
+            return res.status(400).json({ error: 'Valid duration is required: 15, 25, 45, or 60 minutes.' });
+        }
+
+        const musicSettings = await getMusicSettings();
+        await resolveMefilPresence(musicSettings, { persistCompletion: true });
+        const nextPresence = normalizeMefilPresenceEntry(musicSettings.mefilPresence?.[role]);
+        if (nextPresence.isRunning) {
+            return res.status(400).json({ error: 'Pause timer before changing duration.' });
+        }
+
+        nextPresence.durationSeconds = durationSeconds;
+        nextPresence.remainingSeconds = durationSeconds;
+        nextPresence.endsAt = null;
+        nextPresence.updatedAt = new Date();
+        setMefilPresenceRole(musicSettings, role, nextPresence);
+        await musicSettings.save();
+        res.json({ presence: serializeMefilPresence(musicSettings.mefilPresence), points: serializeMefilPoints(musicSettings.mefilPoints) });
+    } catch (err) {
+        console.error('[MEFIL /api/mefil/pomodoro/duration]', err?.message || err);
+        res.status(500).json({ error: 'Failed to update Pomodoro duration' });
+    }
+});
+
 app.post('/api/mefil/pomodoro/start', requireMefilAuth, async (req, res) => {
     try {
         const roleResolution = readMefilRequestedRole(req, req.body?.role, 'role');
@@ -2116,13 +2208,24 @@ app.post('/api/mefil/pomodoro/start', requireMefilAuth, async (req, res) => {
             return res.status(roleResolution.status || 400).json({ error: roleResolution.error });
         }
         const role = roleResolution.role;
+        const requestedDurationSeconds = req.body?.durationSeconds == null
+            ? null
+            : parseMefilPomodoroDuration(req.body?.durationSeconds);
+        if (req.body?.durationSeconds != null && !requestedDurationSeconds) {
+            return res.status(400).json({ error: 'Valid duration is required: 15, 25, 45, or 60 minutes.' });
+        }
         const musicSettings = await getMusicSettings();
         await resolveMefilPresence(musicSettings, { persistCompletion: true });
 
         const serializedPresence = serializeMefilPresence(musicSettings.mefilPresence);
         const currentPresence = normalizeMefilPresenceEntry(musicSettings.mefilPresence?.[role]);
+        if (requestedDurationSeconds) {
+            currentPresence.durationSeconds = requestedDurationSeconds;
+        }
         const computedRemaining = serializedPresence?.[role]?.remainingSeconds ?? currentPresence.remainingSeconds;
-        const baseRemaining = computedRemaining > 0 ? computedRemaining : currentPresence.durationSeconds;
+        const baseRemaining = requestedDurationSeconds
+            ? requestedDurationSeconds
+            : (computedRemaining > 0 ? computedRemaining : currentPresence.durationSeconds);
         const now = new Date();
         currentPresence.remainingSeconds = baseRemaining;
         currentPresence.isRunning = true;
@@ -2171,9 +2274,18 @@ app.post('/api/mefil/pomodoro/reset', requireMefilAuth, async (req, res) => {
             return res.status(roleResolution.status || 400).json({ error: roleResolution.error });
         }
         const role = roleResolution.role;
+        const requestedDurationSeconds = req.body?.durationSeconds == null
+            ? null
+            : parseMefilPomodoroDuration(req.body?.durationSeconds);
+        if (req.body?.durationSeconds != null && !requestedDurationSeconds) {
+            return res.status(400).json({ error: 'Valid duration is required: 15, 25, 45, or 60 minutes.' });
+        }
         const musicSettings = await getMusicSettings();
         await resolveMefilPresence(musicSettings, { persistCompletion: true });
         const nextPresence = normalizeMefilPresenceEntry(musicSettings.mefilPresence?.[role]);
+        if (requestedDurationSeconds) {
+            nextPresence.durationSeconds = requestedDurationSeconds;
+        }
         nextPresence.remainingSeconds = nextPresence.durationSeconds;
         nextPresence.isRunning = false;
         nextPresence.endsAt = null;
@@ -2216,6 +2328,7 @@ app.post('/api/mefil/pomodoro/complete-attack', requireMefilAuth, async (req, re
         musicSettings.markModified('mefilQuest');
 
         const nextPresence = normalizeMefilPresenceEntry(musicSettings.mefilPresence?.[role]);
+        const pointsAwarded = getMefilPomodoroPoints(nextPresence.durationSeconds);
         nextPresence.isRunning = false;
         nextPresence.remainingSeconds = nextPresence.durationSeconds;
         nextPresence.endsAt = null;
@@ -2223,8 +2336,15 @@ app.post('/api/mefil/pomodoro/complete-attack', requireMefilAuth, async (req, re
         nextPresence.updatedAt = new Date();
         setMefilPresenceRole(musicSettings, role, nextPresence);
 
+        const points = serializeMefilPoints(musicSettings.mefilPoints);
+        points[role] += pointsAwarded;
+        points.total += pointsAwarded;
+        musicSettings.mefilPoints = points;
+        musicSettings.markModified('mefilPoints');
+
         await musicSettings.save();
         const payload = await serializeMefilState(musicSettings);
+        payload.pointsAwarded = pointsAwarded;
         res.json(payload);
     } catch (err) {
         console.error('[MEFIL /api/mefil/pomodoro/complete-attack]', err?.message || err);
