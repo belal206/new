@@ -277,6 +277,25 @@ const normalizeKalamPayload = (payload, fallbackRoom = 'rutbah') => {
   };
 };
 
+const normalizeMefilChatPayload = (payload) => {
+  const nextNotes = Array.isArray(payload?.notes)
+    ? payload.notes
+      .map((note) => {
+        const parsedDate = new Date(note?.createdAt || Date.now());
+        const actor = note?.actor === 'belal' || note?.actor === 'rutbah' ? note.actor : null;
+        return {
+          noteId: String(note?.noteId || '').trim(),
+          actor,
+          text: String(note?.text || '').trim(),
+          createdAt: Number.isFinite(parsedDate.getTime()) ? parsedDate.toISOString() : new Date().toISOString(),
+        };
+      })
+      .filter((note) => note.noteId && note.actor && note.text)
+    : [];
+
+  return { notes: nextNotes };
+};
+
 const formatKalamTimestamp = (value) => {
   const parsed = new Date(value);
   if (!Number.isFinite(parsed.getTime())) return '';
@@ -559,6 +578,7 @@ function App() {
   const kalamFetchSeqRef = useRef(0);
   const mefilChatMessagesRef = useRef(null);
   const mefilChatInputRef = useRef(null);
+  const mefilKeepInputFocusRef = useRef(false);
   const mefilChatFetchSeqRef = useRef(0);
   const mefilStateFetchSeqRef = useRef(0);
 
@@ -654,6 +674,18 @@ function App() {
     && activePresenceEntry.remainingSeconds === 0
   );
   const canUseDistracted = canUseMefilActions && !questLoading && !mefilActionLoading && questState.status === 'active';
+
+  const focusMefilChatInput = () => {
+    window.requestAnimationFrame(() => {
+      const input = mefilChatInputRef.current;
+      if (!input) return;
+      input.focus();
+      const cursorPos = input.value.length;
+      if (typeof input.setSelectionRange === 'function') {
+        input.setSelectionRange(cursorPos, cursorPos);
+      }
+    });
+  };
 
   const fetchPoems = async () => {
     try {
@@ -872,6 +904,7 @@ function App() {
     const { silent = false } = options;
     const requestSeq = mefilChatFetchSeqRef.current + 1;
     mefilChatFetchSeqRef.current = requestSeq;
+    const shouldRestoreFocus = document.activeElement === mefilChatInputRef.current || mefilKeepInputFocusRef.current;
 
     if (!silent) {
       setMefilChatLoading(true);
@@ -890,13 +923,21 @@ function App() {
       }
       const data = await res.json();
       if (mefilChatFetchSeqRef.current !== requestSeq) return;
-      const normalized = normalizeKalamPayload(data, mefilRole);
+      const normalized = normalizeMefilChatPayload(data);
       setMefilChatNotes(normalized.notes);
       setMefilChatError('');
+      if (shouldRestoreFocus || mefilKeepInputFocusRef.current) {
+        focusMefilChatInput();
+        mefilKeepInputFocusRef.current = false;
+      }
     } catch (err) {
       if (mefilChatFetchSeqRef.current !== requestSeq) return;
       console.error(err);
       setMefilChatError(err.message || 'Unable to load Mefil chat.');
+      if (shouldRestoreFocus || mefilKeepInputFocusRef.current) {
+        focusMefilChatInput();
+        mefilKeepInputFocusRef.current = false;
+      }
     } finally {
       if (mefilChatFetchSeqRef.current === requestSeq && !silent) {
         setMefilChatLoading(false);
@@ -1311,6 +1352,7 @@ function App() {
     }
 
     mefilChatFetchSeqRef.current += 1;
+    mefilKeepInputFocusRef.current = true;
     setMefilChatSaving(true);
     try {
       const res = await fetch('/api/mefil/chat', {
@@ -1329,16 +1371,17 @@ function App() {
       }
 
       const data = await res.json();
-      const normalized = normalizeKalamPayload(data, mefilRole);
+      const normalized = normalizeMefilChatPayload(data);
       setMefilChatNotes(normalized.notes);
       setMefilChatInput('');
       setMefilChatError('');
-      window.requestAnimationFrame(() => {
-        mefilChatInputRef.current?.focus();
-      });
+      focusMefilChatInput();
+      mefilKeepInputFocusRef.current = false;
     } catch (err) {
       console.error(err);
       setMefilChatError(err.message || 'Unable to send message.');
+      focusMefilChatInput();
+      mefilKeepInputFocusRef.current = false;
     } finally {
       setMefilChatSaving(false);
     }
@@ -3141,6 +3184,21 @@ function App() {
               </article>
             ) : (
               <div className="mefil-body">
+                <div className="mefil-mobile-hp" aria-label="Mefil health summary">
+                  <div className="mefil-mobile-hp-item">
+                    <span className="mefil-mobile-hp-label">{`Boss ${questState.bossHp}/${questState.bossMaxHp || BOSS_MAX_HP}`}</span>
+                    <div className="mefil-mobile-hp-track mefil-mobile-hp-track-boss">
+                      <span className="mefil-mobile-hp-fill mefil-mobile-hp-fill-boss" style={{ width: `${bossHpPercent}%` }}></span>
+                    </div>
+                  </div>
+                  <div className="mefil-mobile-hp-item">
+                    <span className="mefil-mobile-hp-label">{`Team ${questState.teamHp}/${questState.teamMaxHp || TEAM_MAX_HP}`}</span>
+                    <div className="mefil-mobile-hp-track mefil-mobile-hp-track-team">
+                      <span className="mefil-mobile-hp-fill mefil-mobile-hp-fill-team" style={{ width: `${teamHpPercent}%` }}></span>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="mefil-top-scroll">
                   <div className="boss-card">
                     <div className="boss-head">
@@ -3297,7 +3355,7 @@ function App() {
 
                   <div className="mefil-chat-card" aria-label="Mefil chat">
                     <div className="mefil-chat-head">
-                      <h3>{`${MEFIL_ROLES[mefilRole]} Chat`}</h3>
+                      <h3>Mefil Shared Chat</h3>
                       <span>Live update: 1s · 24h only</span>
                     </div>
                     <div className="mefil-chat-messages" ref={mefilChatMessagesRef}>
@@ -3307,9 +3365,15 @@ function App() {
                         <p className="mefil-chat-empty">No recent messages in the last 24 hours.</p>
                       ) : (
                         mefilChatNotes.map((note) => (
-                          <article key={note.noteId} className="mefil-chat-message">
-                            <p>{note.text}</p>
-                            <time className="mefil-chat-meta">{formatKalamTimestamp(note.createdAt)}</time>
+                          <article
+                            key={note.noteId}
+                            className={`mefil-chat-message ${note.actor === mefilRole ? 'mefil-chat-message-self' : 'mefil-chat-message-partner'}`}
+                          >
+                            <div className="mefil-chat-bubble">
+                              <span className="mefil-chat-author">{note.actor === mefilRole ? 'You' : (MEFIL_ROLES[note.actor] || 'Partner')}</span>
+                              <p>{note.text}</p>
+                              <time className="mefil-chat-meta">{formatKalamTimestamp(note.createdAt)}</time>
+                            </div>
                           </article>
                         ))
                       )}
@@ -3324,7 +3388,7 @@ function App() {
                         value={mefilChatInput}
                         onChange={(e) => setMefilChatInput(e.target.value)}
                         maxLength={KALAM_MAX_TEXT_LENGTH}
-                        disabled={mefilChatSaving}
+                        enterKeyHint="send"
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
@@ -3332,7 +3396,13 @@ function App() {
                           }
                         }}
                       />
-                      <button type="submit" className="mefil-chat-send-btn" disabled={mefilChatSaving}>
+                      <button
+                        type="submit"
+                        className="mefil-chat-send-btn"
+                        disabled={mefilChatSaving}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onTouchStart={(e) => e.preventDefault()}
+                      >
                         {mefilChatSaving ? 'Sending...' : 'Send'}
                       </button>
                     </form>

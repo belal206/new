@@ -120,6 +120,13 @@ const MusicSettings = mongoose.model('MusicSettings', new mongoose.Schema({
             createdAt: { type: Date, default: Date.now }
         }]
     },
+    mefilChatMessages: [{
+        _id: false,
+        noteId: { type: String, required: true },
+        actor: { type: String, required: true },
+        text: { type: String, required: true },
+        createdAt: { type: Date, default: Date.now }
+    }],
     mefilTodos: {
         rutbah: [{
             _id: false,
@@ -587,6 +594,98 @@ const parseMefilRole = (value) => {
     return KALAM_ROOMS.includes(normalized) ? normalized : null;
 };
 
+const mefilChatMessagesEqual = (left, right) => {
+    const sourceLeft = Array.isArray(left) ? left : [];
+    const sourceRight = Array.isArray(right) ? right : [];
+    if (sourceLeft.length !== sourceRight.length) return false;
+
+    for (let index = 0; index < sourceLeft.length; index += 1) {
+        const leftMessage = sourceLeft[index];
+        const rightMessage = sourceRight[index];
+        const leftCreatedAt = new Date(leftMessage?.createdAt || 0);
+        const rightCreatedAt = new Date(rightMessage?.createdAt || 0);
+
+        if (
+            String(leftMessage?.noteId || '').trim() !== String(rightMessage?.noteId || '').trim()
+            || String(leftMessage?.actor || '').trim() !== String(rightMessage?.actor || '').trim()
+            || String(leftMessage?.text || '') !== String(rightMessage?.text || '')
+            || (Number.isFinite(leftCreatedAt.getTime()) ? leftCreatedAt.toISOString() : '') !== (Number.isFinite(rightCreatedAt.getTime()) ? rightCreatedAt.toISOString() : '')
+        ) {
+            return false;
+        }
+    }
+
+    return true;
+};
+
+const normalizeMefilChatMessages = (messages) => {
+    const seen = new Set();
+    const normalized = [];
+    const cutoffMs = Date.now() - MEFIL_CHAT_TTL_MS;
+
+    for (const message of Array.isArray(messages) ? messages : []) {
+        const noteId = String(message?.noteId || '').trim() || buildKalamNoteId();
+        if (!noteId || seen.has(noteId)) continue;
+        seen.add(noteId);
+
+        const actor = parseMefilRole(message?.actor);
+        if (!actor) continue;
+
+        const sanitizedText = sanitizeKalamText(message?.text);
+        if (sanitizedText.error || !sanitizedText.text) continue;
+
+        const parsedCreatedAt = new Date(message?.createdAt || Date.now());
+        const createdAt = Number.isFinite(parsedCreatedAt.getTime()) ? parsedCreatedAt : new Date();
+        const createdAtMs = createdAt.getTime();
+        if (!Number.isFinite(createdAtMs) || createdAtMs < cutoffMs) continue;
+
+        normalized.push({
+            noteId,
+            actor,
+            text: sanitizedText.text,
+            createdAt
+        });
+    }
+
+    normalized.sort((left, right) => new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime());
+    if (normalized.length > KALAM_MAX_NOTES_PER_ROOM) {
+        return normalized.slice(normalized.length - KALAM_MAX_NOTES_PER_ROOM);
+    }
+    return normalized;
+};
+
+const normalizeMefilChatMessagesModel = (musicSettings) => {
+    const existingChat = Array.isArray(musicSettings.mefilChatMessages) ? musicSettings.mefilChatMessages : [];
+    const legacyRooms = musicSettings.mefilRooms && typeof musicSettings.mefilRooms === 'object'
+        ? musicSettings.mefilRooms
+        : {};
+
+    let normalizedChat = normalizeMefilChatMessages(existingChat);
+    let changed = (
+        !Array.isArray(musicSettings.mefilChatMessages)
+        || !mefilChatMessagesEqual(existingChat, normalizedChat)
+    );
+
+    if (normalizedChat.length === 0) {
+        const mergedLegacy = [
+            ...(Array.isArray(legacyRooms.belal) ? legacyRooms.belal : []).map((note) => ({ ...note, actor: 'belal' })),
+            ...(Array.isArray(legacyRooms.rutbah) ? legacyRooms.rutbah : []).map((note) => ({ ...note, actor: 'rutbah' }))
+        ];
+        const migratedChat = normalizeMefilChatMessages(mergedLegacy);
+        if (!mefilChatMessagesEqual(normalizedChat, migratedChat)) {
+            normalizedChat = migratedChat;
+            changed = true;
+        }
+    }
+
+    if (changed) {
+        musicSettings.set('mefilChatMessages', normalizedChat);
+        musicSettings.markModified('mefilChatMessages');
+    }
+
+    return changed;
+};
+
 const mefilAuthConfigured = () => Boolean(
     MEFIL_SESSION_SECRET
     && MEFIL_BELAL_PASSWORD
@@ -792,6 +891,16 @@ const serializeMefilRoom = (room, notes) => ({
         createdAt: note.createdAt
     }))
 });
+
+const serializeMefilChatMessages = (messages) => ({
+    notes: normalizeMefilChatMessages(messages).map((note) => ({
+        noteId: note.noteId,
+        actor: note.actor,
+        text: note.text,
+        createdAt: note.createdAt
+    }))
+});
+
 const serializeMefilQuest = (quest) => normalizeMefilQuest(quest);
 
 const parseMefilStatus = (value) => {
@@ -1209,6 +1318,7 @@ const getOrCreateMusicSettings = async () => MusicSettings.findOneAndUpdate(
                 rutbah: [],
                 belal: []
             },
+            mefilChatMessages: [],
             mefilTodos: {
                 rutbah: [],
                 belal: []
@@ -1259,6 +1369,10 @@ const migrateLegacyMusicSettings = async (musicSettings) => {
     }
 
     if (normalizeMefilRooms(musicSettings)) {
+        changed = true;
+    }
+
+    if (normalizeMefilChatMessagesModel(musicSettings)) {
         changed = true;
     }
 
@@ -2330,14 +2444,9 @@ app.delete('/api/mefil/todos/:todoId', requireMefilAuth, async (req, res) => {
 
 app.get('/api/mefil/chat', requireMefilAuth, async (req, res) => {
     try {
-        const roomResolution = readMefilRequestedRole(req, req.query?.room, 'room');
-        if (roomResolution.error) {
-            return res.status(roomResolution.status || 400).json({ error: roomResolution.error });
-        }
-        const room = roomResolution.role;
         const musicSettings = await getMusicSettings();
-        const notes = musicSettings?.mefilRooms?.[room] || [];
-        res.json(serializeMefilRoom(room, notes));
+        const notes = musicSettings?.mefilChatMessages || [];
+        res.json(serializeMefilChatMessages(notes));
     } catch (err) {
         console.error('[MEFIL /api/mefil/chat GET]', err?.message || err);
         res.status(500).json({ error: 'Failed to fetch Mefil chat' });
@@ -2346,31 +2455,27 @@ app.get('/api/mefil/chat', requireMefilAuth, async (req, res) => {
 
 app.post('/api/mefil/chat', requireMefilAuth, async (req, res) => {
     try {
-        const roomResolution = readMefilRequestedRole(req, req.body?.room, 'room');
-        if (roomResolution.error) {
-            return res.status(roomResolution.status || 400).json({ error: roomResolution.error });
-        }
-        const room = roomResolution.role;
         const sanitizedText = sanitizeKalamText(req.body?.text);
         if (sanitizedText.error || !sanitizedText.text) {
             return res.status(400).json({ error: sanitizedText.error || 'Message text is required' });
         }
 
         const musicSettings = await getMusicSettings();
-        const currentNotes = musicSettings?.mefilRooms?.[room] || [];
-        const nextNotes = normalizeMefilNotes([
+        const currentNotes = Array.isArray(musicSettings?.mefilChatMessages) ? musicSettings.mefilChatMessages : [];
+        const nextNotes = normalizeMefilChatMessages([
             ...currentNotes,
             {
                 noteId: buildKalamNoteId(),
+                actor: req.mefilRole,
                 text: sanitizedText.text,
                 createdAt: new Date()
             }
         ]);
 
-        musicSettings.set(`mefilRooms.${room}`, nextNotes);
-        musicSettings.markModified(`mefilRooms.${room}`);
+        musicSettings.set('mefilChatMessages', nextNotes);
+        musicSettings.markModified('mefilChatMessages');
         await musicSettings.save();
-        res.status(201).json(serializeMefilRoom(room, nextNotes));
+        res.status(201).json(serializeMefilChatMessages(nextNotes));
     } catch (err) {
         console.error('[MEFIL /api/mefil/chat POST]', err?.message || err);
         res.status(500).json({ error: 'Failed to save Mefil message' });
