@@ -1036,7 +1036,9 @@ const resolveMefilPresence = (musicSettings, { persistCompletion = false } = {})
         : {};
     const roles = ['belal', 'rutbah'];
     const normalizedPresence = {};
+    const points = serializeMefilPoints(musicSettings.mefilPoints);
     let changed = false;
+    let pointsChanged = false;
 
     for (const role of roles) {
         const normalized = normalizeMefilPresenceEntry(sourcePresence[role]);
@@ -1048,6 +1050,10 @@ const resolveMefilPresence = (musicSettings, { persistCompletion = false } = {})
                 normalized.status = 'break';
                 normalized.endsAt = null;
                 normalized.updatedAt = now;
+                const pointsAwarded = getMefilPomodoroPoints(normalized.durationSeconds);
+                points[role] += pointsAwarded;
+                points.total += pointsAwarded;
+                pointsChanged = true;
                 changed = true;
             }
         }
@@ -1057,6 +1063,11 @@ const resolveMefilPresence = (musicSettings, { persistCompletion = false } = {})
     if (changed || !mefilPresenceEntryEqual(sourcePresence.belal, normalizedPresence.belal) || !mefilPresenceEntryEqual(sourcePresence.rutbah, normalizedPresence.rutbah)) {
         musicSettings.mefilPresence = normalizedPresence;
         musicSettings.markModified('mefilPresence');
+    }
+
+    if (pointsChanged) {
+        musicSettings.mefilPoints = points;
+        musicSettings.markModified('mefilPoints');
     }
 
     if (persistCompletion && changed) {
@@ -2328,7 +2339,6 @@ app.post('/api/mefil/pomodoro/complete-attack', requireMefilAuth, async (req, re
         musicSettings.markModified('mefilQuest');
 
         const nextPresence = normalizeMefilPresenceEntry(musicSettings.mefilPresence?.[role]);
-        const pointsAwarded = getMefilPomodoroPoints(nextPresence.durationSeconds);
         nextPresence.isRunning = false;
         nextPresence.remainingSeconds = nextPresence.durationSeconds;
         nextPresence.endsAt = null;
@@ -2336,15 +2346,9 @@ app.post('/api/mefil/pomodoro/complete-attack', requireMefilAuth, async (req, re
         nextPresence.updatedAt = new Date();
         setMefilPresenceRole(musicSettings, role, nextPresence);
 
-        const points = serializeMefilPoints(musicSettings.mefilPoints);
-        points[role] += pointsAwarded;
-        points.total += pointsAwarded;
-        musicSettings.mefilPoints = points;
-        musicSettings.markModified('mefilPoints');
-
         await musicSettings.save();
         const payload = await serializeMefilState(musicSettings);
-        payload.pointsAwarded = pointsAwarded;
+        payload.pointsAwarded = 0;
         res.json(payload);
     } catch (err) {
         console.error('[MEFIL /api/mefil/pomodoro/complete-attack]', err?.message || err);
