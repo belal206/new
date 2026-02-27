@@ -3184,21 +3184,6 @@ function App() {
               </article>
             ) : (
               <div className="mefil-body">
-                <div className="mefil-mobile-hp" aria-label="Mefil health summary">
-                  <div className="mefil-mobile-hp-item">
-                    <span className="mefil-mobile-hp-label">{`Boss ${questState.bossHp}/${questState.bossMaxHp || BOSS_MAX_HP}`}</span>
-                    <div className="mefil-mobile-hp-track mefil-mobile-hp-track-boss">
-                      <span className="mefil-mobile-hp-fill mefil-mobile-hp-fill-boss" style={{ width: `${bossHpPercent}%` }}></span>
-                    </div>
-                  </div>
-                  <div className="mefil-mobile-hp-item">
-                    <span className="mefil-mobile-hp-label">{`Team ${questState.teamHp}/${questState.teamMaxHp || TEAM_MAX_HP}`}</span>
-                    <div className="mefil-mobile-hp-track mefil-mobile-hp-track-team">
-                      <span className="mefil-mobile-hp-fill mefil-mobile-hp-fill-team" style={{ width: `${teamHpPercent}%` }}></span>
-                    </div>
-                  </div>
-                </div>
-
                 <div className="mefil-top-scroll">
                   <div className="boss-card">
                     <div className="boss-head">
