@@ -583,6 +583,9 @@ function App() {
   const [mefilChatLoading, setMefilChatLoading] = useState(false);
   const [mefilChatSaving, setMefilChatSaving] = useState(false);
   const [mefilChatError, setMefilChatError] = useState('');
+  const [mefilNotificationPermission, setMefilNotificationPermission] = useState('default');
+  const [mefilNotificationLoading, setMefilNotificationLoading] = useState(false);
+  const [mefilNotificationError, setMefilNotificationError] = useState('');
   const [mefilTodos, setMefilTodos] = useState(defaultMefilTodos);
   const [mefilPoints, setMefilPoints] = useState(defaultMefilPoints);
   const [mefilTodoInputs, setMefilTodoInputs] = useState({ belal: '', rutbah: '' });
@@ -600,6 +603,11 @@ function App() {
   const mefilChatInputRef = useRef(null);
   const mefilChatFetchSeqRef = useRef(0);
   const mefilStateFetchSeqRef = useRef(0);
+  const mefilPomodoroCompletionRef = useRef({
+    role: null,
+    isRunning: false,
+    remainingSeconds: null,
+  });
 
   const [formData, setFormData] = useState({ title: '', poet: 'Ahmad Faraz', content: '', tags: [] });
   const [editingPoemId, setEditingPoemId] = useState(null);
@@ -693,6 +701,8 @@ function App() {
     && activePresenceEntry.remainingSeconds === 0
   );
   const canUseDistracted = canUseMefilActions && !questLoading && !mefilActionLoading && questState.status === 'active';
+  const mefilNotificationsSupported = typeof window !== 'undefined' && 'Notification' in window;
+  const mefilNotificationLabel = mefilNotificationPermission === 'granted' ? 'Alerts On' : 'Enable Alerts';
 
   const focusMefilChatInput = () => {
     window.requestAnimationFrame(() => {
@@ -848,6 +858,30 @@ function App() {
     setMefilTodoSaving(false);
     setMefilTodoError('');
     setMefilActionLoading(false);
+    mefilPomodoroCompletionRef.current = {
+      role: null,
+      isRunning: false,
+      remainingSeconds: null,
+    };
+  };
+
+  const syncMefilNotificationPermission = () => {
+    if (!mefilNotificationsSupported) {
+      setMefilNotificationPermission('unsupported');
+      return;
+    }
+    setMefilNotificationPermission(window.Notification.permission);
+  };
+
+  const showMefilPomodoroCompleteNotification = (role) => {
+    if (!mefilNotificationsSupported || window.Notification.permission !== 'granted') return;
+    const roleLabel = MEFIL_ROLES[role] || 'You';
+    const notification = new window.Notification('Pomodoro complete', {
+      body: `${roleLabel}, your session is complete. Return to Mefil and strike the boss.`,
+      tag: `mefil-pomodoro-complete-${role}`,
+      renotify: true,
+    });
+    window.setTimeout(() => notification.close(), 7000);
   };
 
   const handleMefilUnauthorized = (message = 'Mefil login required') => {
@@ -1030,6 +1064,25 @@ function App() {
       resetMefilAuthState();
     } finally {
       setMefilActionLoading(false);
+    }
+  };
+
+  const handleEnableMefilNotifications = async () => {
+    if (!mefilNotificationsSupported || mefilNotificationLoading) return;
+    setMefilNotificationLoading(true);
+    try {
+      const permission = await window.Notification.requestPermission();
+      setMefilNotificationPermission(permission);
+      if (permission !== 'granted') {
+        setMefilNotificationError('Browser notifications are blocked. Allow notifications in site settings.');
+      } else {
+        setMefilNotificationError('');
+      }
+    } catch (err) {
+      console.error(err);
+      setMefilNotificationError('Unable to request browser notifications.');
+    } finally {
+      setMefilNotificationLoading(false);
     }
   };
 
@@ -2078,6 +2131,15 @@ function App() {
   }, [isMefilOpen]);
 
   useEffect(() => {
+    syncMefilNotificationPermission();
+  }, []);
+
+  useEffect(() => {
+    if (!isMefilOpen) return;
+    syncMefilNotificationPermission();
+  }, [isMefilOpen]);
+
+  useEffect(() => {
     if (!isMefilOpen || !mefilLoggedIn || !mefilRole) return undefined;
     fetchMefilState();
     fetchMefilChatNotes();
@@ -2098,6 +2160,37 @@ function App() {
       container.scrollTop = container.scrollHeight;
     }
   }, [isMefilOpen, mefilLoggedIn, mefilRole, mefilChatNotes.length]);
+
+  useEffect(() => {
+    if (!mefilLoggedIn || !mefilRole) {
+      mefilPomodoroCompletionRef.current = {
+        role: null,
+        isRunning: false,
+        remainingSeconds: null,
+      };
+      return;
+    }
+    const currentEntry = mefilPresence[mefilRole] || defaultMefilPresenceEntry;
+    const prevEntry = mefilPomodoroCompletionRef.current;
+    const isSameRole = prevEntry.role === mefilRole;
+    const justCompleted = (
+      isSameRole
+      && prevEntry.isRunning
+      && Number(prevEntry.remainingSeconds) > 0
+      && !currentEntry.isRunning
+      && Number(currentEntry.remainingSeconds) === 0
+    );
+
+    if (justCompleted) {
+      showMefilPomodoroCompleteNotification(mefilRole);
+    }
+
+    mefilPomodoroCompletionRef.current = {
+      role: mefilRole,
+      isRunning: Boolean(currentEntry.isRunning),
+      remainingSeconds: Number(currentEntry.remainingSeconds),
+    };
+  }, [mefilLoggedIn, mefilRole, mefilPresence]);
 
   useEffect(() => {
     if (!isRandomOrderEnabled) return;
@@ -3179,6 +3272,17 @@ function App() {
                 {mefilLoggedIn ? (
                   <button
                     type="button"
+                    className="mefil-notify-btn"
+                    onClick={handleEnableMefilNotifications}
+                    disabled={mefilNotificationLoading || !mefilNotificationsSupported || mefilNotificationPermission === 'granted'}
+                    title={mefilNotificationsSupported ? `Browser alerts: ${mefilNotificationPermission}` : 'Browser alerts unsupported'}
+                  >
+                    {mefilNotificationLoading ? 'Enabling...' : mefilNotificationLabel}
+                  </button>
+                ) : null}
+                {mefilLoggedIn ? (
+                  <button
+                    type="button"
                     className="mefil-logout-btn"
                     onClick={handleMefilLogout}
                     disabled={mefilActionLoading}
@@ -3189,6 +3293,7 @@ function App() {
                 <button type="button" className="mefil-close-btn" onClick={handleCloseMefil}>Close</button>
               </div>
             </div>
+            {mefilLoggedIn && mefilNotificationError ? <p className="mefil-notify-error">{mefilNotificationError}</p> : null}
 
             {mefilAuthLoading ? (
               <p className="mefil-status">Checking session...</p>

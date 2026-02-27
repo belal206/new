@@ -705,6 +705,29 @@ h1 {
   cursor: pointer;
 }
 
+.mefil-notify-btn {
+  min-height: 36px;
+  border-radius: 999px;
+  border: 1px solid rgba(36, 0, 70, 0.3);
+  background: rgba(255, 255, 255, 0.86);
+  color: rgba(36, 0, 70, 0.86);
+  padding: 0 12px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  letter-spacing: 0.4px;
+}
+
+.mefil-notify-btn:disabled {
+  opacity: 0.68;
+  cursor: not-allowed;
+}
+
+.mefil-notify-error {
+  margin: 6px 0 0;
+  font-size: 0.82rem;
+  color: #b64040;
+}
+
 .mefil-login-card {
   border: 1px solid rgba(212, 175, 55, 0.44);
   border-radius: 14px;
@@ -3412,6 +3435,7 @@ body.theme-shahi .theme-control,
 body.theme-shahi .mefil-launch-btn,
 body.theme-shahi .mefil-close-btn,
 body.theme-shahi .mefil-logout-btn,
+body.theme-shahi .mefil-notify-btn,
 body.theme-shahi .mefil-profile-pill,
 body.theme-shahi .mefil-login-btn,
 body.theme-shahi .mefil-login-field select,
@@ -3453,8 +3477,12 @@ body.theme-shahi .kalam-input,
 body.theme-shahi .mefil-chat-input,
 body.theme-shahi .mefil-todo-composer input {
   background: #050505;
-  border-color: rgba(181, 141, 74, 0.42);
+  border: 1px solid rgba(181, 141, 74, 0.42);
   color: #e8e1d2;
+}
+
+body.theme-shahi .mefil-chat-input::placeholder {
+  color: rgba(232, 225, 210, 0.62);
 }
 
 body.theme-shahi .music-url-input:focus,
@@ -3490,6 +3518,7 @@ body.theme-shahi .sema-menu-trigger:focus-visible,
 body.theme-shahi .mefil-launch-btn:hover,
 body.theme-shahi .mefil-close-btn:hover,
 body.theme-shahi .mefil-logout-btn:hover,
+body.theme-shahi .mefil-notify-btn:hover,
 body.theme-shahi .mefil-login-btn:hover,
 body.theme-shahi .mefil-controls-row button:hover,
 body.theme-shahi .pomodoro-controls button:hover,
