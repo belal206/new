@@ -629,6 +629,14 @@ h1 {
   gap: 10px;
 }
 
+.mefil-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .mefil-header h2 {
   margin: 0;
   font-family: 'Cinzel Decorative', cursive;
@@ -644,6 +652,96 @@ h1 {
   color: var(--royal-purple);
   padding: 0 12px;
   cursor: pointer;
+}
+
+.mefil-profile-pill {
+  min-height: 32px;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  padding: 0 12px;
+  background: rgba(255, 255, 255, 0.9);
+  color: rgba(36, 0, 70, 0.86);
+  font-size: 0.78rem;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+}
+
+.mefil-logout-btn {
+  min-height: 36px;
+  border-radius: 999px;
+  border: 1px solid rgba(182, 64, 64, 0.35);
+  background: rgba(255, 255, 255, 0.86);
+  color: #b64040;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.mefil-login-card {
+  border: 1px solid rgba(212, 175, 55, 0.44);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mefil-login-card h3 {
+  margin: 0;
+  color: var(--royal-purple);
+  font-size: 1.08rem;
+  letter-spacing: 0.5px;
+}
+
+.mefil-login-form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.mefil-login-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mefil-login-field span {
+  font-size: 0.78rem;
+  color: rgba(36, 0, 70, 0.72);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.mefil-login-field select,
+.mefil-login-field input {
+  min-height: 38px;
+  border-radius: 10px;
+  border: 1px solid rgba(36, 0, 70, 0.25);
+  background: rgba(255, 255, 255, 0.95);
+  color: rgba(36, 0, 70, 0.9);
+  padding: 0 10px;
+}
+
+.mefil-login-btn {
+  min-height: 40px;
+  border-radius: 999px;
+  border: 1px solid rgba(36, 0, 70, 0.36);
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--royal-purple);
+  cursor: pointer;
+}
+
+.mefil-login-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mefil-login-error {
+  margin: 0;
+  color: #b64040;
+  font-size: 0.88rem;
 }
 
 .mefil-role-toggle {
@@ -1249,7 +1347,11 @@ body.theme-noor .kalam-input {
 
 body.theme-noor .mefil-launch-btn,
 body.theme-noor .mefil-close-btn,
-body.theme-noor .mefil-role-btn,
+body.theme-noor .mefil-logout-btn,
+body.theme-noor .mefil-profile-pill,
+body.theme-noor .mefil-login-btn,
+body.theme-noor .mefil-login-field select,
+body.theme-noor .mefil-login-field input,
 body.theme-noor .mefil-status-select,
 body.theme-noor .mefil-controls-row button,
 body.theme-noor .mefil-chat-send-btn,
@@ -1263,6 +1365,7 @@ body.theme-noor .mefil-modal,
 body.theme-noor .boss-card,
 body.theme-noor .pomodoro-card,
 body.theme-noor .mefil-role-card,
+body.theme-noor .mefil-login-card,
 body.theme-noor .mefil-chat-card,
 body.theme-noor .mefil-chat-message,
 body.theme-noor .mefil-chat-messages {
@@ -1279,7 +1382,9 @@ body.theme-noor .mefil-chat-input {
 }
 
 body.theme-noor .mefil-header h2,
-body.theme-noor .mefil-role-state,
+body.theme-noor .mefil-profile-pill,
+body.theme-noor .mefil-login-card h3,
+body.theme-noor .mefil-login-field span,
 body.theme-noor .mefil-role-card-head h3,
 body.theme-noor .mefil-timer-label,
 body.theme-noor .mefil-timer-value,
@@ -2121,8 +2226,14 @@ body.theme-noor .pomodoro-display {
     letter-spacing: 1px;
   }
 
-  .mefil-role-state {
+  .mefil-header-actions {
     width: 100%;
+    justify-content: flex-start;
+  }
+
+  .mefil-profile-pill {
+    width: 100%;
+    justify-content: center;
   }
 
   .mefil-presence-grid {
@@ -2837,6 +2948,7 @@ body.theme-shahi .music-source-card,
 body.theme-shahi .playlist-item,
 body.theme-shahi .mefil-modal,
 body.theme-shahi .mefil-role-card,
+body.theme-shahi .mefil-login-card,
 body.theme-shahi .boss-card,
 body.theme-shahi .pomodoro-card,
 body.theme-shahi .mefil-chat-card,
@@ -2851,7 +2963,11 @@ body.theme-shahi .sema-menu-trigger,
 body.theme-shahi .theme-control,
 body.theme-shahi .mefil-launch-btn,
 body.theme-shahi .mefil-close-btn,
-body.theme-shahi .mefil-role-btn,
+body.theme-shahi .mefil-logout-btn,
+body.theme-shahi .mefil-profile-pill,
+body.theme-shahi .mefil-login-btn,
+body.theme-shahi .mefil-login-field select,
+body.theme-shahi .mefil-login-field input,
 body.theme-shahi .mefil-status-select,
 body.theme-shahi .mefil-controls-row button,
 body.theme-shahi .mefil-chat-send-btn,
@@ -2920,7 +3036,8 @@ body.theme-shahi .sema-menu-trigger:hover,
 body.theme-shahi .sema-menu-trigger:focus-visible,
 body.theme-shahi .mefil-launch-btn:hover,
 body.theme-shahi .mefil-close-btn:hover,
-body.theme-shahi .mefil-role-btn:hover,
+body.theme-shahi .mefil-logout-btn:hover,
+body.theme-shahi .mefil-login-btn:hover,
 body.theme-shahi .mefil-controls-row button:hover,
 body.theme-shahi .kalam-launch-btn:hover,
 body.theme-shahi .kalam-close-btn:hover,
@@ -2972,7 +3089,9 @@ body.theme-shahi .playlist-item-meta strong,
 body.theme-shahi .playlist-item-meta span,
 body.theme-shahi .playlist-item-meta a,
 body.theme-shahi .mefil-header h2,
-body.theme-shahi .mefil-role-state,
+body.theme-shahi .mefil-profile-pill,
+body.theme-shahi .mefil-login-card h3,
+body.theme-shahi .mefil-login-field span,
 body.theme-shahi .mefil-role-card-head h3,
 body.theme-shahi .mefil-timer-label,
 body.theme-shahi .mefil-timer-value,

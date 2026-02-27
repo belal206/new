@@ -50,7 +50,6 @@ const RANDOMIZE_ORDER_STORAGE_KEY = 'sufi_randomize_poems_order';
 const CELEBRATION_DURATION_MS = 10000;
 const KALAM_MAX_TEXT_LENGTH = 500;
 const KALAM_POLL_INTERVAL_MS = 10000;
-const MEFIL_ROLE_STORAGE_KEY = 'sufi_mefil_role';
 const MEFIL_POLL_INTERVAL_MS = 1000;
 const POMODORO_SECONDS = 25 * 60;
 const BOSS_MAX_HP = 500;
@@ -282,8 +281,6 @@ const formatKalamTimestamp = (value) => {
   });
 };
 
-const normalizeMefilRole = (value) => (value === 'rutbah' ? 'rutbah' : 'belal');
-
 const normalizeMefilQuest = (payload) => {
   const parsedBossMax = Number.parseInt(String(payload?.bossMaxHp ?? BOSS_MAX_HP), 10);
   const parsedTeamMax = Number.parseInt(String(payload?.teamMaxHp ?? TEAM_MAX_HP), 10);
@@ -472,7 +469,13 @@ function App() {
   const [kalamSaving, setKalamSaving] = useState(false);
   const [kalamError, setKalamError] = useState('');
   const [isMefilOpen, setIsMefilOpen] = useState(false);
-  const [mefilRole, setMefilRole] = useState('belal');
+  const [mefilRole, setMefilRole] = useState(null);
+  const [mefilLoggedIn, setMefilLoggedIn] = useState(false);
+  const [mefilAuthLoading, setMefilAuthLoading] = useState(false);
+  const [mefilLoginUsername, setMefilLoginUsername] = useState('belal');
+  const [mefilLoginPassword, setMefilLoginPassword] = useState('');
+  const [mefilLoginLoading, setMefilLoginLoading] = useState(false);
+  const [mefilLoginError, setMefilLoginError] = useState('');
   const [questState, setQuestState] = useState(defaultQuestState);
   const [mefilPresence, setMefilPresence] = useState(defaultMefilPresence);
   const [questLoading, setQuestLoading] = useState(false);
@@ -573,15 +576,18 @@ function App() {
   const dailyResetLabel = formatResetCountdown(secondsUntilReset);
   const bossHpPercent = Math.min(100, Math.max(0, (questState.bossHp / Math.max(1, questState.bossMaxHp || BOSS_MAX_HP)) * 100));
   const teamHpPercent = Math.min(100, Math.max(0, (questState.teamHp / Math.max(1, questState.teamMaxHp || TEAM_MAX_HP)) * 100));
-  const activePresenceEntry = mefilPresence[mefilRole] || defaultMefilPresenceEntry;
+  const activeMefilRole = mefilRole || 'belal';
+  const activePresenceEntry = mefilPresence[activeMefilRole] || defaultMefilPresenceEntry;
+  const canUseMefilActions = mefilLoggedIn && Boolean(mefilRole);
   const canAttackBoss = (
-    !questLoading
+    canUseMefilActions
+    && !questLoading
     && !mefilActionLoading
     && questState.status === 'active'
     && !activePresenceEntry.isRunning
     && activePresenceEntry.remainingSeconds === 0
   );
-  const canUseDistracted = !questLoading && !mefilActionLoading && questState.status === 'active';
+  const canUseDistracted = canUseMefilActions && !questLoading && !mefilActionLoading && questState.status === 'active';
 
   const fetchPoems = async () => {
     try {
@@ -711,12 +717,59 @@ function App() {
     setMefilPresence(normalizeMefilPresence(payload?.presence));
   };
 
+  const resetMefilAuthState = () => {
+    setMefilLoggedIn(false);
+    setMefilRole(null);
+    setMefilChatNotes([]);
+    setMefilChatInput('');
+    setMefilActionLoading(false);
+  };
+
+  const handleMefilUnauthorized = (message = 'Mefil login required') => {
+    resetMefilAuthState();
+    setMefilLoginError(message);
+    setQuestError(message);
+    setMefilChatError(message);
+  };
+
+  const fetchMefilSession = async ({ silent = false } = {}) => {
+    if (!silent) setMefilAuthLoading(true);
+    try {
+      const res = await fetch('/api/mefil/auth/session');
+      if (!res.ok) {
+        const message = await readErrorMessage(res, 'Unable to verify Mefil session.');
+        throw new Error(message);
+      }
+      const data = await res.json();
+      if (data?.loggedIn && (data?.role === 'belal' || data?.role === 'rutbah')) {
+        setMefilLoggedIn(true);
+        setMefilRole(data.role);
+        setMefilLoginError('');
+        return true;
+      }
+      resetMefilAuthState();
+      return false;
+    } catch (err) {
+      console.error(err);
+      resetMefilAuthState();
+      setMefilLoginError(err.message || 'Unable to verify Mefil session.');
+      return false;
+    } finally {
+      if (!silent) setMefilAuthLoading(false);
+    }
+  };
+
   const fetchMefilState = async ({ silent = false } = {}) => {
     const requestSeq = mefilStateFetchSeqRef.current + 1;
     mefilStateFetchSeqRef.current = requestSeq;
     if (!silent) setQuestLoading(true);
     try {
       const res = await fetch('/api/mefil/state');
+      if (res.status === 401) {
+        const message = await readErrorMessage(res, 'Mefil login required');
+        handleMefilUnauthorized(message);
+        return;
+      }
       if (!res.ok) {
         const message = await readErrorMessage(res, 'Unable to load Mefil state.');
         throw new Error(message);
@@ -734,8 +787,8 @@ function App() {
     }
   };
 
-  const fetchMefilChatNotes = async (room = mefilRole, options = {}) => {
-    const normalizedRoom = normalizeMefilRole(room);
+  const fetchMefilChatNotes = async (options = {}) => {
+    if (!mefilLoggedIn || !mefilRole) return;
     const { silent = false } = options;
     const requestSeq = mefilChatFetchSeqRef.current + 1;
     mefilChatFetchSeqRef.current = requestSeq;
@@ -745,14 +798,19 @@ function App() {
     }
 
     try {
-      const res = await fetch(`/api/mefil/chat?room=${encodeURIComponent(normalizedRoom)}`);
+      const res = await fetch('/api/mefil/chat');
+      if (res.status === 401) {
+        const message = await readErrorMessage(res, 'Mefil login required');
+        handleMefilUnauthorized(message);
+        return;
+      }
       if (!res.ok) {
         const message = await readErrorMessage(res, 'Unable to load Mefil chat.');
         throw new Error(message);
       }
       const data = await res.json();
       if (mefilChatFetchSeqRef.current !== requestSeq) return;
-      const normalized = normalizeKalamPayload(data, normalizedRoom);
+      const normalized = normalizeKalamPayload(data, mefilRole);
       setMefilChatNotes(normalized.notes);
       setMefilChatError('');
     } catch (err) {
@@ -768,6 +826,7 @@ function App() {
 
   const handleOpenMefil = () => {
     setIsMefilOpen(true);
+    setMefilLoginError('');
     setQuestError('');
     setMefilChatError('');
   };
@@ -777,23 +836,83 @@ function App() {
     setMefilChatError('');
   };
 
-  const handleMefilRoleChange = (role) => {
-    const normalized = normalizeMefilRole(role);
-    setMefilRole(normalized);
-    window.localStorage.setItem(MEFIL_ROLE_STORAGE_KEY, normalized);
-    setMefilChatNotes([]);
-    setMefilChatError('');
+  const handleMefilLogin = async (e) => {
+    e.preventDefault();
+    if (!['belal', 'rutbah'].includes(mefilLoginUsername)) {
+      setMefilLoginError('Choose Belal or Rutbah.');
+      return;
+    }
+    if (!mefilLoginPassword.trim()) {
+      setMefilLoginError('Password is required.');
+      return;
+    }
+
+    setMefilLoginLoading(true);
+    try {
+      const res = await fetch('/api/mefil/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: mefilLoginUsername,
+          password: mefilLoginPassword,
+        }),
+      });
+      if (!res.ok) {
+        const message = await readErrorMessage(res, 'Unable to login to Mefil.');
+        throw new Error(message);
+      }
+      const data = await res.json();
+      if (!data?.role) {
+        throw new Error('Invalid login response.');
+      }
+      setMefilLoggedIn(true);
+      setMefilRole(data.role);
+      setMefilLoginPassword('');
+      setMefilLoginError('');
+      setQuestError('');
+      setMefilChatError('');
+    } catch (err) {
+      console.error(err);
+      setMefilLoginError(err.message || 'Unable to login to Mefil.');
+    } finally {
+      setMefilLoginLoading(false);
+    }
+  };
+
+  const handleMefilLogout = async () => {
+    setMefilActionLoading(true);
+    try {
+      await fetch('/api/mefil/auth/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      resetMefilAuthState();
+      setQuestError('');
+      setMefilChatError('');
+      setMefilLoginError('');
+    } catch (err) {
+      console.error(err);
+      resetMefilAuthState();
+    } finally {
+      setMefilActionLoading(false);
+    }
   };
 
   const handleMefilStatusChange = async (status) => {
+    if (!canUseMefilActions) return;
     if (!MEFIL_STATUS_OPTIONS.includes(status)) return;
     setMefilActionLoading(true);
     try {
       const res = await fetch('/api/mefil/status', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: mefilRole, status }),
+        body: JSON.stringify({ status }),
       });
+      if (res.status === 401) {
+        const message = await readErrorMessage(res, 'Mefil login required');
+        handleMefilUnauthorized(message);
+        return;
+      }
       if (!res.ok) {
         const message = await readErrorMessage(res, 'Failed to update status.');
         throw new Error(message);
@@ -814,13 +933,18 @@ function App() {
   };
 
   const handlePomodoroStart = async () => {
+    if (!canUseMefilActions) return;
     setMefilActionLoading(true);
     try {
       const res = await fetch('/api/mefil/pomodoro/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: mefilRole }),
       });
+      if (res.status === 401) {
+        const message = await readErrorMessage(res, 'Mefil login required');
+        handleMefilUnauthorized(message);
+        return;
+      }
       if (!res.ok) {
         const message = await readErrorMessage(res, 'Failed to start Pomodoro.');
         throw new Error(message);
@@ -841,13 +965,18 @@ function App() {
   };
 
   const handlePomodoroPause = async () => {
+    if (!canUseMefilActions) return;
     setMefilActionLoading(true);
     try {
       const res = await fetch('/api/mefil/pomodoro/pause', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: mefilRole }),
       });
+      if (res.status === 401) {
+        const message = await readErrorMessage(res, 'Mefil login required');
+        handleMefilUnauthorized(message);
+        return;
+      }
       if (!res.ok) {
         const message = await readErrorMessage(res, 'Failed to pause Pomodoro.');
         throw new Error(message);
@@ -868,13 +997,18 @@ function App() {
   };
 
   const handlePomodoroReset = async () => {
+    if (!canUseMefilActions) return;
     setMefilActionLoading(true);
     try {
       const res = await fetch('/api/mefil/pomodoro/reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: mefilRole }),
       });
+      if (res.status === 401) {
+        const message = await readErrorMessage(res, 'Mefil login required');
+        handleMefilUnauthorized(message);
+        return;
+      }
       if (!res.ok) {
         const message = await readErrorMessage(res, 'Failed to reset Pomodoro.');
         throw new Error(message);
@@ -901,8 +1035,12 @@ function App() {
       const res = await fetch('/api/mefil/pomodoro/complete-attack', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: mefilRole }),
       });
+      if (res.status === 401) {
+        const message = await readErrorMessage(res, 'Mefil login required');
+        handleMefilUnauthorized(message);
+        return;
+      }
       if (!res.ok) {
         const message = await readErrorMessage(res, 'Failed to complete Pomodoro attack.');
         throw new Error(message);
@@ -925,8 +1063,12 @@ function App() {
       const res = await fetch('/api/mefil/distracted', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: mefilRole }),
       });
+      if (res.status === 401) {
+        const message = await readErrorMessage(res, 'Mefil login required');
+        handleMefilUnauthorized(message);
+        return;
+      }
       if (!res.ok) {
         const message = await readErrorMessage(res, 'Failed to record distraction.');
         throw new Error(message);
@@ -942,12 +1084,18 @@ function App() {
   };
 
   const handleQuestReset = async () => {
+    if (!canUseMefilActions) return;
     setMefilActionLoading(true);
     try {
       const res = await fetch('/api/mefil/reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
+      if (res.status === 401) {
+        const message = await readErrorMessage(res, 'Mefil login required');
+        handleMefilUnauthorized(message);
+        return;
+      }
       if (!res.ok) {
         const message = await readErrorMessage(res, 'Failed to reset quest.');
         throw new Error(message);
@@ -965,6 +1113,7 @@ function App() {
 
   const handleSendMefilNote = async (e) => {
     e.preventDefault();
+    if (!canUseMefilActions || !mefilRole) return;
     const text = mefilChatInput.trim();
     if (!text) {
       setMefilChatError('Message is required.');
@@ -977,8 +1126,13 @@ function App() {
       const res = await fetch('/api/mefil/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ room: mefilRole, text }),
+        body: JSON.stringify({ text }),
       });
+      if (res.status === 401) {
+        const message = await readErrorMessage(res, 'Mefil login required');
+        handleMefilUnauthorized(message);
+        return;
+      }
       if (!res.ok) {
         const message = await readErrorMessage(res, 'Unable to send message.');
         throw new Error(message);
@@ -1600,12 +1754,6 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const storedRole = normalizeMefilRole(window.localStorage.getItem(MEFIL_ROLE_STORAGE_KEY));
-    setMefilRole(storedRole);
-    window.localStorage.setItem(MEFIL_ROLE_STORAGE_KEY, storedRole);
-  }, []);
-
-  useEffect(() => {
     const themeClasses = THEMES.map((theme) => `theme-${theme}`);
     document.body.classList.remove(...themeClasses);
     document.body.classList.add(`theme-${currentTheme}`);
@@ -1640,24 +1788,30 @@ function App() {
 
   useEffect(() => {
     if (!isMefilOpen) return undefined;
+    fetchMefilSession();
+    return undefined;
+  }, [isMefilOpen]);
+
+  useEffect(() => {
+    if (!isMefilOpen || !mefilLoggedIn || !mefilRole) return undefined;
     fetchMefilState();
-    fetchMefilChatNotes(mefilRole);
+    fetchMefilChatNotes();
     const interval = window.setInterval(() => {
       fetchMefilState({ silent: true });
-      fetchMefilChatNotes(mefilRole, { silent: true });
+      fetchMefilChatNotes({ silent: true });
     }, MEFIL_POLL_INTERVAL_MS);
 
     return () => {
       window.clearInterval(interval);
     };
-  }, [isMefilOpen, mefilRole]);
+  }, [isMefilOpen, mefilLoggedIn, mefilRole]);
 
   useEffect(() => {
-    if (!isMefilOpen) return;
+    if (!isMefilOpen || !mefilLoggedIn) return;
     const container = mefilChatMessagesRef.current;
     if (!container) return;
     container.scrollTop = container.scrollHeight;
-  }, [isMefilOpen, mefilRole, mefilChatNotes.length]);
+  }, [isMefilOpen, mefilLoggedIn, mefilRole, mefilChatNotes.length]);
 
   useEffect(() => {
     if (!isRandomOrderEnabled) return;
@@ -2732,145 +2886,183 @@ function App() {
           <section className="mefil-modal" onClick={(e) => e.stopPropagation()}>
             <div className="mefil-header">
               <h2>Mefil Boss Battle</h2>
-              <button type="button" className="mefil-close-btn" onClick={handleCloseMefil}>Close</button>
+              <div className="mefil-header-actions">
+                {mefilLoggedIn && mefilRole ? (
+                  <span className="mefil-profile-pill">{`Logged in as ${MEFIL_ROLES[mefilRole]}`}</span>
+                ) : null}
+                {mefilLoggedIn ? (
+                  <button
+                    type="button"
+                    className="mefil-logout-btn"
+                    onClick={handleMefilLogout}
+                    disabled={mefilActionLoading}
+                  >
+                    Logout
+                  </button>
+                ) : null}
+                <button type="button" className="mefil-close-btn" onClick={handleCloseMefil}>Close</button>
+              </div>
             </div>
 
-            <div className="mefil-role-toggle">
-              {Object.entries(MEFIL_ROLES).map(([roleKey, roleLabel]) => (
-                <button
-                  key={roleKey}
-                  type="button"
-                  className={`mefil-role-btn ${mefilRole === roleKey ? 'mefil-role-active' : ''}`}
-                  onClick={() => handleMefilRoleChange(roleKey)}
-                >
-                  {`I am ${roleLabel}`}
-                </button>
-              ))}
-              <span className="mefil-role-state">{`Active role: ${MEFIL_ROLES[mefilRole]}`}</span>
-            </div>
-
-            <div className="mefil-chat-card" aria-label="Mefil chat">
-              <div className="mefil-chat-head">
-                <h3>{`${MEFIL_ROLES[mefilRole]} Chat`}</h3>
-                <span>Live update: 1s</span>
-              </div>
-              <div className="mefil-chat-messages" ref={mefilChatMessagesRef}>
-                {mefilChatLoading ? (
-                  <p className="mefil-chat-empty">Loading chat...</p>
-                ) : mefilChatNotes.length === 0 ? (
-                  <p className="mefil-chat-empty">No messages yet. Start the thread.</p>
-                ) : (
-                  mefilChatNotes.map((note) => (
-                    <article key={note.noteId} className="mefil-chat-message">
-                      <p>{note.text}</p>
-                      <time className="mefil-chat-meta">{formatKalamTimestamp(note.createdAt)}</time>
-                    </article>
-                  ))
-                )}
-              </div>
-              {mefilChatError ? <p className="mefil-chat-error">{mefilChatError}</p> : null}
-              <form className="mefil-chat-composer" onSubmit={handleSendMefilNote}>
-                <textarea
-                  className="mefil-chat-input"
-                  rows="2"
-                  placeholder={`Write as ${MEFIL_ROLES[mefilRole]}...`}
-                  value={mefilChatInput}
-                  onChange={(e) => setMefilChatInput(e.target.value)}
-                  maxLength={KALAM_MAX_TEXT_LENGTH}
-                  disabled={mefilChatSaving}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      e.currentTarget.form?.requestSubmit();
-                    }
-                  }}
-                />
-                <button type="submit" className="mefil-chat-send-btn" disabled={mefilChatSaving}>
-                  {mefilChatSaving ? 'Sending...' : 'Send'}
-                </button>
-              </form>
-            </div>
-
-            <div className="boss-card">
-              <div className="boss-head">
-                <strong>{questState.bossName || 'The DBMS Final'}</strong>
-                <span className={`status-pill status-pill-${questState.status}`}>{questState.status}</span>
-              </div>
-              <div className="boss-stat">
-                <label>{`Boss HP: ${questState.bossHp}/${questState.bossMaxHp || BOSS_MAX_HP}`}</label>
-                <div className="hp-track hp-track-boss">
-                  <span className="hp-fill hp-fill-boss" style={{ width: `${bossHpPercent}%` }}></span>
-                </div>
-              </div>
-              <div className="boss-stat">
-                <label>{`Team HP: ${questState.teamHp}/${questState.teamMaxHp || TEAM_MAX_HP}`}</label>
-                <div className="hp-track hp-track-team">
-                  <span className="hp-fill hp-fill-team" style={{ width: `${teamHpPercent}%` }}></span>
-                </div>
-              </div>
-              <p className="boss-last-action">
-                {questState.lastActionType
-                  ? `${MEFIL_ROLES[questState.lastActor] || 'Someone'} used ${questState.lastActionType === 'attack' ? 'Attack' : 'Distracted'} (${questState.lastDamage || 0})`
-                  : 'No actions yet in this quest.'}
-              </p>
-            </div>
-
-            <div className="mefil-presence-grid">
-              {Object.entries(MEFIL_ROLES).map(([roleKey, roleLabel]) => {
-                const roleEntry = mefilPresence[roleKey] || defaultMefilPresenceEntry;
-                const roleClock = formatPomodoroClock(roleEntry.remainingSeconds);
-                const statusClass = `status-${roleEntry.status.replace('_', '-')}`;
-                const isSelf = roleKey === mefilRole;
-
-                return (
-                  <article key={roleKey} className={`mefil-role-card ${isSelf ? 'mefil-role-card-self' : 'mefil-role-card-partner'}`}>
-                    <div className="mefil-role-card-head">
-                      <h3>{roleLabel}</h3>
-                      <span className={`mefil-status-indicator ${statusClass}`}>
-                        {MEFIL_STATUS_LABELS[roleEntry.status] || 'Not Studying'}
-                      </span>
-                    </div>
-                    <p className="mefil-timer-label">{roleEntry.isRunning ? 'Running' : (roleEntry.remainingSeconds === 0 ? 'Completed' : 'Paused')}</p>
-                    <div className="mefil-timer-value">{roleClock}</div>
+            {mefilAuthLoading ? (
+              <p className="mefil-status">Checking session...</p>
+            ) : !mefilLoggedIn || !mefilRole ? (
+              <article className="mefil-login-card" aria-label="Mefil login">
+                <h3>Login to Mefil</h3>
+                <form className="mefil-login-form" onSubmit={handleMefilLogin}>
+                  <label className="mefil-login-field">
+                    <span>Username</span>
                     <select
-                      className="mefil-status-select"
-                      value={roleEntry.status}
-                      onChange={(e) => handleMefilStatusChange(e.target.value)}
-                      disabled={!isSelf || mefilActionLoading}
+                      value={mefilLoginUsername}
+                      onChange={(e) => setMefilLoginUsername(e.target.value)}
+                      disabled={mefilLoginLoading}
                     >
-                      {MEFIL_STATUS_OPTIONS.map((statusValue) => (
-                        <option key={statusValue} value={statusValue}>
-                          {MEFIL_STATUS_LABELS[statusValue]}
-                        </option>
-                      ))}
+                      <option value="belal">Belal</option>
+                      <option value="rutbah">Rutbah</option>
                     </select>
-                    <div className="mefil-controls-row">
-                      <button type="button" onClick={roleEntry.isRunning ? handlePomodoroPause : handlePomodoroStart} disabled={!isSelf || mefilActionLoading}>
-                        {roleEntry.isRunning ? 'Pause' : 'Start'}
-                      </button>
-                      <button type="button" onClick={handlePomodoroReset} disabled={!isSelf || mefilActionLoading}>
-                        Reset Timer
-                      </button>
-                      <button type="button" className="attack-btn" onClick={handleBossAttack} disabled={!isSelf || !canAttackBoss}>
-                        {`Session Complete -> Attack (${ATTACK_DAMAGE} DMG)`}
-                      </button>
-                      <button type="button" className="distract-btn" onClick={handleMefilDistracted} disabled={!isSelf || !canUseDistracted}>
-                        {`I got distracted (-${DISTRACT_DAMAGE} HP)`}
-                      </button>
+                  </label>
+                  <label className="mefil-login-field">
+                    <span>Password</span>
+                    <input
+                      type="password"
+                      value={mefilLoginPassword}
+                      onChange={(e) => setMefilLoginPassword(e.target.value)}
+                      disabled={mefilLoginLoading}
+                      required
+                    />
+                  </label>
+                  <button type="submit" className="mefil-login-btn" disabled={mefilLoginLoading}>
+                    {mefilLoginLoading ? 'Logging in...' : 'Login'}
+                  </button>
+                </form>
+                {mefilLoginError ? <p className="mefil-login-error">{mefilLoginError}</p> : null}
+              </article>
+            ) : (
+              <>
+                <div className="mefil-chat-card" aria-label="Mefil chat">
+                  <div className="mefil-chat-head">
+                    <h3>{`${MEFIL_ROLES[mefilRole]} Chat`}</h3>
+                    <span>Live update: 1s</span>
+                  </div>
+                  <div className="mefil-chat-messages" ref={mefilChatMessagesRef}>
+                    {mefilChatLoading ? (
+                      <p className="mefil-chat-empty">Loading chat...</p>
+                    ) : mefilChatNotes.length === 0 ? (
+                      <p className="mefil-chat-empty">No messages yet. Start the thread.</p>
+                    ) : (
+                      mefilChatNotes.map((note) => (
+                        <article key={note.noteId} className="mefil-chat-message">
+                          <p>{note.text}</p>
+                          <time className="mefil-chat-meta">{formatKalamTimestamp(note.createdAt)}</time>
+                        </article>
+                      ))
+                    )}
+                  </div>
+                  {mefilChatError ? <p className="mefil-chat-error">{mefilChatError}</p> : null}
+                  <form className="mefil-chat-composer" onSubmit={handleSendMefilNote}>
+                    <textarea
+                      className="mefil-chat-input"
+                      rows="2"
+                      placeholder={`Write as ${MEFIL_ROLES[mefilRole]}...`}
+                      value={mefilChatInput}
+                      onChange={(e) => setMefilChatInput(e.target.value)}
+                      maxLength={KALAM_MAX_TEXT_LENGTH}
+                      disabled={mefilChatSaving}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          e.currentTarget.form?.requestSubmit();
+                        }
+                      }}
+                    />
+                    <button type="submit" className="mefil-chat-send-btn" disabled={mefilChatSaving}>
+                      {mefilChatSaving ? 'Sending...' : 'Send'}
+                    </button>
+                  </form>
+                </div>
+
+                <div className="boss-card">
+                  <div className="boss-head">
+                    <strong>{questState.bossName || 'The DBMS Final'}</strong>
+                    <span className={`status-pill status-pill-${questState.status}`}>{questState.status}</span>
+                  </div>
+                  <div className="boss-stat">
+                    <label>{`Boss HP: ${questState.bossHp}/${questState.bossMaxHp || BOSS_MAX_HP}`}</label>
+                    <div className="hp-track hp-track-boss">
+                      <span className="hp-fill hp-fill-boss" style={{ width: `${bossHpPercent}%` }}></span>
                     </div>
-                  </article>
-                );
-              })}
-            </div>
+                  </div>
+                  <div className="boss-stat">
+                    <label>{`Team HP: ${questState.teamHp}/${questState.teamMaxHp || TEAM_MAX_HP}`}</label>
+                    <div className="hp-track hp-track-team">
+                      <span className="hp-fill hp-fill-team" style={{ width: `${teamHpPercent}%` }}></span>
+                    </div>
+                  </div>
+                  <p className="boss-last-action">
+                    {questState.lastActionType
+                      ? `${MEFIL_ROLES[questState.lastActor] || 'Someone'} used ${questState.lastActionType === 'attack' ? 'Attack' : 'Distracted'} (${questState.lastDamage || 0})`
+                      : 'No actions yet in this quest.'}
+                  </p>
+                </div>
 
-            <div className="pomodoro-controls">
-              <button type="button" onClick={handleQuestReset} disabled={mefilActionLoading}>
-                Reset Quest
-              </button>
-            </div>
+                <div className="mefil-presence-grid">
+                  {Object.entries(MEFIL_ROLES).map(([roleKey, roleLabel]) => {
+                    const roleEntry = mefilPresence[roleKey] || defaultMefilPresenceEntry;
+                    const roleClock = formatPomodoroClock(roleEntry.remainingSeconds);
+                    const statusClass = `status-${roleEntry.status.replace('_', '-')}`;
+                    const isSelf = roleKey === mefilRole;
 
-            {questLoading ? <p className="mefil-status">Syncing quest...</p> : null}
-            {questError ? <p className="mefil-error">{questError}</p> : null}
+                    return (
+                      <article key={roleKey} className={`mefil-role-card ${isSelf ? 'mefil-role-card-self' : 'mefil-role-card-partner'}`}>
+                        <div className="mefil-role-card-head">
+                          <h3>{roleLabel}</h3>
+                          <span className={`mefil-status-indicator ${statusClass}`}>
+                            {MEFIL_STATUS_LABELS[roleEntry.status] || 'Not Studying'}
+                          </span>
+                        </div>
+                        <p className="mefil-timer-label">{roleEntry.isRunning ? 'Running' : (roleEntry.remainingSeconds === 0 ? 'Completed' : 'Paused')}</p>
+                        <div className="mefil-timer-value">{roleClock}</div>
+                        <select
+                          className="mefil-status-select"
+                          value={roleEntry.status}
+                          onChange={(e) => handleMefilStatusChange(e.target.value)}
+                          disabled={!isSelf || mefilActionLoading}
+                        >
+                          {MEFIL_STATUS_OPTIONS.map((statusValue) => (
+                            <option key={statusValue} value={statusValue}>
+                              {MEFIL_STATUS_LABELS[statusValue]}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="mefil-controls-row">
+                          <button type="button" onClick={roleEntry.isRunning ? handlePomodoroPause : handlePomodoroStart} disabled={!isSelf || mefilActionLoading}>
+                            {roleEntry.isRunning ? 'Pause' : 'Start'}
+                          </button>
+                          <button type="button" onClick={handlePomodoroReset} disabled={!isSelf || mefilActionLoading}>
+                            Reset Timer
+                          </button>
+                          <button type="button" className="attack-btn" onClick={handleBossAttack} disabled={!isSelf || !canAttackBoss}>
+                            {`Session Complete -> Attack (${ATTACK_DAMAGE} DMG)`}
+                          </button>
+                          <button type="button" className="distract-btn" onClick={handleMefilDistracted} disabled={!isSelf || !canUseDistracted}>
+                            {`I got distracted (-${DISTRACT_DAMAGE} HP)`}
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+
+                <div className="pomodoro-controls">
+                  <button type="button" onClick={handleQuestReset} disabled={mefilActionLoading || !canUseMefilActions}>
+                    Reset Quest
+                  </button>
+                </div>
+
+                {questLoading ? <p className="mefil-status">Syncing quest...</p> : null}
+                {questError ? <p className="mefil-error">{questError}</p> : null}
+              </>
+            )}
           </section>
         </div>
       ) : null}

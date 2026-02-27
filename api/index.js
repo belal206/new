@@ -32,6 +32,15 @@ const SPOTIFY_STATE_COOKIE = 'spotify_oauth_state';
 const SPOTIFY_REFRESH_TTL_MS = 1000 * 60 * 60 * 24 * 30;
 const OAUTH_STATE_TTL_MS = 1000 * 60 * 10;
 const IS_PROD = process.env.NODE_ENV === 'production';
+const MEFIL_SESSION_COOKIE = 'mefil_session';
+const MEFIL_SESSION_SECRET = String(process.env.MEFIL_SESSION_SECRET || '');
+const MEFIL_BELAL_PASSWORD = String(process.env.MEFIL_BELAL_PASSWORD || '');
+const MEFIL_RUTBAH_PASSWORD = String(process.env.MEFIL_RUTBAH_PASSWORD || '');
+const parsedMefilSessionTtlDays = Number.parseInt(String(process.env.MEFIL_SESSION_TTL_DAYS || '30'), 10);
+const MEFIL_SESSION_TTL_DAYS = Number.isFinite(parsedMefilSessionTtlDays) && parsedMefilSessionTtlDays > 0
+    ? parsedMefilSessionTtlDays
+    : 30;
+const MEFIL_SESSION_TTL_MS = MEFIL_SESSION_TTL_DAYS * 24 * 60 * 60 * 1000;
 
 const normalizeTags = (tags) => [...new Set(
     (Array.isArray(tags) ? tags : [])
@@ -408,6 +417,128 @@ const parseMefilRole = (value) => {
     return KALAM_ROOMS.includes(normalized) ? normalized : null;
 };
 
+const mefilAuthConfigured = () => Boolean(
+    MEFIL_SESSION_SECRET
+    && MEFIL_BELAL_PASSWORD
+    && MEFIL_RUTBAH_PASSWORD
+);
+
+const parseRoleFromUsername = (value) => parseMefilRole(value);
+
+const getMefilPasswordForRole = (role) => {
+    if (role === 'belal') return MEFIL_BELAL_PASSWORD;
+    if (role === 'rutbah') return MEFIL_RUTBAH_PASSWORD;
+    return '';
+};
+
+const verifyMefilCredentials = (username, password) => {
+    const role = parseRoleFromUsername(username);
+    if (!role) return null;
+    const expectedPassword = getMefilPasswordForRole(role);
+    const providedPassword = String(password || '');
+    if (!expectedPassword || !providedPassword) return null;
+    if (providedPassword !== expectedPassword) return null;
+    return role;
+};
+
+const encodeBase64Url = (value) => Buffer.from(value)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+
+const decodeBase64Url = (value) => {
+    const normalized = String(value || '').replace(/-/g, '+').replace(/_/g, '/');
+    const paddingLength = (4 - (normalized.length % 4)) % 4;
+    const padded = normalized + '='.repeat(paddingLength);
+    return Buffer.from(padded, 'base64').toString('utf8');
+};
+
+const signMefilSession = (role, exp) => {
+    const payload = encodeBase64Url(JSON.stringify({ role, exp }));
+    const signature = crypto
+        .createHmac('sha256', MEFIL_SESSION_SECRET)
+        .update(payload)
+        .digest('base64url');
+    return `${payload}.${signature}`;
+};
+
+const verifyMefilSession = (token) => {
+    if (!token || !MEFIL_SESSION_SECRET) return null;
+    const [payload, signature] = String(token).split('.');
+    if (!payload || !signature) return null;
+
+    const expectedSignature = crypto
+        .createHmac('sha256', MEFIL_SESSION_SECRET)
+        .update(payload)
+        .digest('base64url');
+
+    const signatureBuffer = Buffer.from(signature);
+    const expectedBuffer = Buffer.from(expectedSignature);
+    if (signatureBuffer.length !== expectedBuffer.length) return null;
+    if (!crypto.timingSafeEqual(signatureBuffer, expectedBuffer)) return null;
+
+    let parsedPayload;
+    try {
+        parsedPayload = JSON.parse(decodeBase64Url(payload));
+    } catch (err) {
+        return null;
+    }
+
+    const role = parseMefilRole(parsedPayload?.role);
+    const exp = Number.parseInt(String(parsedPayload?.exp || ''), 10);
+    if (!role || !Number.isFinite(exp) || exp <= Date.now()) {
+        return null;
+    }
+
+    return { role, exp };
+};
+
+const setMefilSessionCookie = (res, token) => {
+    res.cookie(MEFIL_SESSION_COOKIE, token, {
+        httpOnly: true,
+        secure: IS_PROD,
+        sameSite: 'lax',
+        path: '/',
+        maxAge: MEFIL_SESSION_TTL_MS
+    });
+};
+
+const clearMefilSessionCookie = (res) => {
+    res.clearCookie(MEFIL_SESSION_COOKIE, {
+        httpOnly: true,
+        secure: IS_PROD,
+        sameSite: 'lax',
+        path: '/'
+    });
+};
+
+const requireMefilAuth = (req, res, next) => {
+    const token = req.cookies?.[MEFIL_SESSION_COOKIE];
+    const session = verifyMefilSession(token);
+    if (!session) {
+        clearMefilSessionCookie(res);
+        return res.status(401).json({ error: 'Mefil login required' });
+    }
+
+    req.mefilRole = session.role;
+    return next();
+};
+
+const readMefilRequestedRole = (req, value, fieldName = 'role') => {
+    if (value === undefined || value === null || String(value).trim() === '') {
+        return { role: req.mefilRole, error: null };
+    }
+    const parsedRole = parseMefilRole(value);
+    if (!parsedRole) {
+        return { role: null, error: `Valid ${fieldName} is required: belal or rutbah`, status: 400 };
+    }
+    if (parsedRole !== req.mefilRole) {
+        return { role: null, error: 'Role mismatch', status: 403 };
+    }
+    return { role: req.mefilRole, error: null };
+};
+
 const normalizeMefilQuest = (quest) => {
     const source = quest && typeof quest === 'object' ? quest : {};
     const parsedBossMax = Number.parseInt(String(source.bossMaxHp ?? MEFIL_BOSS_MAX_HP), 10);
@@ -511,6 +642,20 @@ const normalizeMefilPresenceEntry = (entry) => {
         endsAt,
         updatedAt
     };
+};
+
+const setMefilPresenceRole = (musicSettings, role, entry) => {
+    const normalized = normalizeMefilPresenceEntry(entry);
+    musicSettings.set(`mefilPresence.${role}`, {
+        status: normalized.status,
+        isRunning: normalized.isRunning,
+        remainingSeconds: normalized.remainingSeconds,
+        durationSeconds: normalized.durationSeconds,
+        endsAt: normalized.endsAt || null,
+        updatedAt: normalized.updatedAt || null
+    });
+    musicSettings.markModified(`mefilPresence.${role}`);
+    return normalized;
 };
 
 const mefilPresenceEntryEqual = (left, right) => {
@@ -1568,32 +1713,70 @@ app.delete('/api/music/youtube/playlists/:playlistId', async (req, res) => {
     }
 });
 
-app.get('/api/mefil/state', async (req, res) => {
+app.post('/api/mefil/auth/login', (req, res) => {
+    if (!mefilAuthConfigured()) {
+        return res.status(500).json({ error: 'Mefil auth is not configured on server' });
+    }
+
+    const role = verifyMefilCredentials(req.body?.username, req.body?.password);
+    if (!role) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    const exp = Date.now() + MEFIL_SESSION_TTL_MS;
+    const token = signMefilSession(role, exp);
+    setMefilSessionCookie(res, token);
+    return res.json({ ok: true, role });
+});
+
+app.get('/api/mefil/auth/session', (req, res) => {
+    if (!mefilAuthConfigured()) {
+        return res.json({ loggedIn: false, role: null });
+    }
+
+    const session = verifyMefilSession(req.cookies?.[MEFIL_SESSION_COOKIE]);
+    if (!session) {
+        clearMefilSessionCookie(res);
+        return res.json({ loggedIn: false, role: null });
+    }
+
+    return res.json({ loggedIn: true, role: session.role });
+});
+
+app.post('/api/mefil/auth/logout', (req, res) => {
+    clearMefilSessionCookie(res);
+    res.json({ ok: true });
+});
+
+app.get('/api/mefil/state', requireMefilAuth, async (req, res) => {
     try {
         const musicSettings = await getMusicSettings();
         const payload = await serializeMefilState(musicSettings, { persistCompletion: true });
         res.json(payload);
     } catch (err) {
+        console.error('[MEFIL /api/mefil/state]', err?.message || err);
         res.status(500).json({ error: 'Failed to fetch Mefil state' });
     }
 });
 
-app.get('/api/mefil/quest', async (req, res) => {
+app.get('/api/mefil/quest', requireMefilAuth, async (req, res) => {
     try {
         const musicSettings = await getMusicSettings();
         await resolveMefilPresence(musicSettings, { persistCompletion: true });
         res.json(serializeMefilQuest(musicSettings.mefilQuest));
     } catch (err) {
+        console.error('[MEFIL /api/mefil/quest]', err?.message || err);
         res.status(500).json({ error: 'Failed to fetch Mefil quest' });
     }
 });
 
-app.patch('/api/mefil/status', async (req, res) => {
+app.patch('/api/mefil/status', requireMefilAuth, async (req, res) => {
     try {
-        const role = parseMefilRole(req.body?.role);
-        if (!role) {
-            return res.status(400).json({ error: 'Valid role is required: belal or rutbah' });
+        const roleResolution = readMefilRequestedRole(req, req.body?.role, 'role');
+        if (roleResolution.error) {
+            return res.status(roleResolution.status || 400).json({ error: roleResolution.error });
         }
+        const role = roleResolution.role;
         const status = parseMefilStatus(req.body?.status);
         if (!status) {
             return res.status(400).json({ error: 'Valid status is required: active, break, not_studying' });
@@ -1604,82 +1787,77 @@ app.patch('/api/mefil/status', async (req, res) => {
         const nextPresence = normalizeMefilPresenceEntry(musicSettings.mefilPresence?.[role]);
         nextPresence.status = status;
         nextPresence.updatedAt = new Date();
-        musicSettings.mefilPresence = {
-            ...musicSettings.mefilPresence,
-            [role]: nextPresence
-        };
-        musicSettings.markModified('mefilPresence');
+        setMefilPresenceRole(musicSettings, role, nextPresence);
         await musicSettings.save();
         res.json({ presence: serializeMefilPresence(musicSettings.mefilPresence) });
     } catch (err) {
+        console.error('[MEFIL /api/mefil/status]', err?.message || err);
         res.status(500).json({ error: 'Failed to update Mefil status' });
     }
 });
 
-app.post('/api/mefil/pomodoro/start', async (req, res) => {
+app.post('/api/mefil/pomodoro/start', requireMefilAuth, async (req, res) => {
     try {
-        const role = parseMefilRole(req.body?.role);
-        if (!role) {
-            return res.status(400).json({ error: 'Valid role is required: belal or rutbah' });
+        const roleResolution = readMefilRequestedRole(req, req.body?.role, 'role');
+        if (roleResolution.error) {
+            return res.status(roleResolution.status || 400).json({ error: roleResolution.error });
         }
-
+        const role = roleResolution.role;
         const musicSettings = await getMusicSettings();
         await resolveMefilPresence(musicSettings, { persistCompletion: true });
-        const nextPresence = normalizeMefilPresenceEntry(musicSettings.mefilPresence?.[role]);
-        const baseRemaining = nextPresence.remainingSeconds > 0
-            ? nextPresence.remainingSeconds
-            : nextPresence.durationSeconds;
-        nextPresence.remainingSeconds = baseRemaining;
-        nextPresence.isRunning = true;
-        nextPresence.endsAt = new Date(Date.now() + (baseRemaining * 1000));
-        nextPresence.status = 'active';
-        nextPresence.updatedAt = new Date();
-        musicSettings.mefilPresence = {
-            ...musicSettings.mefilPresence,
-            [role]: nextPresence
-        };
-        musicSettings.markModified('mefilPresence');
+
+        const serializedPresence = serializeMefilPresence(musicSettings.mefilPresence);
+        const currentPresence = normalizeMefilPresenceEntry(musicSettings.mefilPresence?.[role]);
+        const computedRemaining = serializedPresence?.[role]?.remainingSeconds ?? currentPresence.remainingSeconds;
+        const baseRemaining = computedRemaining > 0 ? computedRemaining : currentPresence.durationSeconds;
+        const now = new Date();
+        currentPresence.remainingSeconds = baseRemaining;
+        currentPresence.isRunning = true;
+        currentPresence.endsAt = new Date(now.getTime() + (baseRemaining * 1000));
+        currentPresence.status = 'active';
+        currentPresence.updatedAt = now;
+        setMefilPresenceRole(musicSettings, role, currentPresence);
         await musicSettings.save();
+
         res.json({ presence: serializeMefilPresence(musicSettings.mefilPresence) });
     } catch (err) {
+        console.error('[MEFIL /api/mefil/pomodoro/start]', err?.message || err);
         res.status(500).json({ error: 'Failed to start Pomodoro' });
     }
 });
 
-app.post('/api/mefil/pomodoro/pause', async (req, res) => {
+app.post('/api/mefil/pomodoro/pause', requireMefilAuth, async (req, res) => {
     try {
-        const role = parseMefilRole(req.body?.role);
-        if (!role) {
-            return res.status(400).json({ error: 'Valid role is required: belal or rutbah' });
+        const roleResolution = readMefilRequestedRole(req, req.body?.role, 'role');
+        if (roleResolution.error) {
+            return res.status(roleResolution.status || 400).json({ error: roleResolution.error });
         }
-
+        const role = roleResolution.role;
         const musicSettings = await getMusicSettings();
         await resolveMefilPresence(musicSettings, { persistCompletion: true });
+
         const serializedPresence = serializeMefilPresence(musicSettings.mefilPresence);
         const nextPresence = normalizeMefilPresenceEntry(musicSettings.mefilPresence?.[role]);
         nextPresence.remainingSeconds = serializedPresence?.[role]?.remainingSeconds ?? nextPresence.remainingSeconds;
         nextPresence.isRunning = false;
         nextPresence.endsAt = null;
         nextPresence.updatedAt = new Date();
-        musicSettings.mefilPresence = {
-            ...musicSettings.mefilPresence,
-            [role]: nextPresence
-        };
-        musicSettings.markModified('mefilPresence');
+        setMefilPresenceRole(musicSettings, role, nextPresence);
         await musicSettings.save();
         res.json({ presence: serializeMefilPresence(musicSettings.mefilPresence) });
     } catch (err) {
+        console.error('[MEFIL /api/mefil/pomodoro/pause]', err?.message || err);
         res.status(500).json({ error: 'Failed to pause Pomodoro' });
     }
 });
 
-app.post('/api/mefil/pomodoro/reset', async (req, res) => {
+app.post('/api/mefil/pomodoro/reset', requireMefilAuth, async (req, res) => {
     try {
-        const role = parseMefilRole(req.body?.role);
-        if (!role) {
-            return res.status(400).json({ error: 'Valid role is required: belal or rutbah' });
+        const roleResolution = readMefilRequestedRole(req, req.body?.role, 'role');
+        if (roleResolution.error) {
+            return res.status(roleResolution.status || 400).json({ error: roleResolution.error });
         }
-
+        const role = roleResolution.role;
         const musicSettings = await getMusicSettings();
         await resolveMefilPresence(musicSettings, { persistCompletion: true });
         const nextPresence = normalizeMefilPresenceEntry(musicSettings.mefilPresence?.[role]);
@@ -1687,25 +1865,22 @@ app.post('/api/mefil/pomodoro/reset', async (req, res) => {
         nextPresence.isRunning = false;
         nextPresence.endsAt = null;
         nextPresence.updatedAt = new Date();
-        musicSettings.mefilPresence = {
-            ...musicSettings.mefilPresence,
-            [role]: nextPresence
-        };
-        musicSettings.markModified('mefilPresence');
+        setMefilPresenceRole(musicSettings, role, nextPresence);
         await musicSettings.save();
         res.json({ presence: serializeMefilPresence(musicSettings.mefilPresence) });
     } catch (err) {
+        console.error('[MEFIL /api/mefil/pomodoro/reset]', err?.message || err);
         res.status(500).json({ error: 'Failed to reset Pomodoro' });
     }
 });
 
-app.post('/api/mefil/pomodoro/complete-attack', async (req, res) => {
+app.post('/api/mefil/pomodoro/complete-attack', requireMefilAuth, async (req, res) => {
     try {
-        const role = parseMefilRole(req.body?.role);
-        if (!role) {
-            return res.status(400).json({ error: 'Valid role is required: belal or rutbah' });
+        const roleResolution = readMefilRequestedRole(req, req.body?.role, 'role');
+        if (roleResolution.error) {
+            return res.status(roleResolution.status || 400).json({ error: roleResolution.error });
         }
-
+        const role = roleResolution.role;
         const musicSettings = await getMusicSettings();
         await resolveMefilPresence(musicSettings, { persistCompletion: true });
         const serializedPresence = serializeMefilPresence(musicSettings.mefilPresence);
@@ -1733,23 +1908,24 @@ app.post('/api/mefil/pomodoro/complete-attack', async (req, res) => {
         nextPresence.endsAt = null;
         nextPresence.status = 'break';
         nextPresence.updatedAt = new Date();
-        musicSettings.mefilPresence = {
-            ...musicSettings.mefilPresence,
-            [role]: nextPresence
-        };
-        musicSettings.markModified('mefilPresence');
-        await musicSettings.save();
+        setMefilPresenceRole(musicSettings, role, nextPresence);
 
+        await musicSettings.save();
         const payload = await serializeMefilState(musicSettings);
         res.json(payload);
     } catch (err) {
+        console.error('[MEFIL /api/mefil/pomodoro/complete-attack]', err?.message || err);
         res.status(500).json({ error: 'Failed to complete Pomodoro attack' });
     }
 });
 
-app.post('/api/mefil/attack', async (req, res) => {
+app.post('/api/mefil/attack', requireMefilAuth, async (req, res) => {
     try {
-        const actor = parseMefilRole(req.body?.role) || 'belal';
+        const roleResolution = readMefilRequestedRole(req, req.body?.role, 'role');
+        if (roleResolution.error) {
+            return res.status(roleResolution.status || 400).json({ error: roleResolution.error });
+        }
+        const actor = roleResolution.role;
         const musicSettings = await getMusicSettings();
         await resolveMefilPresence(musicSettings, { persistCompletion: true });
         const quest = normalizeMefilQuest(musicSettings.mefilQuest);
@@ -1767,13 +1943,18 @@ app.post('/api/mefil/attack', async (req, res) => {
 
         res.json(serializeMefilQuest(quest));
     } catch (err) {
+        console.error('[MEFIL /api/mefil/attack]', err?.message || err);
         res.status(500).json({ error: 'Failed to apply Mefil attack' });
     }
 });
 
-app.post('/api/mefil/distracted', async (req, res) => {
+app.post('/api/mefil/distracted', requireMefilAuth, async (req, res) => {
     try {
-        const actor = parseMefilRole(req.body?.role) || 'belal';
+        const roleResolution = readMefilRequestedRole(req, req.body?.role, 'role');
+        if (roleResolution.error) {
+            return res.status(roleResolution.status || 400).json({ error: roleResolution.error });
+        }
+        const actor = roleResolution.role;
         const musicSettings = await getMusicSettings();
         await resolveMefilPresence(musicSettings, { persistCompletion: true });
         const quest = normalizeMefilQuest(musicSettings.mefilQuest);
@@ -1794,23 +1975,25 @@ app.post('/api/mefil/distracted', async (req, res) => {
             nextPresence.endsAt = null;
             nextPresence.status = 'not_studying';
             nextPresence.updatedAt = new Date();
-            musicSettings.mefilPresence = {
-                ...musicSettings.mefilPresence,
-                [actor]: nextPresence
-            };
-            musicSettings.markModified('mefilPresence');
+            setMefilPresenceRole(musicSettings, actor, nextPresence);
 
             await musicSettings.save();
         }
 
         res.json(serializeMefilQuest(quest));
     } catch (err) {
+        console.error('[MEFIL /api/mefil/distracted]', err?.message || err);
         res.status(500).json({ error: 'Failed to apply Mefil distraction' });
     }
 });
 
-app.post('/api/mefil/reset', async (req, res) => {
+app.post('/api/mefil/reset', requireMefilAuth, async (req, res) => {
     try {
+        const roleResolution = readMefilRequestedRole(req, req.body?.role, 'role');
+        if (roleResolution.error) {
+            return res.status(roleResolution.status || 400).json({ error: roleResolution.error });
+        }
+
         const musicSettings = await getMusicSettings();
         const resetQuest = normalizeMefilQuest({
             bossName: 'The DBMS Final',
@@ -1828,31 +2011,34 @@ app.post('/api/mefil/reset', async (req, res) => {
         await musicSettings.save();
         res.json(serializeMefilQuest(resetQuest));
     } catch (err) {
+        console.error('[MEFIL /api/mefil/reset]', err?.message || err);
         res.status(500).json({ error: 'Failed to reset Mefil quest' });
     }
 });
 
-app.get('/api/mefil/chat', async (req, res) => {
+app.get('/api/mefil/chat', requireMefilAuth, async (req, res) => {
     try {
-        const room = parseMefilRole(req.query?.room);
-        if (!room) {
-            return res.status(400).json({ error: 'Valid room is required: rutbah or belal' });
+        const roomResolution = readMefilRequestedRole(req, req.query?.room, 'room');
+        if (roomResolution.error) {
+            return res.status(roomResolution.status || 400).json({ error: roomResolution.error });
         }
+        const room = roomResolution.role;
         const musicSettings = await getMusicSettings();
         const notes = musicSettings?.mefilRooms?.[room] || [];
         res.json(serializeMefilRoom(room, notes));
     } catch (err) {
+        console.error('[MEFIL /api/mefil/chat GET]', err?.message || err);
         res.status(500).json({ error: 'Failed to fetch Mefil chat' });
     }
 });
 
-app.post('/api/mefil/chat', async (req, res) => {
+app.post('/api/mefil/chat', requireMefilAuth, async (req, res) => {
     try {
-        const room = parseMefilRole(req.body?.room);
-        if (!room) {
-            return res.status(400).json({ error: 'Valid room is required: rutbah or belal' });
+        const roomResolution = readMefilRequestedRole(req, req.body?.room, 'room');
+        if (roomResolution.error) {
+            return res.status(roomResolution.status || 400).json({ error: roomResolution.error });
         }
-
+        const room = roomResolution.role;
         const sanitizedText = sanitizeKalamText(req.body?.text);
         if (sanitizedText.error || !sanitizedText.text) {
             return res.status(400).json({ error: sanitizedText.error || 'Message text is required' });
@@ -1869,14 +2055,12 @@ app.post('/api/mefil/chat', async (req, res) => {
             }
         ]);
 
-        musicSettings.mefilRooms = {
-            ...musicSettings.mefilRooms,
-            [room]: nextNotes
-        };
-        musicSettings.markModified('mefilRooms');
+        musicSettings.set(`mefilRooms.${room}`, nextNotes);
+        musicSettings.markModified(`mefilRooms.${room}`);
         await musicSettings.save();
         res.status(201).json(serializeMefilRoom(room, nextNotes));
     } catch (err) {
+        console.error('[MEFIL /api/mefil/chat POST]', err?.message || err);
         res.status(500).json({ error: 'Failed to save Mefil message' });
     }
 });
