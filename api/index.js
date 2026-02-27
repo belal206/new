@@ -1130,7 +1130,6 @@ const KALAM_MAX_TEXT_LENGTH = 500;
 const KALAM_MAX_NOTES_PER_ROOM = 300;
 const MEFIL_BOSS_MAX_HP = 500;
 const MEFIL_TEAM_MAX_HP = 100;
-const MEFIL_ATTACK_DAMAGE = 25;
 const MEFIL_DISTRACT_DAMAGE = 20;
 const MEFIL_POMODORO_SECONDS = 25 * 60;
 const MEFIL_STATUS_VALUES = ['active', 'break', 'not_studying'];
@@ -2330,11 +2329,14 @@ app.post('/api/mefil/pomodoro/complete-attack', requireMefilAuth, async (req, re
             return res.status(400).json({ error: 'Quest is not active.' });
         }
 
-        quest.bossHp = Math.max(0, quest.bossHp - MEFIL_ATTACK_DAMAGE);
+        const rolePresence = normalizeMefilPresenceEntry(musicSettings.mefilPresence?.[role]);
+        const attackDamage = getMefilPomodoroPoints(rolePresence.durationSeconds);
+
+        quest.bossHp = Math.max(0, quest.bossHp - attackDamage);
         quest.status = quest.bossHp <= 0 ? 'won' : (quest.teamHp <= 0 ? 'lost' : 'active');
         quest.lastActionType = 'attack';
         quest.lastActor = role;
-        quest.lastDamage = MEFIL_ATTACK_DAMAGE;
+        quest.lastDamage = attackDamage;
         musicSettings.mefilQuest = quest;
         musicSettings.markModified('mefilQuest');
 
@@ -2348,6 +2350,7 @@ app.post('/api/mefil/pomodoro/complete-attack', requireMefilAuth, async (req, re
 
         await musicSettings.save();
         const payload = await serializeMefilState(musicSettings);
+        payload.attackDamage = attackDamage;
         payload.pointsAwarded = 0;
         res.json(payload);
     } catch (err) {
@@ -2366,13 +2369,15 @@ app.post('/api/mefil/attack', requireMefilAuth, async (req, res) => {
         const musicSettings = await getMusicSettings();
         await resolveMefilPresence(musicSettings, { persistCompletion: true });
         const quest = normalizeMefilQuest(musicSettings.mefilQuest);
+        const rolePresence = normalizeMefilPresenceEntry(musicSettings.mefilPresence?.[actor]);
+        const attackDamage = getMefilPomodoroPoints(rolePresence.durationSeconds);
 
         if (quest.status === 'active') {
-            quest.bossHp = Math.max(0, quest.bossHp - MEFIL_ATTACK_DAMAGE);
+            quest.bossHp = Math.max(0, quest.bossHp - attackDamage);
             quest.status = quest.bossHp <= 0 ? 'won' : (quest.teamHp <= 0 ? 'lost' : 'active');
             quest.lastActionType = 'attack';
             quest.lastActor = actor;
-            quest.lastDamage = MEFIL_ATTACK_DAMAGE;
+            quest.lastDamage = attackDamage;
             musicSettings.mefilQuest = quest;
             musicSettings.markModified('mefilQuest');
             await musicSettings.save();

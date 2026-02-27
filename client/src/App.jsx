@@ -443,6 +443,13 @@ const formatPomodoroClock = (totalSeconds) => {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 };
 
+const getMefilPomodoroPointsForDuration = (durationSeconds) => {
+  const parsedDuration = Number.parseInt(String(durationSeconds ?? ''), 10);
+  const matched = MEFIL_POMODORO_DURATIONS.find((option) => option.seconds === parsedDuration);
+  if (matched) return matched.points;
+  return Math.max(1, Math.round((Number.isFinite(parsedDuration) ? parsedDuration : POMODORO_SECONDS) / 60));
+};
+
 const applySourcePayload = (payload, setPlaylists, setActivePlaylistId) => {
   const nextPlaylists = Array.isArray(payload?.playlists) ? payload.playlists : [];
   const nextActivePlaylistId = typeof payload?.activePlaylistId === 'string' ? payload.activePlaylistId : null;
@@ -603,6 +610,7 @@ function App() {
   const mefilChatInputRef = useRef(null);
   const mefilChatFetchSeqRef = useRef(0);
   const mefilStateFetchSeqRef = useRef(0);
+  const mefilNotificationSwRef = useRef(null);
   const mefilPomodoroCompletionRef = useRef({
     role: null,
     isRunning: false,
@@ -873,15 +881,45 @@ function App() {
     setMefilNotificationPermission(window.Notification.permission);
   };
 
-  const showMefilPomodoroCompleteNotification = (role) => {
+  const ensureMefilNotificationServiceWorker = async () => {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return null;
+    if (mefilNotificationSwRef.current) return mefilNotificationSwRef.current;
+    try {
+      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+      mefilNotificationSwRef.current = registration;
+      return registration;
+    } catch (err) {
+      console.error(err);
+      return null;
+    }
+  };
+
+  const showMefilPomodoroCompleteNotification = async (role, attackDamage) => {
     if (!mefilNotificationsSupported || window.Notification.permission !== 'granted') return;
     const roleLabel = MEFIL_ROLES[role] || 'You';
-    const notification = new window.Notification('Pomodoro complete', {
-      body: `${roleLabel}, your session is complete. Return to Mefil and strike the boss.`,
-      tag: `mefil-pomodoro-complete-${role}`,
-      renotify: true,
-    });
-    window.setTimeout(() => notification.close(), 7000);
+    const damage = Math.max(1, Number.parseInt(String(attackDamage ?? ATTACK_DAMAGE), 10) || ATTACK_DAMAGE);
+    const title = 'Pomodoro complete';
+    const body = `${roleLabel}, session done. Attack is ready for ${damage} DMG.`;
+    try {
+      const registration = await ensureMefilNotificationServiceWorker();
+      if (registration && typeof registration.showNotification === 'function') {
+        await registration.showNotification(title, {
+          body,
+          tag: `mefil-pomodoro-complete-${role}`,
+          renotify: true,
+          icon: DEFAULT_MEFIL_BOSS_ICON,
+        });
+        return;
+      }
+      const notification = new window.Notification(title, {
+        body,
+        tag: `mefil-pomodoro-complete-${role}`,
+        renotify: true,
+      });
+      window.setTimeout(() => notification.close(), 7000);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   const handleMefilUnauthorized = (message = 'Mefil login required') => {
@@ -1071,6 +1109,7 @@ function App() {
     if (!mefilNotificationsSupported || mefilNotificationLoading) return;
     setMefilNotificationLoading(true);
     try {
+      await ensureMefilNotificationServiceWorker();
       const permission = await window.Notification.requestPermission();
       setMefilNotificationPermission(permission);
       if (permission !== 'granted') {
@@ -2182,7 +2221,9 @@ function App() {
     );
 
     if (justCompleted) {
-      showMefilPomodoroCompleteNotification(mefilRole);
+      const completedDuration = Number(currentEntry.durationSeconds || POMODORO_SECONDS);
+      const attackDamage = getMefilPomodoroPointsForDuration(completedDuration);
+      showMefilPomodoroCompleteNotification(mefilRole, attackDamage);
     }
 
     mefilPomodoroCompletionRef.current = {
@@ -3437,6 +3478,7 @@ function App() {
                       const statusClass = `status-${roleEntry.status.replace('_', '-')}`;
                       const isSelf = roleKey === mefilRole;
                       const durationConfig = MEFIL_POMODORO_DURATIONS.find((option) => option.seconds === roleEntry.durationSeconds) || MEFIL_POMODORO_DURATIONS[1];
+                      const roleAttackDamage = getMefilPomodoroPointsForDuration(roleEntry.durationSeconds);
 
                       return (
                         <article key={roleKey} className={`mefil-role-card ${isSelf ? 'mefil-role-card-self' : 'mefil-role-card-partner'}`}>
@@ -3484,7 +3526,7 @@ function App() {
                               Reset Timer
                             </button>
                             <button type="button" className="attack-btn" onClick={handleBossAttack} disabled={!isSelf || !canAttackBoss}>
-                              {`Session Complete -> Attack (${ATTACK_DAMAGE} DMG)`}
+                              {`Session Complete -> Attack (${roleAttackDamage} DMG)`}
                             </button>
                             <button type="button" className="distract-btn" onClick={handleMefilDistracted} disabled={!isSelf || !canUseDistracted}>
                               {`I got distracted (-${DISTRACT_DAMAGE} HP)`}
