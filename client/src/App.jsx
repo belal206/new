@@ -57,8 +57,10 @@ const BOSS_MAX_HP = 500;
 const TEAM_MAX_HP = 100;
 const ATTACK_DAMAGE = 25;
 const DISTRACT_DAMAGE = 20;
+const DEFAULT_MEFIL_BOSS_NAME = 'James P. Sullivan';
+const DEFAULT_MEFIL_BOSS_ICON = '/images/james-p-sullivan.webp';
 const defaultQuestState = {
-  bossName: 'The Aadhaar OTP Rakshas',
+  bossName: DEFAULT_MEFIL_BOSS_NAME,
   bossHp: BOSS_MAX_HP,
   bossMaxHp: BOSS_MAX_HP,
   teamHp: TEAM_MAX_HP,
@@ -380,9 +382,9 @@ const normalizeMefilTodoList = (items) => {
     if (left.isCompleted !== right.isCompleted) {
       return left.isCompleted ? 1 : -1;
     }
-    const leftUpdated = new Date(left.updatedAt).getTime();
-    const rightUpdated = new Date(right.updatedAt).getTime();
-    return rightUpdated - leftUpdated;
+    const leftCreated = new Date(left.createdAt).getTime();
+    const rightCreated = new Date(right.createdAt).getTime();
+    return leftCreated - rightCreated;
   });
 
   return normalized;
@@ -3142,7 +3144,15 @@ function App() {
                 <div className="mefil-top-scroll">
                   <div className="boss-card">
                     <div className="boss-head">
-                      <strong>{questState.bossName || 'The Aadhaar OTP Rakshas'}</strong>
+                      <div className="boss-head-main">
+                        <img
+                          src={DEFAULT_MEFIL_BOSS_ICON}
+                          alt="James P. Sullivan icon"
+                          className="boss-icon"
+                          loading="lazy"
+                        />
+                        <strong>{questState.bossName || DEFAULT_MEFIL_BOSS_NAME}</strong>
+                      </div>
                       <span className={`status-pill status-pill-${questState.status}`}>{questState.status}</span>
                     </div>
                     <div className="boss-stat">

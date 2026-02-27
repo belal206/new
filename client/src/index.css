@@ -1222,8 +1222,26 @@ h1 {
   gap: 10px;
 }
 
+.boss-head-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.boss-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid rgba(36, 0, 70, 0.2);
+  background: rgba(255, 255, 255, 0.85);
+  flex: 0 0 auto;
+}
+
 .boss-head strong {
   color: var(--royal-purple);
+  line-height: 1.2;
 }
 
 .status-pill {
@@ -1616,6 +1634,11 @@ body.theme-noor .mefil-chat-meta,
 body.theme-noor .mefil-chat-empty,
 body.theme-noor .pomodoro-display {
   color: #4b3a23;
+}
+
+body.theme-noor .boss-icon {
+  border-color: rgba(181, 141, 74, 0.5);
+  background: rgba(255, 248, 235, 0.95);
 }
 
 .poem-card {
@@ -2456,6 +2479,12 @@ body.theme-noor .pomodoro-display {
   .mefil-profile-pill {
     width: 100%;
     justify-content: center;
+  }
+
+  .boss-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
   }
 
   .mefil-presence-grid {
@@ -3380,6 +3409,11 @@ body.theme-shahi .poem-preview-line,
 body.theme-shahi .poem-detail-content,
 body.theme-shahi .mehfil-line {
   color: #d8cfbc;
+}
+
+body.theme-shahi .boss-icon {
+  border-color: rgba(181, 141, 74, 0.45);
+  background: #050505;
 }
 
 body.theme-shahi .playlist-item-active {

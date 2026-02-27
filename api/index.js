@@ -41,6 +41,8 @@ const MEFIL_SESSION_TTL_DAYS = Number.isFinite(parsedMefilSessionTtlDays) && par
     ? parsedMefilSessionTtlDays
     : 30;
 const MEFIL_SESSION_TTL_MS = MEFIL_SESSION_TTL_DAYS * 24 * 60 * 60 * 1000;
+const DEFAULT_MEFIL_BOSS_NAME = 'James P. Sullivan';
+const LEGACY_MEFIL_BOSS_NAMES = new Set(['The Aadhaar OTP Rakshas', 'The DBMS Final']);
 
 const normalizeTags = (tags) => [...new Set(
     (Array.isArray(tags) ? tags : [])
@@ -139,7 +141,7 @@ const MusicSettings = mongoose.model('MusicSettings', new mongoose.Schema({
         }]
     },
     mefilQuest: {
-        bossName: { type: String, default: 'The Aadhaar OTP Rakshas' },
+        bossName: { type: String, default: DEFAULT_MEFIL_BOSS_NAME },
         bossHp: { type: Number, default: 500 },
         bossMaxHp: { type: Number, default: 500 },
         teamHp: { type: Number, default: 100 },
@@ -437,7 +439,7 @@ const normalizeMefilTodoList = (todos) => {
         if (left.isCompleted !== right.isCompleted) {
             return left.isCompleted ? 1 : -1;
         }
-        return new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime();
+        return new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime();
     });
 
     if (normalized.length > MEFIL_TODO_MAX_ITEMS_PER_ROLE) {
@@ -725,8 +727,13 @@ const normalizeMefilQuest = (quest) => {
     const parsedLastDamage = Number.parseInt(String(source.lastDamage ?? ''), 10);
     const lastDamage = Number.isFinite(parsedLastDamage) ? parsedLastDamage : null;
 
+    const rawBossName = String(source.bossName || '').trim();
+    const bossName = !rawBossName || LEGACY_MEFIL_BOSS_NAMES.has(rawBossName)
+        ? DEFAULT_MEFIL_BOSS_NAME
+        : rawBossName;
+
     return {
-        bossName: String(source.bossName || 'The Aadhaar OTP Rakshas').trim() || 'The Aadhaar OTP Rakshas',
+        bossName,
         bossHp,
         bossMaxHp,
         teamHp,
@@ -1207,7 +1214,7 @@ const getOrCreateMusicSettings = async () => MusicSettings.findOneAndUpdate(
                 belal: []
             },
             mefilQuest: {
-                bossName: 'The Aadhaar OTP Rakshas',
+                bossName: DEFAULT_MEFIL_BOSS_NAME,
                 bossHp: MEFIL_BOSS_MAX_HP,
                 bossMaxHp: MEFIL_BOSS_MAX_HP,
                 teamHp: MEFIL_TEAM_MAX_HP,
@@ -2188,7 +2195,7 @@ app.post('/api/mefil/reset', requireMefilAuth, async (req, res) => {
 
         const musicSettings = await getMusicSettings();
         const resetQuest = normalizeMefilQuest({
-            bossName: 'The Aadhaar OTP Rakshas',
+            bossName: DEFAULT_MEFIL_BOSS_NAME,
             bossHp: MEFIL_BOSS_MAX_HP,
             bossMaxHp: MEFIL_BOSS_MAX_HP,
             teamHp: MEFIL_TEAM_MAX_HP,
