@@ -119,6 +119,24 @@ const MusicSettings = mongoose.model('MusicSettings', new mongoose.Schema({
         lastActionType: { type: String, default: null },
         lastActor: { type: String, default: null },
         lastDamage: { type: Number, default: null }
+    },
+    mefilPresence: {
+        belal: {
+            status: { type: String, default: 'not_studying' },
+            isRunning: { type: Boolean, default: false },
+            remainingSeconds: { type: Number, default: 1500 },
+            durationSeconds: { type: Number, default: 1500 },
+            endsAt: { type: Date, default: null },
+            updatedAt: { type: Date, default: null }
+        },
+        rutbah: {
+            status: { type: String, default: 'not_studying' },
+            isRunning: { type: Boolean, default: false },
+            remainingSeconds: { type: Number, default: 1500 },
+            durationSeconds: { type: Number, default: 1500 },
+            endsAt: { type: Date, default: null },
+            updatedAt: { type: Date, default: null }
+        }
     }
 }, { timestamps: true }));
 
@@ -463,6 +481,144 @@ const normalizeMefilRooms = (musicSettings) => {
 const serializeMefilRoom = (room, notes) => serializeKalamRoom(room, notes);
 const serializeMefilQuest = (quest) => normalizeMefilQuest(quest);
 
+const parseMefilStatus = (value) => {
+    const normalized = String(value || '').trim().toLowerCase();
+    return MEFIL_STATUS_VALUES.includes(normalized) ? normalized : null;
+};
+
+const normalizeMefilPresenceEntry = (entry) => {
+    const source = entry && typeof entry === 'object' ? entry : {};
+    const status = parseMefilStatus(source.status) || 'not_studying';
+    const parsedDuration = Number.parseInt(String(source.durationSeconds ?? MEFIL_POMODORO_SECONDS), 10);
+    const durationSeconds = Number.isFinite(parsedDuration) && parsedDuration > 0
+        ? parsedDuration
+        : MEFIL_POMODORO_SECONDS;
+    const parsedRemaining = Number.parseInt(String(source.remainingSeconds ?? durationSeconds), 10);
+    const remainingSeconds = Number.isFinite(parsedRemaining)
+        ? Math.max(0, Math.min(durationSeconds, parsedRemaining))
+        : durationSeconds;
+    const rawEndsAt = source.endsAt ? new Date(source.endsAt) : null;
+    const endsAt = rawEndsAt && Number.isFinite(rawEndsAt.getTime()) ? rawEndsAt : null;
+    const rawUpdatedAt = source.updatedAt ? new Date(source.updatedAt) : null;
+    const updatedAt = rawUpdatedAt && Number.isFinite(rawUpdatedAt.getTime()) ? rawUpdatedAt : null;
+    const isRunning = Boolean(source.isRunning) && Boolean(endsAt);
+
+    return {
+        status,
+        isRunning,
+        remainingSeconds,
+        durationSeconds,
+        endsAt,
+        updatedAt
+    };
+};
+
+const mefilPresenceEntryEqual = (left, right) => {
+    const normalizedLeft = normalizeMefilPresenceEntry(left);
+    const normalizedRight = normalizeMefilPresenceEntry(right);
+    const leftEndsAt = normalizedLeft.endsAt ? normalizedLeft.endsAt.toISOString() : '';
+    const rightEndsAt = normalizedRight.endsAt ? normalizedRight.endsAt.toISOString() : '';
+    const leftUpdatedAt = normalizedLeft.updatedAt ? normalizedLeft.updatedAt.toISOString() : '';
+    const rightUpdatedAt = normalizedRight.updatedAt ? normalizedRight.updatedAt.toISOString() : '';
+
+    return (
+        normalizedLeft.status === normalizedRight.status
+        && normalizedLeft.isRunning === normalizedRight.isRunning
+        && normalizedLeft.remainingSeconds === normalizedRight.remainingSeconds
+        && normalizedLeft.durationSeconds === normalizedRight.durationSeconds
+        && leftEndsAt === rightEndsAt
+        && leftUpdatedAt === rightUpdatedAt
+    );
+};
+
+const normalizeMefilPresence = (musicSettings) => {
+    const currentPresence = musicSettings.mefilPresence && typeof musicSettings.mefilPresence === 'object'
+        ? musicSettings.mefilPresence
+        : {};
+    const normalizedBelal = normalizeMefilPresenceEntry(currentPresence.belal);
+    const normalizedRutbah = normalizeMefilPresenceEntry(currentPresence.rutbah);
+    const changed = (
+        !currentPresence
+        || !mefilPresenceEntryEqual(currentPresence.belal, normalizedBelal)
+        || !mefilPresenceEntryEqual(currentPresence.rutbah, normalizedRutbah)
+    );
+
+    musicSettings.mefilPresence = {
+        belal: normalizedBelal,
+        rutbah: normalizedRutbah
+    };
+
+    return changed;
+};
+
+const resolveMefilPresence = (musicSettings, { persistCompletion = false } = {}) => {
+    const now = new Date();
+    const sourcePresence = musicSettings.mefilPresence && typeof musicSettings.mefilPresence === 'object'
+        ? musicSettings.mefilPresence
+        : {};
+    const roles = ['belal', 'rutbah'];
+    const normalizedPresence = {};
+    let changed = false;
+
+    for (const role of roles) {
+        const normalized = normalizeMefilPresenceEntry(sourcePresence[role]);
+        if (normalized.isRunning && normalized.endsAt) {
+            const remaining = Math.ceil((normalized.endsAt.getTime() - now.getTime()) / 1000);
+            if (remaining <= 0) {
+                normalized.isRunning = false;
+                normalized.remainingSeconds = 0;
+                normalized.status = 'break';
+                normalized.endsAt = null;
+                normalized.updatedAt = now;
+                changed = true;
+            }
+        }
+        normalizedPresence[role] = normalized;
+    }
+
+    if (changed || !mefilPresenceEntryEqual(sourcePresence.belal, normalizedPresence.belal) || !mefilPresenceEntryEqual(sourcePresence.rutbah, normalizedPresence.rutbah)) {
+        musicSettings.mefilPresence = normalizedPresence;
+        musicSettings.markModified('mefilPresence');
+    }
+
+    if (persistCompletion && changed) {
+        return musicSettings.save().then(() => musicSettings.mefilPresence);
+    }
+
+    return Promise.resolve(musicSettings.mefilPresence);
+};
+
+const serializeMefilPresence = (presenceSource) => {
+    const now = new Date();
+    const roles = ['belal', 'rutbah'];
+    const payload = {};
+    for (const role of roles) {
+        const normalized = normalizeMefilPresenceEntry(presenceSource?.[role]);
+        let remainingSeconds = normalized.remainingSeconds;
+        if (normalized.isRunning && normalized.endsAt) {
+            const computedRemaining = Math.ceil((normalized.endsAt.getTime() - now.getTime()) / 1000);
+            remainingSeconds = Math.max(0, Math.min(normalized.durationSeconds, computedRemaining));
+        }
+        payload[role] = {
+            status: normalized.status,
+            isRunning: normalized.isRunning,
+            remainingSeconds,
+            durationSeconds: normalized.durationSeconds,
+            endsAt: normalized.endsAt ? normalized.endsAt.toISOString() : null,
+            updatedAt: normalized.updatedAt ? normalized.updatedAt.toISOString() : null
+        };
+    }
+    return payload;
+};
+
+const serializeMefilState = async (musicSettings, options = {}) => {
+    await resolveMefilPresence(musicSettings, options);
+    return {
+        quest: serializeMefilQuest(musicSettings.mefilQuest),
+        presence: serializeMefilPresence(musicSettings.mefilPresence)
+    };
+};
+
 const LEVELS = [
     { title: 'Murid', min: 0, max: 2 },
     { title: 'Raahi', min: 3, max: 5 },
@@ -480,6 +636,8 @@ const MEFIL_BOSS_MAX_HP = 500;
 const MEFIL_TEAM_MAX_HP = 100;
 const MEFIL_ATTACK_DAMAGE = 25;
 const MEFIL_DISTRACT_DAMAGE = 20;
+const MEFIL_POMODORO_SECONDS = 25 * 60;
+const MEFIL_STATUS_VALUES = ['active', 'break', 'not_studying'];
 
 const normalizeNonNegativeInteger = (value, fallback = 0) => {
     const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -725,6 +883,24 @@ const getOrCreateMusicSettings = async () => MusicSettings.findOneAndUpdate(
                 lastActionType: null,
                 lastActor: null,
                 lastDamage: null
+            },
+            mefilPresence: {
+                belal: {
+                    status: 'not_studying',
+                    isRunning: false,
+                    remainingSeconds: MEFIL_POMODORO_SECONDS,
+                    durationSeconds: MEFIL_POMODORO_SECONDS,
+                    endsAt: null,
+                    updatedAt: null
+                },
+                rutbah: {
+                    status: 'not_studying',
+                    isRunning: false,
+                    remainingSeconds: MEFIL_POMODORO_SECONDS,
+                    durationSeconds: MEFIL_POMODORO_SECONDS,
+                    endsAt: null,
+                    updatedAt: null
+                }
             }
         }
     },
@@ -743,6 +919,10 @@ const migrateLegacyMusicSettings = async (musicSettings) => {
     }
 
     if (normalizeMefilRooms(musicSettings)) {
+        changed = true;
+    }
+
+    if (normalizeMefilPresence(musicSettings)) {
         changed = true;
     }
 
@@ -1388,12 +1568,182 @@ app.delete('/api/music/youtube/playlists/:playlistId', async (req, res) => {
     }
 });
 
+app.get('/api/mefil/state', async (req, res) => {
+    try {
+        const musicSettings = await getMusicSettings();
+        const payload = await serializeMefilState(musicSettings, { persistCompletion: true });
+        res.json(payload);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch Mefil state' });
+    }
+});
+
 app.get('/api/mefil/quest', async (req, res) => {
     try {
         const musicSettings = await getMusicSettings();
+        await resolveMefilPresence(musicSettings, { persistCompletion: true });
         res.json(serializeMefilQuest(musicSettings.mefilQuest));
     } catch (err) {
         res.status(500).json({ error: 'Failed to fetch Mefil quest' });
+    }
+});
+
+app.patch('/api/mefil/status', async (req, res) => {
+    try {
+        const role = parseMefilRole(req.body?.role);
+        if (!role) {
+            return res.status(400).json({ error: 'Valid role is required: belal or rutbah' });
+        }
+        const status = parseMefilStatus(req.body?.status);
+        if (!status) {
+            return res.status(400).json({ error: 'Valid status is required: active, break, not_studying' });
+        }
+
+        const musicSettings = await getMusicSettings();
+        await resolveMefilPresence(musicSettings, { persistCompletion: true });
+        const nextPresence = normalizeMefilPresenceEntry(musicSettings.mefilPresence?.[role]);
+        nextPresence.status = status;
+        nextPresence.updatedAt = new Date();
+        musicSettings.mefilPresence = {
+            ...musicSettings.mefilPresence,
+            [role]: nextPresence
+        };
+        musicSettings.markModified('mefilPresence');
+        await musicSettings.save();
+        res.json({ presence: serializeMefilPresence(musicSettings.mefilPresence) });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to update Mefil status' });
+    }
+});
+
+app.post('/api/mefil/pomodoro/start', async (req, res) => {
+    try {
+        const role = parseMefilRole(req.body?.role);
+        if (!role) {
+            return res.status(400).json({ error: 'Valid role is required: belal or rutbah' });
+        }
+
+        const musicSettings = await getMusicSettings();
+        await resolveMefilPresence(musicSettings, { persistCompletion: true });
+        const nextPresence = normalizeMefilPresenceEntry(musicSettings.mefilPresence?.[role]);
+        const baseRemaining = nextPresence.remainingSeconds > 0
+            ? nextPresence.remainingSeconds
+            : nextPresence.durationSeconds;
+        nextPresence.remainingSeconds = baseRemaining;
+        nextPresence.isRunning = true;
+        nextPresence.endsAt = new Date(Date.now() + (baseRemaining * 1000));
+        nextPresence.status = 'active';
+        nextPresence.updatedAt = new Date();
+        musicSettings.mefilPresence = {
+            ...musicSettings.mefilPresence,
+            [role]: nextPresence
+        };
+        musicSettings.markModified('mefilPresence');
+        await musicSettings.save();
+        res.json({ presence: serializeMefilPresence(musicSettings.mefilPresence) });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to start Pomodoro' });
+    }
+});
+
+app.post('/api/mefil/pomodoro/pause', async (req, res) => {
+    try {
+        const role = parseMefilRole(req.body?.role);
+        if (!role) {
+            return res.status(400).json({ error: 'Valid role is required: belal or rutbah' });
+        }
+
+        const musicSettings = await getMusicSettings();
+        await resolveMefilPresence(musicSettings, { persistCompletion: true });
+        const serializedPresence = serializeMefilPresence(musicSettings.mefilPresence);
+        const nextPresence = normalizeMefilPresenceEntry(musicSettings.mefilPresence?.[role]);
+        nextPresence.remainingSeconds = serializedPresence?.[role]?.remainingSeconds ?? nextPresence.remainingSeconds;
+        nextPresence.isRunning = false;
+        nextPresence.endsAt = null;
+        nextPresence.updatedAt = new Date();
+        musicSettings.mefilPresence = {
+            ...musicSettings.mefilPresence,
+            [role]: nextPresence
+        };
+        musicSettings.markModified('mefilPresence');
+        await musicSettings.save();
+        res.json({ presence: serializeMefilPresence(musicSettings.mefilPresence) });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to pause Pomodoro' });
+    }
+});
+
+app.post('/api/mefil/pomodoro/reset', async (req, res) => {
+    try {
+        const role = parseMefilRole(req.body?.role);
+        if (!role) {
+            return res.status(400).json({ error: 'Valid role is required: belal or rutbah' });
+        }
+
+        const musicSettings = await getMusicSettings();
+        await resolveMefilPresence(musicSettings, { persistCompletion: true });
+        const nextPresence = normalizeMefilPresenceEntry(musicSettings.mefilPresence?.[role]);
+        nextPresence.remainingSeconds = nextPresence.durationSeconds;
+        nextPresence.isRunning = false;
+        nextPresence.endsAt = null;
+        nextPresence.updatedAt = new Date();
+        musicSettings.mefilPresence = {
+            ...musicSettings.mefilPresence,
+            [role]: nextPresence
+        };
+        musicSettings.markModified('mefilPresence');
+        await musicSettings.save();
+        res.json({ presence: serializeMefilPresence(musicSettings.mefilPresence) });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to reset Pomodoro' });
+    }
+});
+
+app.post('/api/mefil/pomodoro/complete-attack', async (req, res) => {
+    try {
+        const role = parseMefilRole(req.body?.role);
+        if (!role) {
+            return res.status(400).json({ error: 'Valid role is required: belal or rutbah' });
+        }
+
+        const musicSettings = await getMusicSettings();
+        await resolveMefilPresence(musicSettings, { persistCompletion: true });
+        const serializedPresence = serializeMefilPresence(musicSettings.mefilPresence);
+        const currentPresence = serializedPresence?.[role];
+        if (!currentPresence || currentPresence.isRunning || currentPresence.remainingSeconds > 0) {
+            return res.status(400).json({ error: 'Pomodoro must be complete before attacking.' });
+        }
+
+        const quest = normalizeMefilQuest(musicSettings.mefilQuest);
+        if (quest.status !== 'active') {
+            return res.status(400).json({ error: 'Quest is not active.' });
+        }
+
+        quest.bossHp = Math.max(0, quest.bossHp - MEFIL_ATTACK_DAMAGE);
+        quest.status = quest.bossHp <= 0 ? 'won' : (quest.teamHp <= 0 ? 'lost' : 'active');
+        quest.lastActionType = 'attack';
+        quest.lastActor = role;
+        quest.lastDamage = MEFIL_ATTACK_DAMAGE;
+        musicSettings.mefilQuest = quest;
+        musicSettings.markModified('mefilQuest');
+
+        const nextPresence = normalizeMefilPresenceEntry(musicSettings.mefilPresence?.[role]);
+        nextPresence.isRunning = false;
+        nextPresence.remainingSeconds = nextPresence.durationSeconds;
+        nextPresence.endsAt = null;
+        nextPresence.status = 'break';
+        nextPresence.updatedAt = new Date();
+        musicSettings.mefilPresence = {
+            ...musicSettings.mefilPresence,
+            [role]: nextPresence
+        };
+        musicSettings.markModified('mefilPresence');
+        await musicSettings.save();
+
+        const payload = await serializeMefilState(musicSettings);
+        res.json(payload);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to complete Pomodoro attack' });
     }
 });
 
@@ -1401,6 +1751,7 @@ app.post('/api/mefil/attack', async (req, res) => {
     try {
         const actor = parseMefilRole(req.body?.role) || 'belal';
         const musicSettings = await getMusicSettings();
+        await resolveMefilPresence(musicSettings, { persistCompletion: true });
         const quest = normalizeMefilQuest(musicSettings.mefilQuest);
 
         if (quest.status === 'active') {
@@ -1424,6 +1775,7 @@ app.post('/api/mefil/distracted', async (req, res) => {
     try {
         const actor = parseMefilRole(req.body?.role) || 'belal';
         const musicSettings = await getMusicSettings();
+        await resolveMefilPresence(musicSettings, { persistCompletion: true });
         const quest = normalizeMefilQuest(musicSettings.mefilQuest);
 
         if (quest.status === 'active') {
@@ -1434,6 +1786,20 @@ app.post('/api/mefil/distracted', async (req, res) => {
             quest.lastDamage = MEFIL_DISTRACT_DAMAGE;
             musicSettings.mefilQuest = quest;
             musicSettings.markModified('mefilQuest');
+
+            const serializedPresence = serializeMefilPresence(musicSettings.mefilPresence);
+            const nextPresence = normalizeMefilPresenceEntry(musicSettings.mefilPresence?.[actor]);
+            nextPresence.remainingSeconds = serializedPresence?.[actor]?.remainingSeconds ?? nextPresence.remainingSeconds;
+            nextPresence.isRunning = false;
+            nextPresence.endsAt = null;
+            nextPresence.status = 'not_studying';
+            nextPresence.updatedAt = new Date();
+            musicSettings.mefilPresence = {
+                ...musicSettings.mefilPresence,
+                [actor]: nextPresence
+            };
+            musicSettings.markModified('mefilPresence');
+
             await musicSettings.save();
         }
 

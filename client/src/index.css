@@ -674,6 +674,127 @@ h1 {
   color: rgba(36, 0, 70, 0.72);
 }
 
+.mefil-presence-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.mefil-role-card {
+  border: 1px solid rgba(212, 175, 55, 0.42);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.82);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mefil-role-card-self {
+  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.32);
+}
+
+.mefil-role-card-partner {
+  opacity: 0.95;
+}
+
+.mefil-role-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.mefil-role-card-head h3 {
+  margin: 0;
+  color: var(--royal-purple);
+  font-size: 1rem;
+  letter-spacing: 0.3px;
+}
+
+.mefil-status-indicator {
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(36, 0, 70, 0.2);
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.72rem;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.status-active {
+  color: #1f7a35;
+  border-color: rgba(31, 122, 53, 0.48);
+  background: rgba(31, 122, 53, 0.08);
+}
+
+.status-break {
+  color: #9a6b00;
+  border-color: rgba(154, 107, 0, 0.48);
+  background: rgba(241, 178, 40, 0.14);
+}
+
+.status-not-studying {
+  color: #b64040;
+  border-color: rgba(182, 64, 64, 0.5);
+  background: rgba(182, 64, 64, 0.1);
+}
+
+.mefil-timer-label {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(36, 0, 70, 0.72);
+}
+
+.mefil-timer-value {
+  font-family: 'Cinzel Decorative', cursive;
+  color: var(--royal-purple);
+  font-size: clamp(1.2rem, 2.5vw, 1.7rem);
+  letter-spacing: 1.6px;
+}
+
+.mefil-status-select {
+  min-height: 34px;
+  border-radius: 10px;
+  border: 1px solid rgba(36, 0, 70, 0.26);
+  background: rgba(255, 255, 255, 0.95);
+  color: rgba(36, 0, 70, 0.88);
+  padding: 0 10px;
+}
+
+.mefil-controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mefil-controls-row button {
+  min-height: 34px;
+  border-radius: 999px;
+  border: 1px solid rgba(36, 0, 70, 0.3);
+  background: #fff;
+  color: var(--royal-purple);
+  padding: 0 10px;
+  cursor: pointer;
+}
+
+.mefil-controls-row button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mefil-controls-row .attack-btn {
+  border-color: rgba(182, 64, 64, 0.5);
+  color: #b64040;
+}
+
+.mefil-controls-row .distract-btn {
+  border-color: rgba(47, 92, 50, 0.5);
+  color: #2f5c32;
+}
+
 .mefil-chat-card {
   border: 1px solid rgba(212, 175, 55, 0.42);
   border-radius: 14px;
@@ -1129,6 +1250,8 @@ body.theme-noor .kalam-input {
 body.theme-noor .mefil-launch-btn,
 body.theme-noor .mefil-close-btn,
 body.theme-noor .mefil-role-btn,
+body.theme-noor .mefil-status-select,
+body.theme-noor .mefil-controls-row button,
 body.theme-noor .mefil-chat-send-btn,
 body.theme-noor .pomodoro-controls button {
   background: rgba(255, 248, 235, 0.95);
@@ -1139,6 +1262,7 @@ body.theme-noor .pomodoro-controls button {
 body.theme-noor .mefil-modal,
 body.theme-noor .boss-card,
 body.theme-noor .pomodoro-card,
+body.theme-noor .mefil-role-card,
 body.theme-noor .mefil-chat-card,
 body.theme-noor .mefil-chat-message,
 body.theme-noor .mefil-chat-messages {
@@ -1156,6 +1280,9 @@ body.theme-noor .mefil-chat-input {
 
 body.theme-noor .mefil-header h2,
 body.theme-noor .mefil-role-state,
+body.theme-noor .mefil-role-card-head h3,
+body.theme-noor .mefil-timer-label,
+body.theme-noor .mefil-timer-value,
 body.theme-noor .boss-head strong,
 body.theme-noor .boss-stat label,
 body.theme-noor .boss-last-action,
@@ -1998,6 +2125,26 @@ body.theme-noor .pomodoro-display {
     width: 100%;
   }
 
+  .mefil-presence-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mefil-role-card-head {
+    flex-wrap: wrap;
+  }
+
+  .mefil-status-indicator {
+    width: fit-content;
+  }
+
+  .mefil-controls-row {
+    flex-direction: column;
+  }
+
+  .mefil-controls-row button {
+    width: 100%;
+  }
+
   .pomodoro-controls {
     flex-direction: column;
   }
@@ -2689,6 +2836,7 @@ body.theme-shahi .music-section,
 body.theme-shahi .music-source-card,
 body.theme-shahi .playlist-item,
 body.theme-shahi .mefil-modal,
+body.theme-shahi .mefil-role-card,
 body.theme-shahi .boss-card,
 body.theme-shahi .pomodoro-card,
 body.theme-shahi .mefil-chat-card,
@@ -2704,6 +2852,8 @@ body.theme-shahi .theme-control,
 body.theme-shahi .mefil-launch-btn,
 body.theme-shahi .mefil-close-btn,
 body.theme-shahi .mefil-role-btn,
+body.theme-shahi .mefil-status-select,
+body.theme-shahi .mefil-controls-row button,
 body.theme-shahi .mefil-chat-send-btn,
 body.theme-shahi .kalam-launch-btn,
 body.theme-shahi .kalam-close-btn,
@@ -2730,6 +2880,7 @@ body.theme-shahi .poem-edit-form input,
 body.theme-shahi .poem-edit-form select,
 body.theme-shahi .poem-edit-form textarea,
 body.theme-shahi .poem-tag-picker select,
+body.theme-shahi .mefil-status-select,
 body.theme-shahi .kalam-input,
 body.theme-shahi .mefil-chat-input {
   background: #050505;
@@ -2770,6 +2921,7 @@ body.theme-shahi .sema-menu-trigger:focus-visible,
 body.theme-shahi .mefil-launch-btn:hover,
 body.theme-shahi .mefil-close-btn:hover,
 body.theme-shahi .mefil-role-btn:hover,
+body.theme-shahi .mefil-controls-row button:hover,
 body.theme-shahi .kalam-launch-btn:hover,
 body.theme-shahi .kalam-close-btn:hover,
 body.theme-shahi .kalam-room-tab:hover,
@@ -2821,6 +2973,9 @@ body.theme-shahi .playlist-item-meta span,
 body.theme-shahi .playlist-item-meta a,
 body.theme-shahi .mefil-header h2,
 body.theme-shahi .mefil-role-state,
+body.theme-shahi .mefil-role-card-head h3,
+body.theme-shahi .mefil-timer-label,
+body.theme-shahi .mefil-timer-value,
 body.theme-shahi .boss-head strong,
 body.theme-shahi .boss-stat label,
 body.theme-shahi .boss-last-action,
@@ -2875,6 +3030,7 @@ body.theme-shahi .kalam-header {
 
 body.theme-shahi .mefil-header,
 body.theme-shahi .mefil-chat-card,
+body.theme-shahi .mefil-role-card,
 body.theme-shahi .pomodoro-card,
 body.theme-shahi .boss-card {
   border-color: rgba(181, 141, 74, 0.42);

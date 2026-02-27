@@ -76,6 +76,24 @@ const MEFIL_ROLES = {
   belal: 'Belal',
   rutbah: 'Rutbah',
 };
+const MEFIL_STATUS_OPTIONS = ['active', 'break', 'not_studying'];
+const MEFIL_STATUS_LABELS = {
+  active: 'Active',
+  break: 'Break',
+  not_studying: 'Not Studying',
+};
+const defaultMefilPresenceEntry = {
+  status: 'not_studying',
+  isRunning: false,
+  remainingSeconds: POMODORO_SECONDS,
+  durationSeconds: POMODORO_SECONDS,
+  endsAt: null,
+  updatedAt: null,
+};
+const defaultMefilPresence = {
+  belal: { ...defaultMefilPresenceEntry },
+  rutbah: { ...defaultMefilPresenceEntry },
+};
 
 const normalizeTags = (tags) => [...new Set(
   (Array.isArray(tags) ? tags : [])
@@ -296,6 +314,34 @@ const normalizeMefilQuest = (payload) => {
   };
 };
 
+const normalizeMefilPresenceEntry = (payload) => {
+  const source = payload && typeof payload === 'object' ? payload : {};
+  const parsedDuration = Number.parseInt(String(source.durationSeconds ?? POMODORO_SECONDS), 10);
+  const durationSeconds = Number.isFinite(parsedDuration) && parsedDuration > 0 ? parsedDuration : POMODORO_SECONDS;
+  const parsedRemaining = Number.parseInt(String(source.remainingSeconds ?? durationSeconds), 10);
+  const remainingSeconds = Number.isFinite(parsedRemaining)
+    ? Math.max(0, Math.min(durationSeconds, parsedRemaining))
+    : durationSeconds;
+  const status = MEFIL_STATUS_OPTIONS.includes(source.status) ? source.status : 'not_studying';
+
+  return {
+    status,
+    isRunning: Boolean(source.isRunning),
+    remainingSeconds,
+    durationSeconds,
+    endsAt: typeof source.endsAt === 'string' ? source.endsAt : null,
+    updatedAt: typeof source.updatedAt === 'string' ? source.updatedAt : null,
+  };
+};
+
+const normalizeMefilPresence = (payload) => {
+  const source = payload && typeof payload === 'object' ? payload : {};
+  return {
+    belal: normalizeMefilPresenceEntry(source.belal),
+    rutbah: normalizeMefilPresenceEntry(source.rutbah),
+  };
+};
+
 const formatPomodoroClock = (totalSeconds) => {
   const safeSeconds = Math.max(0, Number.isFinite(totalSeconds) ? totalSeconds : 0);
   const minutes = Math.floor(safeSeconds / 60);
@@ -428,12 +474,10 @@ function App() {
   const [isMefilOpen, setIsMefilOpen] = useState(false);
   const [mefilRole, setMefilRole] = useState('belal');
   const [questState, setQuestState] = useState(defaultQuestState);
+  const [mefilPresence, setMefilPresence] = useState(defaultMefilPresence);
   const [questLoading, setQuestLoading] = useState(false);
   const [questError, setQuestError] = useState('');
   const [mefilActionLoading, setMefilActionLoading] = useState(false);
-  const [pomodoroSecondsLeft, setPomodoroSecondsLeft] = useState(POMODORO_SECONDS);
-  const [isPomodoroRunning, setIsPomodoroRunning] = useState(false);
-  const [isPomodoroComplete, setIsPomodoroComplete] = useState(false);
   const [mefilChatNotes, setMefilChatNotes] = useState([]);
   const [mefilChatInput, setMefilChatInput] = useState('');
   const [mefilChatLoading, setMefilChatLoading] = useState(false);
@@ -448,6 +492,7 @@ function App() {
   const kalamFetchSeqRef = useRef(0);
   const mefilChatMessagesRef = useRef(null);
   const mefilChatFetchSeqRef = useRef(0);
+  const mefilStateFetchSeqRef = useRef(0);
 
   const [formData, setFormData] = useState({ title: '', poet: 'Ahmad Faraz', content: '', tags: [] });
   const [editingPoemId, setEditingPoemId] = useState(null);
@@ -528,12 +573,13 @@ function App() {
   const dailyResetLabel = formatResetCountdown(secondsUntilReset);
   const bossHpPercent = Math.min(100, Math.max(0, (questState.bossHp / Math.max(1, questState.bossMaxHp || BOSS_MAX_HP)) * 100));
   const teamHpPercent = Math.min(100, Math.max(0, (questState.teamHp / Math.max(1, questState.teamMaxHp || TEAM_MAX_HP)) * 100));
-  const pomodoroClock = formatPomodoroClock(pomodoroSecondsLeft);
+  const activePresenceEntry = mefilPresence[mefilRole] || defaultMefilPresenceEntry;
   const canAttackBoss = (
     !questLoading
     && !mefilActionLoading
     && questState.status === 'active'
-    && isPomodoroComplete
+    && !activePresenceEntry.isRunning
+    && activePresenceEntry.remainingSeconds === 0
   );
   const canUseDistracted = !questLoading && !mefilActionLoading && questState.status === 'active';
 
@@ -660,22 +706,31 @@ function App() {
     }
   };
 
-  const fetchMefilQuest = async ({ silent = false } = {}) => {
+  const applyMefilStatePayload = (payload) => {
+    setQuestState(normalizeMefilQuest(payload?.quest || payload));
+    setMefilPresence(normalizeMefilPresence(payload?.presence));
+  };
+
+  const fetchMefilState = async ({ silent = false } = {}) => {
+    const requestSeq = mefilStateFetchSeqRef.current + 1;
+    mefilStateFetchSeqRef.current = requestSeq;
     if (!silent) setQuestLoading(true);
     try {
-      const res = await fetch('/api/mefil/quest');
+      const res = await fetch('/api/mefil/state');
       if (!res.ok) {
-        const message = await readErrorMessage(res, 'Unable to load Mefil quest.');
+        const message = await readErrorMessage(res, 'Unable to load Mefil state.');
         throw new Error(message);
       }
       const data = await res.json();
-      setQuestState(normalizeMefilQuest(data));
+      if (mefilStateFetchSeqRef.current !== requestSeq) return;
+      applyMefilStatePayload(data);
       setQuestError('');
     } catch (err) {
+      if (mefilStateFetchSeqRef.current !== requestSeq) return;
       console.error(err);
-      setQuestError(err.message || 'Unable to load Mefil quest.');
+      setQuestError(err.message || 'Unable to load Mefil state.');
     } finally {
-      if (!silent) setQuestLoading(false);
+      if (mefilStateFetchSeqRef.current === requestSeq && !silent) setQuestLoading(false);
     }
   };
 
@@ -719,7 +774,6 @@ function App() {
 
   const handleCloseMefil = () => {
     setIsMefilOpen(false);
-    setIsPomodoroRunning(false);
     setMefilChatError('');
   };
 
@@ -731,37 +785,134 @@ function App() {
     setMefilChatError('');
   };
 
-  const handlePomodoroToggle = () => {
-    if (isPomodoroComplete) return;
-    setIsPomodoroRunning((prev) => !prev);
+  const handleMefilStatusChange = async (status) => {
+    if (!MEFIL_STATUS_OPTIONS.includes(status)) return;
+    setMefilActionLoading(true);
+    try {
+      const res = await fetch('/api/mefil/status', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: mefilRole, status }),
+      });
+      if (!res.ok) {
+        const message = await readErrorMessage(res, 'Failed to update status.');
+        throw new Error(message);
+      }
+      const data = await res.json();
+      if (data?.presence) {
+        setMefilPresence(normalizeMefilPresence(data.presence));
+      } else {
+        await fetchMefilState({ silent: true });
+      }
+      setQuestError('');
+    } catch (err) {
+      console.error(err);
+      setQuestError(err.message || 'Failed to update status.');
+    } finally {
+      setMefilActionLoading(false);
+    }
   };
 
-  const handlePomodoroReset = () => {
-    setIsPomodoroRunning(false);
-    setIsPomodoroComplete(false);
-    setPomodoroSecondsLeft(POMODORO_SECONDS);
+  const handlePomodoroStart = async () => {
+    setMefilActionLoading(true);
+    try {
+      const res = await fetch('/api/mefil/pomodoro/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: mefilRole }),
+      });
+      if (!res.ok) {
+        const message = await readErrorMessage(res, 'Failed to start Pomodoro.');
+        throw new Error(message);
+      }
+      const data = await res.json();
+      if (data?.presence) {
+        setMefilPresence(normalizeMefilPresence(data.presence));
+      } else {
+        await fetchMefilState({ silent: true });
+      }
+      setQuestError('');
+    } catch (err) {
+      console.error(err);
+      setQuestError(err.message || 'Failed to start Pomodoro.');
+    } finally {
+      setMefilActionLoading(false);
+    }
+  };
+
+  const handlePomodoroPause = async () => {
+    setMefilActionLoading(true);
+    try {
+      const res = await fetch('/api/mefil/pomodoro/pause', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: mefilRole }),
+      });
+      if (!res.ok) {
+        const message = await readErrorMessage(res, 'Failed to pause Pomodoro.');
+        throw new Error(message);
+      }
+      const data = await res.json();
+      if (data?.presence) {
+        setMefilPresence(normalizeMefilPresence(data.presence));
+      } else {
+        await fetchMefilState({ silent: true });
+      }
+      setQuestError('');
+    } catch (err) {
+      console.error(err);
+      setQuestError(err.message || 'Failed to pause Pomodoro.');
+    } finally {
+      setMefilActionLoading(false);
+    }
+  };
+
+  const handlePomodoroReset = async () => {
+    setMefilActionLoading(true);
+    try {
+      const res = await fetch('/api/mefil/pomodoro/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: mefilRole }),
+      });
+      if (!res.ok) {
+        const message = await readErrorMessage(res, 'Failed to reset Pomodoro.');
+        throw new Error(message);
+      }
+      const data = await res.json();
+      if (data?.presence) {
+        setMefilPresence(normalizeMefilPresence(data.presence));
+      } else {
+        await fetchMefilState({ silent: true });
+      }
+      setQuestError('');
+    } catch (err) {
+      console.error(err);
+      setQuestError(err.message || 'Failed to reset Pomodoro.');
+    } finally {
+      setMefilActionLoading(false);
+    }
   };
 
   const handleBossAttack = async () => {
     if (!canAttackBoss) return;
     setMefilActionLoading(true);
     try {
-      const res = await fetch('/api/mefil/attack', {
+      const res = await fetch('/api/mefil/pomodoro/complete-attack', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: mefilRole }),
       });
       if (!res.ok) {
-        const message = await readErrorMessage(res, 'Failed to deal damage to the boss.');
+        const message = await readErrorMessage(res, 'Failed to complete Pomodoro attack.');
         throw new Error(message);
       }
       const data = await res.json();
-      setQuestState(normalizeMefilQuest(data));
-      handlePomodoroReset();
+      applyMefilStatePayload(data);
       setQuestError('');
     } catch (err) {
       console.error(err);
-      setQuestError(err.message || 'Failed to deal damage to the boss.');
+      setQuestError(err.message || 'Failed to complete Pomodoro attack.');
     } finally {
       setMefilActionLoading(false);
     }
@@ -780,8 +931,7 @@ function App() {
         const message = await readErrorMessage(res, 'Failed to record distraction.');
         throw new Error(message);
       }
-      const data = await res.json();
-      setQuestState(normalizeMefilQuest(data));
+      await fetchMefilState({ silent: true });
       setQuestError('');
     } catch (err) {
       console.error(err);
@@ -805,7 +955,6 @@ function App() {
       const data = await res.json();
       setQuestState(normalizeMefilQuest(data));
       setQuestError('');
-      handlePomodoroReset();
     } catch (err) {
       console.error(err);
       setQuestError(err.message || 'Failed to reset quest.');
@@ -1491,10 +1640,10 @@ function App() {
 
   useEffect(() => {
     if (!isMefilOpen) return undefined;
-    fetchMefilQuest();
+    fetchMefilState();
     fetchMefilChatNotes(mefilRole);
     const interval = window.setInterval(() => {
-      fetchMefilQuest({ silent: true });
+      fetchMefilState({ silent: true });
       fetchMefilChatNotes(mefilRole, { silent: true });
     }, MEFIL_POLL_INTERVAL_MS);
 
@@ -1502,25 +1651,6 @@ function App() {
       window.clearInterval(interval);
     };
   }, [isMefilOpen, mefilRole]);
-
-  useEffect(() => {
-    if (!isPomodoroRunning) return undefined;
-    if (pomodoroSecondsLeft <= 0) {
-      setIsPomodoroRunning(false);
-      setIsPomodoroComplete(true);
-      return undefined;
-    }
-    const tick = window.setTimeout(() => {
-      setPomodoroSecondsLeft((prev) => Math.max(0, prev - 1));
-    }, 1000);
-    return () => window.clearTimeout(tick);
-  }, [isPomodoroRunning, pomodoroSecondsLeft]);
-
-  useEffect(() => {
-    if (pomodoroSecondsLeft > 0) return;
-    setIsPomodoroRunning(false);
-    setIsPomodoroComplete(true);
-  }, [pomodoroSecondsLeft]);
 
   useEffect(() => {
     if (!isMefilOpen) return;
@@ -2685,25 +2815,58 @@ function App() {
               </p>
             </div>
 
-            <div className="pomodoro-card">
-              <div className="pomodoro-display">{pomodoroClock}</div>
-              <div className="pomodoro-controls">
-                <button type="button" onClick={handlePomodoroToggle} disabled={isPomodoroComplete || mefilActionLoading}>
-                  {isPomodoroRunning ? 'Pause' : 'Start'}
-                </button>
-                <button type="button" onClick={handlePomodoroReset} disabled={mefilActionLoading}>
-                  Reset Timer
-                </button>
-                <button type="button" className="attack-btn" onClick={handleBossAttack} disabled={!canAttackBoss}>
-                  {`Session Complete -> Attack (${ATTACK_DAMAGE} DMG)`}
-                </button>
-                <button type="button" className="distract-btn" onClick={handleMefilDistracted} disabled={!canUseDistracted}>
-                  {`I got distracted (-${DISTRACT_DAMAGE} HP)`}
-                </button>
-                <button type="button" onClick={handleQuestReset} disabled={mefilActionLoading}>
-                  Reset Quest
-                </button>
-              </div>
+            <div className="mefil-presence-grid">
+              {Object.entries(MEFIL_ROLES).map(([roleKey, roleLabel]) => {
+                const roleEntry = mefilPresence[roleKey] || defaultMefilPresenceEntry;
+                const roleClock = formatPomodoroClock(roleEntry.remainingSeconds);
+                const statusClass = `status-${roleEntry.status.replace('_', '-')}`;
+                const isSelf = roleKey === mefilRole;
+
+                return (
+                  <article key={roleKey} className={`mefil-role-card ${isSelf ? 'mefil-role-card-self' : 'mefil-role-card-partner'}`}>
+                    <div className="mefil-role-card-head">
+                      <h3>{roleLabel}</h3>
+                      <span className={`mefil-status-indicator ${statusClass}`}>
+                        {MEFIL_STATUS_LABELS[roleEntry.status] || 'Not Studying'}
+                      </span>
+                    </div>
+                    <p className="mefil-timer-label">{roleEntry.isRunning ? 'Running' : (roleEntry.remainingSeconds === 0 ? 'Completed' : 'Paused')}</p>
+                    <div className="mefil-timer-value">{roleClock}</div>
+                    <select
+                      className="mefil-status-select"
+                      value={roleEntry.status}
+                      onChange={(e) => handleMefilStatusChange(e.target.value)}
+                      disabled={!isSelf || mefilActionLoading}
+                    >
+                      {MEFIL_STATUS_OPTIONS.map((statusValue) => (
+                        <option key={statusValue} value={statusValue}>
+                          {MEFIL_STATUS_LABELS[statusValue]}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="mefil-controls-row">
+                      <button type="button" onClick={roleEntry.isRunning ? handlePomodoroPause : handlePomodoroStart} disabled={!isSelf || mefilActionLoading}>
+                        {roleEntry.isRunning ? 'Pause' : 'Start'}
+                      </button>
+                      <button type="button" onClick={handlePomodoroReset} disabled={!isSelf || mefilActionLoading}>
+                        Reset Timer
+                      </button>
+                      <button type="button" className="attack-btn" onClick={handleBossAttack} disabled={!isSelf || !canAttackBoss}>
+                        {`Session Complete -> Attack (${ATTACK_DAMAGE} DMG)`}
+                      </button>
+                      <button type="button" className="distract-btn" onClick={handleMefilDistracted} disabled={!isSelf || !canUseDistracted}>
+                        {`I got distracted (-${DISTRACT_DAMAGE} HP)`}
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            <div className="pomodoro-controls">
+              <button type="button" onClick={handleQuestReset} disabled={mefilActionLoading}>
+                Reset Quest
+              </button>
             </div>
 
             {questLoading ? <p className="mefil-status">Syncing quest...</p> : null}
