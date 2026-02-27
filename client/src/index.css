@@ -392,6 +392,8 @@ h1 {
   margin: 0 auto;
   display: flex;
   justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .kalam-launch-btn {
@@ -570,6 +572,336 @@ h1 {
 
 .kalam-error {
   margin: 0 18px 6px;
+  color: #b64040;
+  font-size: 0.9rem;
+}
+
+.mefil-launch-btn {
+  min-height: 42px;
+  padding: 0 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(36, 0, 70, 0.34);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--royal-purple);
+  font-family: 'Cinzel Decorative', cursive;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.mefil-launch-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+.mefil-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2850;
+  background: rgba(8, 6, 14, 0.86);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+}
+
+.mefil-modal {
+  width: min(1120px, 100%);
+  height: min(92vh, 980px);
+  border-radius: 18px;
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.95), rgba(250, 247, 239, 0.9)),
+    linear-gradient(120deg, rgba(212, 175, 55, 0.12), rgba(123, 44, 191, 0.08));
+  box-shadow: 0 34px 70px rgba(0, 0, 0, 0.3);
+  overflow: auto;
+  padding: 16px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mefil-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mefil-header h2 {
+  margin: 0;
+  font-family: 'Cinzel Decorative', cursive;
+  color: var(--royal-purple);
+  font-size: clamp(1.2rem, 2.2vw, 1.7rem);
+}
+
+.mefil-close-btn {
+  min-height: 36px;
+  border-radius: 999px;
+  border: 1px solid rgba(36, 0, 70, 0.32);
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--royal-purple);
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.mefil-role-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mefil-role-btn {
+  min-height: 34px;
+  border-radius: 999px;
+  border: 1px solid rgba(36, 0, 70, 0.3);
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--royal-purple);
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.mefil-role-active {
+  border-color: var(--gold);
+  color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.16);
+}
+
+.mefil-role-state {
+  font-size: 0.84rem;
+  color: rgba(36, 0, 70, 0.72);
+}
+
+.master-prompt-card {
+  border: 1px solid rgba(212, 175, 55, 0.42);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 12px;
+}
+
+.master-prompt-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.master-prompt-head h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--royal-purple);
+  letter-spacing: 0.4px;
+}
+
+.master-prompt-copy {
+  min-height: 32px;
+  border-radius: 999px;
+  border: 1px solid rgba(36, 0, 70, 0.3);
+  background: #fff;
+  color: var(--royal-purple);
+  padding: 0 10px;
+  cursor: pointer;
+}
+
+.master-prompt-card pre {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 0.84rem;
+  line-height: 1.42;
+  color: rgba(36, 0, 70, 0.85);
+  max-height: 220px;
+  overflow: auto;
+}
+
+.boss-card {
+  border: 1px solid rgba(212, 175, 55, 0.42);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.boss-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.boss-head strong {
+  color: var(--royal-purple);
+}
+
+.status-pill {
+  min-height: 24px;
+  border-radius: 999px;
+  border: 1px solid rgba(36, 0, 70, 0.25);
+  padding: 0 10px;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.9px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.status-pill-active {
+  color: #2f5c32;
+  border-color: rgba(47, 92, 50, 0.45);
+}
+
+.status-pill-won {
+  color: #2a4ea1;
+  border-color: rgba(42, 78, 161, 0.5);
+}
+
+.status-pill-lost {
+  color: #b64040;
+  border-color: rgba(182, 64, 64, 0.5);
+}
+
+.boss-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.boss-stat label {
+  font-size: 0.82rem;
+  color: rgba(36, 0, 70, 0.78);
+}
+
+.hp-track {
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(36, 0, 70, 0.16);
+}
+
+.hp-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.2s ease;
+}
+
+.hp-fill-boss {
+  background: linear-gradient(90deg, #b64040, #de7b7b);
+}
+
+.hp-fill-team {
+  background: linear-gradient(90deg, #2f5c32, #7cbf76);
+}
+
+.boss-last-action {
+  margin: 0;
+  font-size: 0.8rem;
+  color: rgba(36, 0, 70, 0.7);
+}
+
+.pomodoro-card {
+  border: 1px solid rgba(36, 0, 70, 0.2);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pomodoro-display {
+  font-family: 'Cinzel Decorative', cursive;
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  color: var(--royal-purple);
+  text-align: center;
+  letter-spacing: 2px;
+}
+
+.pomodoro-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pomodoro-controls button {
+  min-height: 34px;
+  border-radius: 999px;
+  border: 1px solid rgba(36, 0, 70, 0.3);
+  background: #fff;
+  color: var(--royal-purple);
+  padding: 0 10px;
+  cursor: pointer;
+}
+
+.pomodoro-controls button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pomodoro-controls .attack-btn {
+  border-color: rgba(182, 64, 64, 0.5);
+  color: #b64040;
+}
+
+.pomodoro-controls .distract-btn {
+  border-color: rgba(47, 92, 50, 0.5);
+  color: #2f5c32;
+}
+
+.notify-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.notify-btn {
+  min-height: 36px;
+  border-radius: 999px;
+  border: 1px solid var(--royal-purple);
+  background: var(--royal-purple);
+  color: #fff;
+  padding: 0 14px;
+  cursor: pointer;
+}
+
+.notify-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.notify-state {
+  font-size: 0.82rem;
+  color: rgba(36, 0, 70, 0.72);
+}
+
+.notify-state-granted {
+  color: #2f5c32;
+}
+
+.notify-state-denied,
+.notify-state-error {
+  color: #b64040;
+}
+
+.mefil-live-ping {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #2a4ea1;
+}
+
+.mefil-status {
+  margin: 0;
+  color: rgba(36, 0, 70, 0.72);
+  font-size: 0.82rem;
+}
+
+.mefil-error {
+  margin: 0;
   color: #b64040;
   font-size: 0.9rem;
 }
@@ -769,6 +1101,38 @@ body.theme-noor .kalam-message,
 body.theme-noor .kalam-input {
   background: rgba(255, 249, 238, 0.95);
   border-color: rgba(181, 141, 74, 0.34);
+  color: #4b3a23;
+}
+
+body.theme-noor .mefil-launch-btn,
+body.theme-noor .mefil-close-btn,
+body.theme-noor .mefil-role-btn,
+body.theme-noor .master-prompt-copy,
+body.theme-noor .pomodoro-controls button {
+  background: rgba(255, 248, 235, 0.95);
+  border-color: rgba(181, 141, 74, 0.54);
+  color: #4b3a23;
+}
+
+body.theme-noor .mefil-modal,
+body.theme-noor .boss-card,
+body.theme-noor .pomodoro-card,
+body.theme-noor .master-prompt-card {
+  background:
+    linear-gradient(165deg, rgba(255, 248, 235, 0.96), rgba(255, 238, 210, 0.94)),
+    linear-gradient(120deg, rgba(181, 141, 74, 0.14), rgba(208, 173, 105, 0.1));
+  border-color: rgba(181, 141, 74, 0.56);
+}
+
+body.theme-noor .mefil-header h2,
+body.theme-noor .mefil-role-state,
+body.theme-noor .boss-head strong,
+body.theme-noor .boss-stat label,
+body.theme-noor .boss-last-action,
+body.theme-noor .master-prompt-head h3,
+body.theme-noor .master-prompt-card pre,
+body.theme-noor .notify-state,
+body.theme-noor .pomodoro-display {
   color: #4b3a23;
 }
 
@@ -1579,6 +1943,45 @@ body.theme-noor .kalam-input {
   .kalam-send-btn {
     width: 100%;
   }
+
+  .mefil-overlay {
+    padding: 10px;
+  }
+
+  .mefil-modal {
+    width: 100%;
+    height: 100%;
+    border-radius: 14px;
+    padding: 12px;
+  }
+
+  .mefil-launch-btn {
+    min-height: 38px;
+    padding: 0 16px;
+    font-size: 0.86rem;
+    letter-spacing: 1px;
+  }
+
+  .mefil-role-state {
+    width: 100%;
+  }
+
+  .pomodoro-controls {
+    flex-direction: column;
+  }
+
+  .pomodoro-controls button {
+    width: 100%;
+  }
+
+  .notify-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .notify-btn {
+    width: 100%;
+  }
 }
 
 @media (max-width: 640px) {
@@ -2254,6 +2657,10 @@ body.theme-shahi .form-container,
 body.theme-shahi .music-section,
 body.theme-shahi .music-source-card,
 body.theme-shahi .playlist-item,
+body.theme-shahi .mefil-modal,
+body.theme-shahi .boss-card,
+body.theme-shahi .pomodoro-card,
+body.theme-shahi .master-prompt-card,
 body.theme-shahi .kalam-modal,
 body.theme-shahi .kalam-message,
 body.theme-shahi .mehfil-panel,
@@ -2261,6 +2668,10 @@ body.theme-shahi .levelup-card,
 body.theme-shahi .sema-menu-popover,
 body.theme-shahi .sema-menu-trigger,
 body.theme-shahi .theme-control,
+body.theme-shahi .mefil-launch-btn,
+body.theme-shahi .mefil-close-btn,
+body.theme-shahi .mefil-role-btn,
+body.theme-shahi .master-prompt-copy,
 body.theme-shahi .kalam-launch-btn,
 body.theme-shahi .kalam-close-btn,
 body.theme-shahi .kalam-room-tab,
@@ -2286,7 +2697,8 @@ body.theme-shahi .poem-edit-form input,
 body.theme-shahi .poem-edit-form select,
 body.theme-shahi .poem-edit-form textarea,
 body.theme-shahi .poem-tag-picker select,
-body.theme-shahi .kalam-input {
+body.theme-shahi .kalam-input,
+body.theme-shahi .master-prompt-card pre {
   background: #050505;
   border-color: rgba(181, 141, 74, 0.42);
   color: #e8e1d2;
@@ -2300,7 +2712,8 @@ body.theme-shahi .poem-edit-form input:focus,
 body.theme-shahi .poem-edit-form select:focus,
 body.theme-shahi .poem-edit-form textarea:focus,
 body.theme-shahi .poem-tag-picker select:focus,
-body.theme-shahi .kalam-input:focus {
+body.theme-shahi .kalam-input:focus,
+body.theme-shahi .master-prompt-copy:focus {
   border-color: #c9a86a;
   box-shadow: none;
 }
@@ -2310,6 +2723,7 @@ body.theme-shahi .top-nav button:hover,
 body.theme-shahi .form-container button,
 body.theme-shahi .music-auth-btn,
 body.theme-shahi .music-form button,
+body.theme-shahi .notify-btn,
 body.theme-shahi .kalam-send-btn,
 body.theme-shahi .mehfil-btn-primary {
   background: #b58d4a;
@@ -2320,6 +2734,9 @@ body.theme-shahi .mehfil-btn-primary {
 body.theme-shahi .theme-control:hover,
 body.theme-shahi .sema-menu-trigger:hover,
 body.theme-shahi .sema-menu-trigger:focus-visible,
+body.theme-shahi .mefil-launch-btn:hover,
+body.theme-shahi .mefil-close-btn:hover,
+body.theme-shahi .mefil-role-btn:hover,
 body.theme-shahi .kalam-launch-btn:hover,
 body.theme-shahi .kalam-close-btn:hover,
 body.theme-shahi .kalam-room-tab:hover,
@@ -2369,6 +2786,14 @@ body.theme-shahi .music-status,
 body.theme-shahi .playlist-item-meta strong,
 body.theme-shahi .playlist-item-meta span,
 body.theme-shahi .playlist-item-meta a,
+body.theme-shahi .mefil-header h2,
+body.theme-shahi .mefil-role-state,
+body.theme-shahi .boss-head strong,
+body.theme-shahi .boss-stat label,
+body.theme-shahi .boss-last-action,
+body.theme-shahi .master-prompt-head h3,
+body.theme-shahi .notify-state,
+body.theme-shahi .pomodoro-display,
 body.theme-shahi .kalam-meta,
 body.theme-shahi .kalam-empty,
 body.theme-shahi .music-inline-note,
@@ -2404,12 +2829,27 @@ body.theme-shahi .kalam-overlay {
   background: rgba(5, 5, 5, 0.9);
 }
 
+body.theme-shahi .mefil-overlay {
+  background: rgba(5, 5, 5, 0.92);
+}
+
 body.theme-shahi .kalam-header {
   border-bottom-color: rgba(181, 141, 74, 0.42);
 }
 
+body.theme-shahi .mefil-header,
+body.theme-shahi .master-prompt-card,
+body.theme-shahi .pomodoro-card,
+body.theme-shahi .boss-card {
+  border-color: rgba(181, 141, 74, 0.42);
+}
+
 body.theme-shahi .kalam-composer {
   border-top-color: rgba(181, 141, 74, 0.42);
+}
+
+body.theme-shahi .hp-track {
+  background: #151515;
 }
 
 body.theme-shahi .levelup-bar,

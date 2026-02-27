@@ -1,5 +1,19 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import './index.css';
+import {
+  ATTACK_DAMAGE,
+  DISTRACT_DAMAGE,
+  BOSS_MAX_HP,
+  TEAM_MAX_HP,
+  completePomodoro,
+  defaultQuestState,
+  ensureQuestExists,
+  markDistracted,
+  resetQuest,
+  subscribeQuest,
+} from './firebase/gameStore';
+import { firebaseEnvMissingKeys, isFirebaseConfigured } from './firebase/config';
+import { listenForegroundNotifications, requestAndSaveNotificationToken } from './firebase/notifications';
 
 const POETS = [
   'Ahmad Faraz',
@@ -50,10 +64,51 @@ const RANDOMIZE_ORDER_STORAGE_KEY = 'sufi_randomize_poems_order';
 const CELEBRATION_DURATION_MS = 10000;
 const KALAM_MAX_TEXT_LENGTH = 500;
 const KALAM_POLL_INTERVAL_MS = 10000;
+const MEFIL_ROLE_STORAGE_KEY = 'sufi_mefil_role';
+const POMODORO_SECONDS = 25 * 60;
 const KALAM_ROOMS = {
   rutbah: 'Rutbah Chat',
   belal: 'Belal Chat',
 };
+const MEFIL_ROLES = {
+  belal: 'Belal',
+  rutbah: 'Rutbah',
+};
+const MASTER_PROMPT_TEXT = `I am building a gamified, co-op study dashboard for me and my partner to embed into my personal website. The goal is to stay accountable without video calls using an RPG-style 'Boss Battle' mechanic.
+
+The Tech Stack:
+
+Frontend: React with Tailwind CSS (Design: Dark, minimalist, atmospheric aesthetic).
+
+Database: Firebase Firestore (Real-time syncing of game state).
+
+Notifications: Firebase Cloud Messaging (FCM) for cross-browser push notifications.
+
+Core Game Logic to Implement:
+
+The Boss: A shared 'Boss' (e.g., 'The DBMS Final') with 500 HP.
+
+Attack Mechanics: A Pomodoro timer (25 mins). When a user completes a session, they deal 25 DMG to the Boss.
+
+Shared Team HP: We share 100 HP. If one of us clicks a 'I got distracted' button, the team loses 20 HP. If HP hits 0, we lose the 'Quest.'
+
+Real-Time Sync: Use Firestore onSnapshot so when I finish a session, the Boss HP drops on her screen instantly.
+
+Notification Requirements (FCM):
+
+Implement the logic to request notification permissions.
+
+Provide the code for the Service Worker (firebase-messaging-sw.js) to handle background notifications.
+
+When a user completes a session, trigger a push notification to the other user's device saying: '{Partner Name} dealt 25 DMG! Your turn to strike.'
+
+Please provide:
+
+The React component for the Dashboard (Timer + Boss HP bar + Team HP bar).
+
+The Firebase configuration file.
+
+The logic to save and retrieve FCM device tokens in Firestore so we can target each other's devices specifically.`;
 
 const normalizeTags = (tags) => [...new Set(
   (Array.isArray(tags) ? tags : [])
@@ -242,6 +297,15 @@ const formatKalamTimestamp = (value) => {
   });
 };
 
+const normalizeMefilRole = (value) => (value === 'rutbah' ? 'rutbah' : 'belal');
+
+const formatPomodoroClock = (totalSeconds) => {
+  const safeSeconds = Math.max(0, Number.isFinite(totalSeconds) ? totalSeconds : 0);
+  const minutes = Math.floor(safeSeconds / 60);
+  const seconds = safeSeconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+};
+
 const applySourcePayload = (payload, setPlaylists, setActivePlaylistId) => {
   const nextPlaylists = Array.isArray(payload?.playlists) ? payload.playlists : [];
   const nextActivePlaylistId = typeof payload?.activePlaylistId === 'string' ? payload.activePlaylistId : null;
@@ -364,6 +428,19 @@ function App() {
   const [kalamLoading, setKalamLoading] = useState(false);
   const [kalamSaving, setKalamSaving] = useState(false);
   const [kalamError, setKalamError] = useState('');
+  const [isMefilOpen, setIsMefilOpen] = useState(false);
+  const [mefilRole, setMefilRole] = useState('belal');
+  const [questState, setQuestState] = useState(defaultQuestState);
+  const [questLoading, setQuestLoading] = useState(false);
+  const [questError, setQuestError] = useState('');
+  const [mefilActionLoading, setMefilActionLoading] = useState(false);
+  const [pomodoroSecondsLeft, setPomodoroSecondsLeft] = useState(POMODORO_SECONDS);
+  const [isPomodoroRunning, setIsPomodoroRunning] = useState(false);
+  const [isPomodoroComplete, setIsPomodoroComplete] = useState(false);
+  const [notificationState, setNotificationState] = useState('idle');
+  const [notificationMessage, setNotificationMessage] = useState('');
+  const [masterPromptCopied, setMasterPromptCopied] = useState(false);
+  const [mefilForegroundPing, setMefilForegroundPing] = useState('');
   const galleryScrollYRef = useRef(0);
   const poemDetailCardRef = useRef(null);
   const poemDetailHeadingRef = useRef(null);
@@ -371,6 +448,8 @@ function App() {
   const celebrationCanvasRef = useRef(null);
   const kalamMessagesRef = useRef(null);
   const kalamFetchSeqRef = useRef(0);
+  const mefilToastTimeoutRef = useRef(0);
+  const masterPromptCopyTimeoutRef = useRef(0);
 
   const [formData, setFormData] = useState({ title: '', poet: 'Ahmad Faraz', content: '', tags: [] });
   const [editingPoemId, setEditingPoemId] = useState(null);
@@ -449,6 +528,17 @@ function App() {
   const safeDailyProgress = Math.min(Math.max(dailyProgressCount, 0), safeDailyGoal);
   const dailyQuestProgressPercent = Math.min(100, Math.max(0, (safeDailyProgress / safeDailyGoal) * 100));
   const dailyResetLabel = formatResetCountdown(secondsUntilReset);
+  const bossHpPercent = Math.min(100, Math.max(0, (questState.bossHp / Math.max(1, questState.bossMaxHp || BOSS_MAX_HP)) * 100));
+  const teamHpPercent = Math.min(100, Math.max(0, (questState.teamHp / Math.max(1, questState.teamMaxHp || TEAM_MAX_HP)) * 100));
+  const pomodoroClock = formatPomodoroClock(pomodoroSecondsLeft);
+  const canAttackBoss = (
+    isFirebaseConfigured
+    && !questLoading
+    && !mefilActionLoading
+    && questState.status === 'active'
+    && isPomodoroComplete
+  );
+  const canUseDistracted = isFirebaseConfigured && !questLoading && !mefilActionLoading && questState.status === 'active';
 
   const fetchPoems = async () => {
     try {
@@ -570,6 +660,113 @@ function App() {
       setKalamError(err.message || 'Unable to save Kalam note.');
     } finally {
       setKalamSaving(false);
+    }
+  };
+
+  const handleOpenMefil = () => {
+    setIsMefilOpen(true);
+    setQuestError('');
+  };
+
+  const handleCloseMefil = () => {
+    setIsMefilOpen(false);
+    setIsPomodoroRunning(false);
+  };
+
+  const handleMefilRoleChange = (role) => {
+    const normalized = normalizeMefilRole(role);
+    setMefilRole(normalized);
+    window.localStorage.setItem(MEFIL_ROLE_STORAGE_KEY, normalized);
+  };
+
+  const handlePomodoroToggle = () => {
+    if (isPomodoroComplete) return;
+    setIsPomodoroRunning((prev) => !prev);
+  };
+
+  const handlePomodoroReset = () => {
+    setIsPomodoroRunning(false);
+    setIsPomodoroComplete(false);
+    setPomodoroSecondsLeft(POMODORO_SECONDS);
+  };
+
+  const handleBossAttack = async () => {
+    if (!canAttackBoss) return;
+    setMefilActionLoading(true);
+    try {
+      const nextQuest = await completePomodoro(mefilRole);
+      setQuestState(nextQuest || defaultQuestState);
+      handlePomodoroReset();
+      setQuestError('');
+    } catch (err) {
+      console.error(err);
+      setQuestError(err.message || 'Failed to deal damage to the boss.');
+    } finally {
+      setMefilActionLoading(false);
+    }
+  };
+
+  const handleMefilDistracted = async () => {
+    if (!canUseDistracted) return;
+    setMefilActionLoading(true);
+    try {
+      const nextQuest = await markDistracted(mefilRole);
+      setQuestState(nextQuest || defaultQuestState);
+      setQuestError('');
+    } catch (err) {
+      console.error(err);
+      setQuestError(err.message || 'Failed to record distraction.');
+    } finally {
+      setMefilActionLoading(false);
+    }
+  };
+
+  const handleQuestReset = async () => {
+    setMefilActionLoading(true);
+    try {
+      const nextQuest = await resetQuest();
+      setQuestState(nextQuest || defaultQuestState);
+      setQuestError('');
+      handlePomodoroReset();
+    } catch (err) {
+      console.error(err);
+      setQuestError(err.message || 'Failed to reset quest.');
+    } finally {
+      setMefilActionLoading(false);
+    }
+  };
+
+  const handleEnableNotifications = async () => {
+    if (!isFirebaseConfigured) {
+      setNotificationState('error');
+      setNotificationMessage('Firebase is not configured for notifications.');
+      return;
+    }
+    setNotificationState('pending');
+    setNotificationMessage('Requesting permission...');
+    try {
+      await requestAndSaveNotificationToken(mefilRole);
+      setNotificationState('granted');
+      setNotificationMessage(`Notifications enabled for ${MEFIL_ROLES[mefilRole]}.`);
+    } catch (err) {
+      console.error(err);
+      const message = err.message || 'Failed to enable notifications.';
+      setNotificationState(message.toLowerCase().includes('denied') ? 'denied' : 'error');
+      setNotificationMessage(message);
+    }
+  };
+
+  const handleCopyMasterPrompt = async () => {
+    try {
+      await navigator.clipboard.writeText(MASTER_PROMPT_TEXT);
+      setMasterPromptCopied(true);
+      window.clearTimeout(masterPromptCopyTimeoutRef.current);
+      masterPromptCopyTimeoutRef.current = window.setTimeout(() => {
+        setMasterPromptCopied(false);
+      }, 1800);
+    } catch (err) {
+      console.error(err);
+      setQuestError('Unable to copy the Master Prompt in this browser.');
     }
   };
 
@@ -1077,7 +1274,7 @@ function App() {
   }, [isMehfilOpen, poems, activeMehfilPoemId]);
 
   useEffect(() => {
-    if (!isMehfilOpen && !isKalamOpen) return undefined;
+    if (!isMehfilOpen && !isKalamOpen && !isMefilOpen) return undefined;
 
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -1085,7 +1282,7 @@ function App() {
     return () => {
       document.body.style.overflow = originalOverflow;
     };
-  }, [isMehfilOpen, isKalamOpen]);
+  }, [isMehfilOpen, isKalamOpen, isMefilOpen]);
 
   useEffect(() => {
     if (!isKalamOpen) return undefined;
@@ -1099,6 +1296,17 @@ function App() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isKalamOpen]);
+
+  useEffect(() => {
+    if (!isMefilOpen) return undefined;
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setIsMefilOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isMefilOpen]);
 
   useEffect(() => {
     if (!isMehfilOpen) return undefined;
@@ -1165,6 +1373,12 @@ function App() {
   }, []);
 
   useEffect(() => {
+    const storedRole = normalizeMefilRole(window.localStorage.getItem(MEFIL_ROLE_STORAGE_KEY));
+    setMefilRole(storedRole);
+    window.localStorage.setItem(MEFIL_ROLE_STORAGE_KEY, storedRole);
+  }, []);
+
+  useEffect(() => {
     const themeClasses = THEMES.map((theme) => `theme-${theme}`);
     document.body.classList.remove(...themeClasses);
     document.body.classList.add(`theme-${currentTheme}`);
@@ -1196,6 +1410,98 @@ function App() {
     if (!container) return;
     container.scrollTop = container.scrollHeight;
   }, [isKalamOpen, kalamRoom, kalamNotes.length]);
+
+  useEffect(() => {
+    if (!isMefilOpen) return undefined;
+    if (!isFirebaseConfigured) {
+      setQuestError(`Firebase is not configured. Missing: ${firebaseEnvMissingKeys.join(', ')}`);
+      return undefined;
+    }
+
+    setQuestLoading(true);
+    ensureQuestExists()
+      .then((quest) => {
+        setQuestState(quest);
+      })
+      .catch((err) => {
+        console.error(err);
+        setQuestError(err.message || 'Unable to initialize quest.');
+      })
+      .finally(() => {
+        setQuestLoading(false);
+      });
+
+    const unsubscribe = subscribeQuest(
+      (nextQuest) => {
+        setQuestState(nextQuest);
+        setQuestError('');
+        setQuestLoading(false);
+      },
+      (err) => {
+        console.error(err);
+        setQuestError(err.message || 'Realtime sync failed.');
+        setQuestLoading(false);
+      },
+    );
+
+    return () => {
+      unsubscribe?.();
+    };
+  }, [isMefilOpen]);
+
+  useEffect(() => {
+    if (!isPomodoroRunning) return undefined;
+    if (pomodoroSecondsLeft <= 0) {
+      setIsPomodoroRunning(false);
+      setIsPomodoroComplete(true);
+      return undefined;
+    }
+    const tick = window.setTimeout(() => {
+      setPomodoroSecondsLeft((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => window.clearTimeout(tick);
+  }, [isPomodoroRunning, pomodoroSecondsLeft]);
+
+  useEffect(() => {
+    if (pomodoroSecondsLeft > 0) return;
+    setIsPomodoroRunning(false);
+    setIsPomodoroComplete(true);
+  }, [pomodoroSecondsLeft]);
+
+  useEffect(() => {
+    if (!isFirebaseConfigured) return undefined;
+    let isCancelled = false;
+    let unsubscribe = () => {};
+
+    listenForegroundNotifications((payload) => {
+      if (isCancelled) return;
+      const body = payload?.notification?.body || 'New boss update arrived.';
+      setMefilForegroundPing(body);
+      window.clearTimeout(mefilToastTimeoutRef.current);
+      mefilToastTimeoutRef.current = window.setTimeout(() => {
+        setMefilForegroundPing('');
+      }, 4200);
+    }).then((unsub) => {
+      if (typeof unsub !== 'function') return;
+      if (isCancelled) {
+        unsub();
+        return;
+      }
+      unsubscribe = unsub;
+    }).catch((err) => {
+      console.error(err);
+    });
+
+    return () => {
+      isCancelled = true;
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => () => {
+    window.clearTimeout(mefilToastTimeoutRef.current);
+    window.clearTimeout(masterPromptCopyTimeoutRef.current);
+  }, []);
 
   useEffect(() => {
     if (!isRandomOrderEnabled) return;
@@ -1966,6 +2272,13 @@ function App() {
                 >
                   Kalam
                 </button>
+                <button
+                  type="button"
+                  className="mefil-launch-btn"
+                  onClick={handleOpenMefil}
+                >
+                  Mefil
+                </button>
               </div>
 
               <div className="poem-list-toolbar" ref={semaMenuRef}>
@@ -2257,6 +2570,97 @@ function App() {
           The only lasting beauty is the beauty of the heart
         </footer>
       </div>
+
+      {isMefilOpen ? (
+        <div className="mefil-overlay" role="dialog" aria-modal="true" aria-label="Mefil Boss Battle" onClick={handleCloseMefil}>
+          <section className="mefil-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="mefil-header">
+              <h2>Mefil Boss Battle</h2>
+              <button type="button" className="mefil-close-btn" onClick={handleCloseMefil}>Close</button>
+            </div>
+
+            <div className="mefil-role-toggle">
+              {Object.entries(MEFIL_ROLES).map(([roleKey, roleLabel]) => (
+                <button
+                  key={roleKey}
+                  type="button"
+                  className={`mefil-role-btn ${mefilRole === roleKey ? 'mefil-role-active' : ''}`}
+                  onClick={() => handleMefilRoleChange(roleKey)}
+                >
+                  {`I am ${roleLabel}`}
+                </button>
+              ))}
+              <span className="mefil-role-state">{`Active role: ${MEFIL_ROLES[mefilRole]}`}</span>
+            </div>
+
+            <div className="master-prompt-card">
+              <div className="master-prompt-head">
+                <h3>Master Prompt</h3>
+                <button type="button" className="master-prompt-copy" onClick={handleCopyMasterPrompt}>
+                  {masterPromptCopied ? 'Copied' : 'Copy Prompt'}
+                </button>
+              </div>
+              <pre>{MASTER_PROMPT_TEXT}</pre>
+            </div>
+
+            <div className="boss-card">
+              <div className="boss-head">
+                <strong>{questState.bossName || 'The DBMS Final'}</strong>
+                <span className={`status-pill status-pill-${questState.status}`}>{questState.status}</span>
+              </div>
+              <div className="boss-stat">
+                <label>{`Boss HP: ${questState.bossHp}/${questState.bossMaxHp || BOSS_MAX_HP}`}</label>
+                <div className="hp-track hp-track-boss">
+                  <span className="hp-fill hp-fill-boss" style={{ width: `${bossHpPercent}%` }}></span>
+                </div>
+              </div>
+              <div className="boss-stat">
+                <label>{`Team HP: ${questState.teamHp}/${questState.teamMaxHp || TEAM_MAX_HP}`}</label>
+                <div className="hp-track hp-track-team">
+                  <span className="hp-fill hp-fill-team" style={{ width: `${teamHpPercent}%` }}></span>
+                </div>
+              </div>
+              <p className="boss-last-action">
+                {questState.lastActionType
+                  ? `${MEFIL_ROLES[questState.lastActor] || 'Someone'} used ${questState.lastActionType === 'attack' ? 'Attack' : 'Distracted'} (${questState.lastDamage || 0})`
+                  : 'No actions yet in this quest.'}
+              </p>
+            </div>
+
+            <div className="pomodoro-card">
+              <div className="pomodoro-display">{pomodoroClock}</div>
+              <div className="pomodoro-controls">
+                <button type="button" onClick={handlePomodoroToggle} disabled={isPomodoroComplete || mefilActionLoading}>
+                  {isPomodoroRunning ? 'Pause' : 'Start'}
+                </button>
+                <button type="button" onClick={handlePomodoroReset} disabled={mefilActionLoading}>
+                  Reset Timer
+                </button>
+                <button type="button" className="attack-btn" onClick={handleBossAttack} disabled={!canAttackBoss}>
+                  {`Session Complete -> Attack (${ATTACK_DAMAGE} DMG)`}
+                </button>
+                <button type="button" className="distract-btn" onClick={handleMefilDistracted} disabled={!canUseDistracted}>
+                  {`I got distracted (-${DISTRACT_DAMAGE} HP)`}
+                </button>
+                <button type="button" onClick={handleQuestReset} disabled={mefilActionLoading}>
+                  Reset Quest
+                </button>
+              </div>
+            </div>
+
+            <div className="notify-row">
+              <button type="button" className="notify-btn" onClick={handleEnableNotifications} disabled={notificationState === 'pending'}>
+                {notificationState === 'pending' ? 'Requesting...' : 'Request Notifications'}
+              </button>
+              <span className={`notify-state notify-state-${notificationState}`}>{notificationMessage || 'Notifications are not configured yet.'}</span>
+            </div>
+
+            {mefilForegroundPing ? <p className="mefil-live-ping">{mefilForegroundPing}</p> : null}
+            {questLoading ? <p className="mefil-status">Syncing quest...</p> : null}
+            {questError ? <p className="mefil-error">{questError}</p> : null}
+          </section>
+        </div>
+      ) : null}
 
       {isKalamOpen ? (
         <div className="kalam-overlay" role="dialog" aria-modal="true" aria-label="Kalam chat" onClick={handleCloseKalam}>
