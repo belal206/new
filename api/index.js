@@ -94,6 +94,31 @@ const MusicSettings = mongoose.model('MusicSettings', new mongoose.Schema({
             text: { type: String, required: true },
             createdAt: { type: Date, default: Date.now }
         }]
+    },
+    mefilRooms: {
+        rutbah: [{
+            _id: false,
+            noteId: { type: String, required: true },
+            text: { type: String, required: true },
+            createdAt: { type: Date, default: Date.now }
+        }],
+        belal: [{
+            _id: false,
+            noteId: { type: String, required: true },
+            text: { type: String, required: true },
+            createdAt: { type: Date, default: Date.now }
+        }]
+    },
+    mefilQuest: {
+        bossName: { type: String, default: 'The DBMS Final' },
+        bossHp: { type: Number, default: 500 },
+        bossMaxHp: { type: Number, default: 500 },
+        teamHp: { type: Number, default: 100 },
+        teamMaxHp: { type: Number, default: 100 },
+        status: { type: String, default: 'active' },
+        lastActionType: { type: String, default: null },
+        lastActor: { type: String, default: null },
+        lastDamage: { type: Number, default: null }
     }
 }, { timestamps: true }));
 
@@ -360,6 +385,84 @@ const serializeKalamRoom = (room, notes) => ({
     }))
 });
 
+const parseMefilRole = (value) => {
+    const normalized = String(value || '').trim().toLowerCase();
+    return KALAM_ROOMS.includes(normalized) ? normalized : null;
+};
+
+const normalizeMefilQuest = (quest) => {
+    const source = quest && typeof quest === 'object' ? quest : {};
+    const parsedBossMax = Number.parseInt(String(source.bossMaxHp ?? MEFIL_BOSS_MAX_HP), 10);
+    const parsedTeamMax = Number.parseInt(String(source.teamMaxHp ?? MEFIL_TEAM_MAX_HP), 10);
+    const bossMaxHp = Number.isFinite(parsedBossMax) && parsedBossMax > 0 ? parsedBossMax : MEFIL_BOSS_MAX_HP;
+    const teamMaxHp = Number.isFinite(parsedTeamMax) && parsedTeamMax > 0 ? parsedTeamMax : MEFIL_TEAM_MAX_HP;
+    const parsedBossHp = Number.parseInt(String(source.bossHp ?? bossMaxHp), 10);
+    const parsedTeamHp = Number.parseInt(String(source.teamHp ?? teamMaxHp), 10);
+    const bossHp = Number.isFinite(parsedBossHp) ? Math.max(0, Math.min(bossMaxHp, parsedBossHp)) : bossMaxHp;
+    const teamHp = Number.isFinite(parsedTeamHp) ? Math.max(0, Math.min(teamMaxHp, parsedTeamHp)) : teamMaxHp;
+    const status = bossHp <= 0 ? 'won' : (teamHp <= 0 ? 'lost' : 'active');
+    const lastActionType = source.lastActionType === 'attack' || source.lastActionType === 'distracted'
+        ? source.lastActionType
+        : null;
+    const lastActor = parseMefilRole(source.lastActor);
+    const parsedLastDamage = Number.parseInt(String(source.lastDamage ?? ''), 10);
+    const lastDamage = Number.isFinite(parsedLastDamage) ? parsedLastDamage : null;
+
+    return {
+        bossName: String(source.bossName || 'The DBMS Final').trim() || 'The DBMS Final',
+        bossHp,
+        bossMaxHp,
+        teamHp,
+        teamMaxHp,
+        status,
+        lastActionType,
+        lastActor,
+        lastDamage
+    };
+};
+
+const mefilQuestEqual = (left, right) => {
+    const leftQuest = normalizeMefilQuest(left);
+    const rightQuest = normalizeMefilQuest(right);
+    return (
+        leftQuest.bossName === rightQuest.bossName
+        && leftQuest.bossHp === rightQuest.bossHp
+        && leftQuest.bossMaxHp === rightQuest.bossMaxHp
+        && leftQuest.teamHp === rightQuest.teamHp
+        && leftQuest.teamMaxHp === rightQuest.teamMaxHp
+        && leftQuest.status === rightQuest.status
+        && leftQuest.lastActionType === rightQuest.lastActionType
+        && leftQuest.lastActor === rightQuest.lastActor
+        && leftQuest.lastDamage === rightQuest.lastDamage
+    );
+};
+
+const normalizeMefilRooms = (musicSettings) => {
+    const existingRooms = musicSettings.mefilRooms && typeof musicSettings.mefilRooms === 'object'
+        ? musicSettings.mefilRooms
+        : {};
+    const normalizedRutbah = normalizeKalamNotes(existingRooms.rutbah);
+    const normalizedBelal = normalizeKalamNotes(existingRooms.belal);
+    const existingRutbah = Array.isArray(existingRooms.rutbah) ? existingRooms.rutbah : [];
+    const existingBelal = Array.isArray(existingRooms.belal) ? existingRooms.belal : [];
+
+    const changed = (
+        !musicSettings.mefilRooms
+        || !kalamNotesEqual(existingRutbah, normalizedRutbah)
+        || !kalamNotesEqual(existingBelal, normalizedBelal)
+    );
+
+    musicSettings.mefilRooms = {
+        rutbah: normalizedRutbah,
+        belal: normalizedBelal
+    };
+
+    return changed;
+};
+
+const serializeMefilRoom = (room, notes) => serializeKalamRoom(room, notes);
+const serializeMefilQuest = (quest) => normalizeMefilQuest(quest);
+
 const LEVELS = [
     { title: 'Murid', min: 0, max: 2 },
     { title: 'Raahi', min: 3, max: 5 },
@@ -373,6 +476,10 @@ const DAILY_GOAL_DEFAULT = 1;
 const KALAM_ROOMS = ['rutbah', 'belal'];
 const KALAM_MAX_TEXT_LENGTH = 500;
 const KALAM_MAX_NOTES_PER_ROOM = 300;
+const MEFIL_BOSS_MAX_HP = 500;
+const MEFIL_TEAM_MAX_HP = 100;
+const MEFIL_ATTACK_DAMAGE = 25;
+const MEFIL_DISTRACT_DAMAGE = 20;
 
 const normalizeNonNegativeInteger = (value, fallback = 0) => {
     const parsed = Number.parseInt(String(value ?? ''), 10);
@@ -603,6 +710,21 @@ const getOrCreateMusicSettings = async () => MusicSettings.findOneAndUpdate(
             kalamRooms: {
                 rutbah: [],
                 belal: []
+            },
+            mefilRooms: {
+                rutbah: [],
+                belal: []
+            },
+            mefilQuest: {
+                bossName: 'The DBMS Final',
+                bossHp: MEFIL_BOSS_MAX_HP,
+                bossMaxHp: MEFIL_BOSS_MAX_HP,
+                teamHp: MEFIL_TEAM_MAX_HP,
+                teamMaxHp: MEFIL_TEAM_MAX_HP,
+                status: 'active',
+                lastActionType: null,
+                lastActor: null,
+                lastDamage: null
             }
         }
     },
@@ -617,6 +739,16 @@ const migrateLegacyMusicSettings = async (musicSettings) => {
     }
 
     if (normalizeKalamRooms(musicSettings)) {
+        changed = true;
+    }
+
+    if (normalizeMefilRooms(musicSettings)) {
+        changed = true;
+    }
+
+    const normalizedMefilQuest = normalizeMefilQuest(musicSettings.mefilQuest);
+    if (!mefilQuestEqual(musicSettings.mefilQuest, normalizedMefilQuest)) {
+        musicSettings.mefilQuest = normalizedMefilQuest;
         changed = true;
     }
 
@@ -1253,6 +1385,133 @@ app.delete('/api/music/youtube/playlists/:playlistId', async (req, res) => {
         res.json(serializeSource(musicSettings.youtubePlaylists, musicSettings.activeYoutubePlaylistId));
     } catch (err) {
         res.status(500).json({ error: 'Failed to delete YouTube playlist' });
+    }
+});
+
+app.get('/api/mefil/quest', async (req, res) => {
+    try {
+        const musicSettings = await getMusicSettings();
+        res.json(serializeMefilQuest(musicSettings.mefilQuest));
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch Mefil quest' });
+    }
+});
+
+app.post('/api/mefil/attack', async (req, res) => {
+    try {
+        const actor = parseMefilRole(req.body?.role) || 'belal';
+        const musicSettings = await getMusicSettings();
+        const quest = normalizeMefilQuest(musicSettings.mefilQuest);
+
+        if (quest.status === 'active') {
+            quest.bossHp = Math.max(0, quest.bossHp - MEFIL_ATTACK_DAMAGE);
+            quest.status = quest.bossHp <= 0 ? 'won' : (quest.teamHp <= 0 ? 'lost' : 'active');
+            quest.lastActionType = 'attack';
+            quest.lastActor = actor;
+            quest.lastDamage = MEFIL_ATTACK_DAMAGE;
+            musicSettings.mefilQuest = quest;
+            musicSettings.markModified('mefilQuest');
+            await musicSettings.save();
+        }
+
+        res.json(serializeMefilQuest(quest));
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to apply Mefil attack' });
+    }
+});
+
+app.post('/api/mefil/distracted', async (req, res) => {
+    try {
+        const actor = parseMefilRole(req.body?.role) || 'belal';
+        const musicSettings = await getMusicSettings();
+        const quest = normalizeMefilQuest(musicSettings.mefilQuest);
+
+        if (quest.status === 'active') {
+            quest.teamHp = Math.max(0, quest.teamHp - MEFIL_DISTRACT_DAMAGE);
+            quest.status = quest.bossHp <= 0 ? 'won' : (quest.teamHp <= 0 ? 'lost' : 'active');
+            quest.lastActionType = 'distracted';
+            quest.lastActor = actor;
+            quest.lastDamage = MEFIL_DISTRACT_DAMAGE;
+            musicSettings.mefilQuest = quest;
+            musicSettings.markModified('mefilQuest');
+            await musicSettings.save();
+        }
+
+        res.json(serializeMefilQuest(quest));
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to apply Mefil distraction' });
+    }
+});
+
+app.post('/api/mefil/reset', async (req, res) => {
+    try {
+        const musicSettings = await getMusicSettings();
+        const resetQuest = normalizeMefilQuest({
+            bossName: 'The DBMS Final',
+            bossHp: MEFIL_BOSS_MAX_HP,
+            bossMaxHp: MEFIL_BOSS_MAX_HP,
+            teamHp: MEFIL_TEAM_MAX_HP,
+            teamMaxHp: MEFIL_TEAM_MAX_HP,
+            status: 'active',
+            lastActionType: null,
+            lastActor: null,
+            lastDamage: null
+        });
+        musicSettings.mefilQuest = resetQuest;
+        musicSettings.markModified('mefilQuest');
+        await musicSettings.save();
+        res.json(serializeMefilQuest(resetQuest));
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to reset Mefil quest' });
+    }
+});
+
+app.get('/api/mefil/chat', async (req, res) => {
+    try {
+        const room = parseMefilRole(req.query?.room);
+        if (!room) {
+            return res.status(400).json({ error: 'Valid room is required: rutbah or belal' });
+        }
+        const musicSettings = await getMusicSettings();
+        const notes = musicSettings?.mefilRooms?.[room] || [];
+        res.json(serializeMefilRoom(room, notes));
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch Mefil chat' });
+    }
+});
+
+app.post('/api/mefil/chat', async (req, res) => {
+    try {
+        const room = parseMefilRole(req.body?.room);
+        if (!room) {
+            return res.status(400).json({ error: 'Valid room is required: rutbah or belal' });
+        }
+
+        const sanitizedText = sanitizeKalamText(req.body?.text);
+        if (sanitizedText.error || !sanitizedText.text) {
+            return res.status(400).json({ error: sanitizedText.error || 'Message text is required' });
+        }
+
+        const musicSettings = await getMusicSettings();
+        const currentNotes = musicSettings?.mefilRooms?.[room] || [];
+        const nextNotes = normalizeKalamNotes([
+            ...currentNotes,
+            {
+                noteId: buildKalamNoteId(),
+                text: sanitizedText.text,
+                createdAt: new Date()
+            }
+        ]);
+
+        musicSettings.mefilRooms = {
+            ...musicSettings.mefilRooms,
+            [room]: nextNotes
+        };
+        musicSettings.markModified('mefilRooms');
+        await musicSettings.save();
+        res.status(201).json(serializeMefilRoom(room, nextNotes));
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to save Mefil message' });
     }
 });
 

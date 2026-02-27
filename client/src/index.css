@@ -674,14 +674,14 @@ h1 {
   color: rgba(36, 0, 70, 0.72);
 }
 
-.master-prompt-card {
+.mefil-chat-card {
   border: 1px solid rgba(212, 175, 55, 0.42);
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.78);
   padding: 12px;
 }
 
-.master-prompt-head {
+.mefil-chat-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -689,31 +689,95 @@ h1 {
   margin-bottom: 8px;
 }
 
-.master-prompt-head h3 {
+.mefil-chat-head h3 {
   margin: 0;
   font-size: 1rem;
   color: var(--royal-purple);
   letter-spacing: 0.4px;
 }
 
-.master-prompt-copy {
-  min-height: 32px;
+.mefil-chat-head span {
+  font-size: 0.78rem;
+  color: rgba(36, 0, 70, 0.62);
+}
+
+.mefil-chat-messages {
+  max-height: 220px;
+  overflow: auto;
+  border: 1px solid rgba(36, 0, 70, 0.18);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.82);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mefil-chat-message {
+  border: 1px solid rgba(36, 0, 70, 0.2);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.mefil-chat-message p {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 0.86rem;
+  line-height: 1.4;
+  color: rgba(36, 0, 70, 0.85);
+}
+
+.mefil-chat-meta {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.72rem;
+  color: rgba(36, 0, 70, 0.56);
+}
+
+.mefil-chat-empty {
+  margin: 0;
+  font-size: 0.84rem;
+  color: rgba(36, 0, 70, 0.72);
+}
+
+.mefil-chat-composer {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+
+.mefil-chat-input {
+  flex: 1;
+  border-radius: 12px;
+  border: 1px solid rgba(36, 0, 70, 0.24);
+  background: rgba(255, 255, 255, 0.92);
+  color: rgba(36, 0, 70, 0.9);
+  padding: 8px 10px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.mefil-chat-send-btn {
+  min-height: 36px;
+  align-self: flex-end;
   border-radius: 999px;
-  border: 1px solid rgba(36, 0, 70, 0.3);
-  background: #fff;
-  color: var(--royal-purple);
-  padding: 0 10px;
+  border: 1px solid var(--royal-purple);
+  background: var(--royal-purple);
+  color: #fff;
+  padding: 0 14px;
   cursor: pointer;
 }
 
-.master-prompt-card pre {
-  margin: 0;
-  white-space: pre-wrap;
+.mefil-chat-send-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.mefil-chat-error {
+  margin: 8px 0 0;
   font-size: 0.84rem;
-  line-height: 1.42;
-  color: rgba(36, 0, 70, 0.85);
-  max-height: 220px;
-  overflow: auto;
+  color: #b64040;
 }
 
 .boss-card {
@@ -850,48 +914,6 @@ h1 {
 .pomodoro-controls .distract-btn {
   border-color: rgba(47, 92, 50, 0.5);
   color: #2f5c32;
-}
-
-.notify-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.notify-btn {
-  min-height: 36px;
-  border-radius: 999px;
-  border: 1px solid var(--royal-purple);
-  background: var(--royal-purple);
-  color: #fff;
-  padding: 0 14px;
-  cursor: pointer;
-}
-
-.notify-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.notify-state {
-  font-size: 0.82rem;
-  color: rgba(36, 0, 70, 0.72);
-}
-
-.notify-state-granted {
-  color: #2f5c32;
-}
-
-.notify-state-denied,
-.notify-state-error {
-  color: #b64040;
-}
-
-.mefil-live-ping {
-  margin: 0;
-  font-size: 0.82rem;
-  color: #2a4ea1;
 }
 
 .mefil-status {
@@ -1107,7 +1129,7 @@ body.theme-noor .kalam-input {
 body.theme-noor .mefil-launch-btn,
 body.theme-noor .mefil-close-btn,
 body.theme-noor .mefil-role-btn,
-body.theme-noor .master-prompt-copy,
+body.theme-noor .mefil-chat-send-btn,
 body.theme-noor .pomodoro-controls button {
   background: rgba(255, 248, 235, 0.95);
   border-color: rgba(181, 141, 74, 0.54);
@@ -1117,11 +1139,19 @@ body.theme-noor .pomodoro-controls button {
 body.theme-noor .mefil-modal,
 body.theme-noor .boss-card,
 body.theme-noor .pomodoro-card,
-body.theme-noor .master-prompt-card {
+body.theme-noor .mefil-chat-card,
+body.theme-noor .mefil-chat-message,
+body.theme-noor .mefil-chat-messages {
   background:
     linear-gradient(165deg, rgba(255, 248, 235, 0.96), rgba(255, 238, 210, 0.94)),
     linear-gradient(120deg, rgba(181, 141, 74, 0.14), rgba(208, 173, 105, 0.1));
   border-color: rgba(181, 141, 74, 0.56);
+}
+
+body.theme-noor .mefil-chat-input {
+  background: rgba(255, 248, 235, 0.95);
+  border-color: rgba(181, 141, 74, 0.54);
+  color: #4b3a23;
 }
 
 body.theme-noor .mefil-header h2,
@@ -1129,9 +1159,11 @@ body.theme-noor .mefil-role-state,
 body.theme-noor .boss-head strong,
 body.theme-noor .boss-stat label,
 body.theme-noor .boss-last-action,
-body.theme-noor .master-prompt-head h3,
-body.theme-noor .master-prompt-card pre,
-body.theme-noor .notify-state,
+body.theme-noor .mefil-chat-head h3,
+body.theme-noor .mefil-chat-head span,
+body.theme-noor .mefil-chat-message p,
+body.theme-noor .mefil-chat-meta,
+body.theme-noor .mefil-chat-empty,
 body.theme-noor .pomodoro-display {
   color: #4b3a23;
 }
@@ -1974,12 +2006,11 @@ body.theme-noor .pomodoro-display {
     width: 100%;
   }
 
-  .notify-row {
+  .mefil-chat-composer {
     flex-direction: column;
-    align-items: stretch;
   }
 
-  .notify-btn {
+  .mefil-chat-send-btn {
     width: 100%;
   }
 }
@@ -2660,7 +2691,9 @@ body.theme-shahi .playlist-item,
 body.theme-shahi .mefil-modal,
 body.theme-shahi .boss-card,
 body.theme-shahi .pomodoro-card,
-body.theme-shahi .master-prompt-card,
+body.theme-shahi .mefil-chat-card,
+body.theme-shahi .mefil-chat-messages,
+body.theme-shahi .mefil-chat-message,
 body.theme-shahi .kalam-modal,
 body.theme-shahi .kalam-message,
 body.theme-shahi .mehfil-panel,
@@ -2671,7 +2704,7 @@ body.theme-shahi .theme-control,
 body.theme-shahi .mefil-launch-btn,
 body.theme-shahi .mefil-close-btn,
 body.theme-shahi .mefil-role-btn,
-body.theme-shahi .master-prompt-copy,
+body.theme-shahi .mefil-chat-send-btn,
 body.theme-shahi .kalam-launch-btn,
 body.theme-shahi .kalam-close-btn,
 body.theme-shahi .kalam-room-tab,
@@ -2698,7 +2731,7 @@ body.theme-shahi .poem-edit-form select,
 body.theme-shahi .poem-edit-form textarea,
 body.theme-shahi .poem-tag-picker select,
 body.theme-shahi .kalam-input,
-body.theme-shahi .master-prompt-card pre {
+body.theme-shahi .mefil-chat-input {
   background: #050505;
   border-color: rgba(181, 141, 74, 0.42);
   color: #e8e1d2;
@@ -2713,7 +2746,7 @@ body.theme-shahi .poem-edit-form select:focus,
 body.theme-shahi .poem-edit-form textarea:focus,
 body.theme-shahi .poem-tag-picker select:focus,
 body.theme-shahi .kalam-input:focus,
-body.theme-shahi .master-prompt-copy:focus {
+body.theme-shahi .mefil-chat-input:focus {
   border-color: #c9a86a;
   box-shadow: none;
 }
@@ -2723,7 +2756,7 @@ body.theme-shahi .top-nav button:hover,
 body.theme-shahi .form-container button,
 body.theme-shahi .music-auth-btn,
 body.theme-shahi .music-form button,
-body.theme-shahi .notify-btn,
+body.theme-shahi .mefil-chat-send-btn,
 body.theme-shahi .kalam-send-btn,
 body.theme-shahi .mehfil-btn-primary {
   background: #b58d4a;
@@ -2791,8 +2824,11 @@ body.theme-shahi .mefil-role-state,
 body.theme-shahi .boss-head strong,
 body.theme-shahi .boss-stat label,
 body.theme-shahi .boss-last-action,
-body.theme-shahi .master-prompt-head h3,
-body.theme-shahi .notify-state,
+body.theme-shahi .mefil-chat-head h3,
+body.theme-shahi .mefil-chat-head span,
+body.theme-shahi .mefil-chat-meta,
+body.theme-shahi .mefil-chat-empty,
+body.theme-shahi .mefil-chat-message p,
 body.theme-shahi .pomodoro-display,
 body.theme-shahi .kalam-meta,
 body.theme-shahi .kalam-empty,
@@ -2838,7 +2874,7 @@ body.theme-shahi .kalam-header {
 }
 
 body.theme-shahi .mefil-header,
-body.theme-shahi .master-prompt-card,
+body.theme-shahi .mefil-chat-card,
 body.theme-shahi .pomodoro-card,
 body.theme-shahi .boss-card {
   border-color: rgba(181, 141, 74, 0.42);

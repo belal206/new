@@ -1,19 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import './index.css';
-import {
-  ATTACK_DAMAGE,
-  DISTRACT_DAMAGE,
-  BOSS_MAX_HP,
-  TEAM_MAX_HP,
-  completePomodoro,
-  defaultQuestState,
-  ensureQuestExists,
-  markDistracted,
-  resetQuest,
-  subscribeQuest,
-} from './firebase/gameStore';
-import { firebaseEnvMissingKeys, isFirebaseConfigured } from './firebase/config';
-import { listenForegroundNotifications, requestAndSaveNotificationToken } from './firebase/notifications';
 
 const POETS = [
   'Ahmad Faraz',
@@ -65,7 +51,23 @@ const CELEBRATION_DURATION_MS = 10000;
 const KALAM_MAX_TEXT_LENGTH = 500;
 const KALAM_POLL_INTERVAL_MS = 10000;
 const MEFIL_ROLE_STORAGE_KEY = 'sufi_mefil_role';
+const MEFIL_POLL_INTERVAL_MS = 1000;
 const POMODORO_SECONDS = 25 * 60;
+const BOSS_MAX_HP = 500;
+const TEAM_MAX_HP = 100;
+const ATTACK_DAMAGE = 25;
+const DISTRACT_DAMAGE = 20;
+const defaultQuestState = {
+  bossName: 'The DBMS Final',
+  bossHp: BOSS_MAX_HP,
+  bossMaxHp: BOSS_MAX_HP,
+  teamHp: TEAM_MAX_HP,
+  teamMaxHp: TEAM_MAX_HP,
+  status: 'active',
+  lastActionType: null,
+  lastActor: null,
+  lastDamage: null,
+};
 const KALAM_ROOMS = {
   rutbah: 'Rutbah Chat',
   belal: 'Belal Chat',
@@ -74,41 +76,6 @@ const MEFIL_ROLES = {
   belal: 'Belal',
   rutbah: 'Rutbah',
 };
-const MASTER_PROMPT_TEXT = `I am building a gamified, co-op study dashboard for me and my partner to embed into my personal website. The goal is to stay accountable without video calls using an RPG-style 'Boss Battle' mechanic.
-
-The Tech Stack:
-
-Frontend: React with Tailwind CSS (Design: Dark, minimalist, atmospheric aesthetic).
-
-Database: Firebase Firestore (Real-time syncing of game state).
-
-Notifications: Firebase Cloud Messaging (FCM) for cross-browser push notifications.
-
-Core Game Logic to Implement:
-
-The Boss: A shared 'Boss' (e.g., 'The DBMS Final') with 500 HP.
-
-Attack Mechanics: A Pomodoro timer (25 mins). When a user completes a session, they deal 25 DMG to the Boss.
-
-Shared Team HP: We share 100 HP. If one of us clicks a 'I got distracted' button, the team loses 20 HP. If HP hits 0, we lose the 'Quest.'
-
-Real-Time Sync: Use Firestore onSnapshot so when I finish a session, the Boss HP drops on her screen instantly.
-
-Notification Requirements (FCM):
-
-Implement the logic to request notification permissions.
-
-Provide the code for the Service Worker (firebase-messaging-sw.js) to handle background notifications.
-
-When a user completes a session, trigger a push notification to the other user's device saying: '{Partner Name} dealt 25 DMG! Your turn to strike.'
-
-Please provide:
-
-The React component for the Dashboard (Timer + Boss HP bar + Team HP bar).
-
-The Firebase configuration file.
-
-The logic to save and retrieve FCM device tokens in Firestore so we can target each other's devices specifically.`;
 
 const normalizeTags = (tags) => [...new Set(
   (Array.isArray(tags) ? tags : [])
@@ -299,6 +266,36 @@ const formatKalamTimestamp = (value) => {
 
 const normalizeMefilRole = (value) => (value === 'rutbah' ? 'rutbah' : 'belal');
 
+const normalizeMefilQuest = (payload) => {
+  const parsedBossMax = Number.parseInt(String(payload?.bossMaxHp ?? BOSS_MAX_HP), 10);
+  const parsedTeamMax = Number.parseInt(String(payload?.teamMaxHp ?? TEAM_MAX_HP), 10);
+  const bossMaxHp = Number.isFinite(parsedBossMax) && parsedBossMax > 0 ? parsedBossMax : BOSS_MAX_HP;
+  const teamMaxHp = Number.isFinite(parsedTeamMax) && parsedTeamMax > 0 ? parsedTeamMax : TEAM_MAX_HP;
+  const parsedBossHp = Number.parseInt(String(payload?.bossHp ?? bossMaxHp), 10);
+  const parsedTeamHp = Number.parseInt(String(payload?.teamHp ?? teamMaxHp), 10);
+  const bossHp = Number.isFinite(parsedBossHp) ? Math.max(0, Math.min(bossMaxHp, parsedBossHp)) : bossMaxHp;
+  const teamHp = Number.isFinite(parsedTeamHp) ? Math.max(0, Math.min(teamMaxHp, parsedTeamHp)) : teamMaxHp;
+  const status = bossHp <= 0 ? 'won' : (teamHp <= 0 ? 'lost' : 'active');
+  const lastActor = payload?.lastActor === 'rutbah' || payload?.lastActor === 'belal' ? payload.lastActor : null;
+  const lastActionType = payload?.lastActionType === 'attack' || payload?.lastActionType === 'distracted'
+    ? payload.lastActionType
+    : null;
+  const parsedLastDamage = Number.parseInt(String(payload?.lastDamage ?? ''), 10);
+  const lastDamage = Number.isFinite(parsedLastDamage) ? parsedLastDamage : null;
+
+  return {
+    bossName: String(payload?.bossName || defaultQuestState.bossName),
+    bossHp,
+    bossMaxHp,
+    teamHp,
+    teamMaxHp,
+    status,
+    lastActionType,
+    lastActor,
+    lastDamage,
+  };
+};
+
 const formatPomodoroClock = (totalSeconds) => {
   const safeSeconds = Math.max(0, Number.isFinite(totalSeconds) ? totalSeconds : 0);
   const minutes = Math.floor(safeSeconds / 60);
@@ -437,10 +434,11 @@ function App() {
   const [pomodoroSecondsLeft, setPomodoroSecondsLeft] = useState(POMODORO_SECONDS);
   const [isPomodoroRunning, setIsPomodoroRunning] = useState(false);
   const [isPomodoroComplete, setIsPomodoroComplete] = useState(false);
-  const [notificationState, setNotificationState] = useState('idle');
-  const [notificationMessage, setNotificationMessage] = useState('');
-  const [masterPromptCopied, setMasterPromptCopied] = useState(false);
-  const [mefilForegroundPing, setMefilForegroundPing] = useState('');
+  const [mefilChatNotes, setMefilChatNotes] = useState([]);
+  const [mefilChatInput, setMefilChatInput] = useState('');
+  const [mefilChatLoading, setMefilChatLoading] = useState(false);
+  const [mefilChatSaving, setMefilChatSaving] = useState(false);
+  const [mefilChatError, setMefilChatError] = useState('');
   const galleryScrollYRef = useRef(0);
   const poemDetailCardRef = useRef(null);
   const poemDetailHeadingRef = useRef(null);
@@ -448,8 +446,8 @@ function App() {
   const celebrationCanvasRef = useRef(null);
   const kalamMessagesRef = useRef(null);
   const kalamFetchSeqRef = useRef(0);
-  const mefilToastTimeoutRef = useRef(0);
-  const masterPromptCopyTimeoutRef = useRef(0);
+  const mefilChatMessagesRef = useRef(null);
+  const mefilChatFetchSeqRef = useRef(0);
 
   const [formData, setFormData] = useState({ title: '', poet: 'Ahmad Faraz', content: '', tags: [] });
   const [editingPoemId, setEditingPoemId] = useState(null);
@@ -532,13 +530,12 @@ function App() {
   const teamHpPercent = Math.min(100, Math.max(0, (questState.teamHp / Math.max(1, questState.teamMaxHp || TEAM_MAX_HP)) * 100));
   const pomodoroClock = formatPomodoroClock(pomodoroSecondsLeft);
   const canAttackBoss = (
-    isFirebaseConfigured
-    && !questLoading
+    !questLoading
     && !mefilActionLoading
     && questState.status === 'active'
     && isPomodoroComplete
   );
-  const canUseDistracted = isFirebaseConfigured && !questLoading && !mefilActionLoading && questState.status === 'active';
+  const canUseDistracted = !questLoading && !mefilActionLoading && questState.status === 'active';
 
   const fetchPoems = async () => {
     try {
@@ -663,20 +660,75 @@ function App() {
     }
   };
 
+  const fetchMefilQuest = async ({ silent = false } = {}) => {
+    if (!silent) setQuestLoading(true);
+    try {
+      const res = await fetch('/api/mefil/quest');
+      if (!res.ok) {
+        const message = await readErrorMessage(res, 'Unable to load Mefil quest.');
+        throw new Error(message);
+      }
+      const data = await res.json();
+      setQuestState(normalizeMefilQuest(data));
+      setQuestError('');
+    } catch (err) {
+      console.error(err);
+      setQuestError(err.message || 'Unable to load Mefil quest.');
+    } finally {
+      if (!silent) setQuestLoading(false);
+    }
+  };
+
+  const fetchMefilChatNotes = async (room = mefilRole, options = {}) => {
+    const normalizedRoom = normalizeMefilRole(room);
+    const { silent = false } = options;
+    const requestSeq = mefilChatFetchSeqRef.current + 1;
+    mefilChatFetchSeqRef.current = requestSeq;
+
+    if (!silent) {
+      setMefilChatLoading(true);
+    }
+
+    try {
+      const res = await fetch(`/api/mefil/chat?room=${encodeURIComponent(normalizedRoom)}`);
+      if (!res.ok) {
+        const message = await readErrorMessage(res, 'Unable to load Mefil chat.');
+        throw new Error(message);
+      }
+      const data = await res.json();
+      if (mefilChatFetchSeqRef.current !== requestSeq) return;
+      const normalized = normalizeKalamPayload(data, normalizedRoom);
+      setMefilChatNotes(normalized.notes);
+      setMefilChatError('');
+    } catch (err) {
+      if (mefilChatFetchSeqRef.current !== requestSeq) return;
+      console.error(err);
+      setMefilChatError(err.message || 'Unable to load Mefil chat.');
+    } finally {
+      if (mefilChatFetchSeqRef.current === requestSeq && !silent) {
+        setMefilChatLoading(false);
+      }
+    }
+  };
+
   const handleOpenMefil = () => {
     setIsMefilOpen(true);
     setQuestError('');
+    setMefilChatError('');
   };
 
   const handleCloseMefil = () => {
     setIsMefilOpen(false);
     setIsPomodoroRunning(false);
+    setMefilChatError('');
   };
 
   const handleMefilRoleChange = (role) => {
     const normalized = normalizeMefilRole(role);
     setMefilRole(normalized);
     window.localStorage.setItem(MEFIL_ROLE_STORAGE_KEY, normalized);
+    setMefilChatNotes([]);
+    setMefilChatError('');
   };
 
   const handlePomodoroToggle = () => {
@@ -694,8 +746,17 @@ function App() {
     if (!canAttackBoss) return;
     setMefilActionLoading(true);
     try {
-      const nextQuest = await completePomodoro(mefilRole);
-      setQuestState(nextQuest || defaultQuestState);
+      const res = await fetch('/api/mefil/attack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: mefilRole }),
+      });
+      if (!res.ok) {
+        const message = await readErrorMessage(res, 'Failed to deal damage to the boss.');
+        throw new Error(message);
+      }
+      const data = await res.json();
+      setQuestState(normalizeMefilQuest(data));
       handlePomodoroReset();
       setQuestError('');
     } catch (err) {
@@ -710,8 +771,17 @@ function App() {
     if (!canUseDistracted) return;
     setMefilActionLoading(true);
     try {
-      const nextQuest = await markDistracted(mefilRole);
-      setQuestState(nextQuest || defaultQuestState);
+      const res = await fetch('/api/mefil/distracted', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: mefilRole }),
+      });
+      if (!res.ok) {
+        const message = await readErrorMessage(res, 'Failed to record distraction.');
+        throw new Error(message);
+      }
+      const data = await res.json();
+      setQuestState(normalizeMefilQuest(data));
       setQuestError('');
     } catch (err) {
       console.error(err);
@@ -724,8 +794,16 @@ function App() {
   const handleQuestReset = async () => {
     setMefilActionLoading(true);
     try {
-      const nextQuest = await resetQuest();
-      setQuestState(nextQuest || defaultQuestState);
+      const res = await fetch('/api/mefil/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) {
+        const message = await readErrorMessage(res, 'Failed to reset quest.');
+        throw new Error(message);
+      }
+      const data = await res.json();
+      setQuestState(normalizeMefilQuest(data));
       setQuestError('');
       handlePomodoroReset();
     } catch (err) {
@@ -736,37 +814,37 @@ function App() {
     }
   };
 
-  const handleEnableNotifications = async () => {
-    if (!isFirebaseConfigured) {
-      setNotificationState('error');
-      setNotificationMessage('Firebase is not configured for notifications.');
+  const handleSendMefilNote = async (e) => {
+    e.preventDefault();
+    const text = mefilChatInput.trim();
+    if (!text) {
+      setMefilChatError('Message is required.');
       return;
     }
-    setNotificationState('pending');
-    setNotificationMessage('Requesting permission...');
-    try {
-      await requestAndSaveNotificationToken(mefilRole);
-      setNotificationState('granted');
-      setNotificationMessage(`Notifications enabled for ${MEFIL_ROLES[mefilRole]}.`);
-    } catch (err) {
-      console.error(err);
-      const message = err.message || 'Failed to enable notifications.';
-      setNotificationState(message.toLowerCase().includes('denied') ? 'denied' : 'error');
-      setNotificationMessage(message);
-    }
-  };
 
-  const handleCopyMasterPrompt = async () => {
+    mefilChatFetchSeqRef.current += 1;
+    setMefilChatSaving(true);
     try {
-      await navigator.clipboard.writeText(MASTER_PROMPT_TEXT);
-      setMasterPromptCopied(true);
-      window.clearTimeout(masterPromptCopyTimeoutRef.current);
-      masterPromptCopyTimeoutRef.current = window.setTimeout(() => {
-        setMasterPromptCopied(false);
-      }, 1800);
+      const res = await fetch('/api/mefil/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ room: mefilRole, text }),
+      });
+      if (!res.ok) {
+        const message = await readErrorMessage(res, 'Unable to send message.');
+        throw new Error(message);
+      }
+
+      const data = await res.json();
+      const normalized = normalizeKalamPayload(data, mefilRole);
+      setMefilChatNotes(normalized.notes);
+      setMefilChatInput('');
+      setMefilChatError('');
     } catch (err) {
       console.error(err);
-      setQuestError('Unable to copy the Master Prompt in this browser.');
+      setMefilChatError(err.message || 'Unable to send message.');
+    } finally {
+      setMefilChatSaving(false);
     }
   };
 
@@ -1413,41 +1491,17 @@ function App() {
 
   useEffect(() => {
     if (!isMefilOpen) return undefined;
-    if (!isFirebaseConfigured) {
-      setQuestError(`Firebase is not configured. Missing: ${firebaseEnvMissingKeys.join(', ')}`);
-      return undefined;
-    }
-
-    setQuestLoading(true);
-    ensureQuestExists()
-      .then((quest) => {
-        setQuestState(quest);
-      })
-      .catch((err) => {
-        console.error(err);
-        setQuestError(err.message || 'Unable to initialize quest.');
-      })
-      .finally(() => {
-        setQuestLoading(false);
-      });
-
-    const unsubscribe = subscribeQuest(
-      (nextQuest) => {
-        setQuestState(nextQuest);
-        setQuestError('');
-        setQuestLoading(false);
-      },
-      (err) => {
-        console.error(err);
-        setQuestError(err.message || 'Realtime sync failed.');
-        setQuestLoading(false);
-      },
-    );
+    fetchMefilQuest();
+    fetchMefilChatNotes(mefilRole);
+    const interval = window.setInterval(() => {
+      fetchMefilQuest({ silent: true });
+      fetchMefilChatNotes(mefilRole, { silent: true });
+    }, MEFIL_POLL_INTERVAL_MS);
 
     return () => {
-      unsubscribe?.();
+      window.clearInterval(interval);
     };
-  }, [isMefilOpen]);
+  }, [isMefilOpen, mefilRole]);
 
   useEffect(() => {
     if (!isPomodoroRunning) return undefined;
@@ -1469,39 +1523,11 @@ function App() {
   }, [pomodoroSecondsLeft]);
 
   useEffect(() => {
-    if (!isFirebaseConfigured) return undefined;
-    let isCancelled = false;
-    let unsubscribe = () => {};
-
-    listenForegroundNotifications((payload) => {
-      if (isCancelled) return;
-      const body = payload?.notification?.body || 'New boss update arrived.';
-      setMefilForegroundPing(body);
-      window.clearTimeout(mefilToastTimeoutRef.current);
-      mefilToastTimeoutRef.current = window.setTimeout(() => {
-        setMefilForegroundPing('');
-      }, 4200);
-    }).then((unsub) => {
-      if (typeof unsub !== 'function') return;
-      if (isCancelled) {
-        unsub();
-        return;
-      }
-      unsubscribe = unsub;
-    }).catch((err) => {
-      console.error(err);
-    });
-
-    return () => {
-      isCancelled = true;
-      unsubscribe();
-    };
-  }, []);
-
-  useEffect(() => () => {
-    window.clearTimeout(mefilToastTimeoutRef.current);
-    window.clearTimeout(masterPromptCopyTimeoutRef.current);
-  }, []);
+    if (!isMefilOpen) return;
+    const container = mefilChatMessagesRef.current;
+    if (!container) return;
+    container.scrollTop = container.scrollHeight;
+  }, [isMefilOpen, mefilRole, mefilChatNotes.length]);
 
   useEffect(() => {
     if (!isRandomOrderEnabled) return;
@@ -2593,14 +2619,46 @@ function App() {
               <span className="mefil-role-state">{`Active role: ${MEFIL_ROLES[mefilRole]}`}</span>
             </div>
 
-            <div className="master-prompt-card">
-              <div className="master-prompt-head">
-                <h3>Master Prompt</h3>
-                <button type="button" className="master-prompt-copy" onClick={handleCopyMasterPrompt}>
-                  {masterPromptCopied ? 'Copied' : 'Copy Prompt'}
-                </button>
+            <div className="mefil-chat-card" aria-label="Mefil chat">
+              <div className="mefil-chat-head">
+                <h3>{`${MEFIL_ROLES[mefilRole]} Chat`}</h3>
+                <span>Live update: 1s</span>
               </div>
-              <pre>{MASTER_PROMPT_TEXT}</pre>
+              <div className="mefil-chat-messages" ref={mefilChatMessagesRef}>
+                {mefilChatLoading ? (
+                  <p className="mefil-chat-empty">Loading chat...</p>
+                ) : mefilChatNotes.length === 0 ? (
+                  <p className="mefil-chat-empty">No messages yet. Start the thread.</p>
+                ) : (
+                  mefilChatNotes.map((note) => (
+                    <article key={note.noteId} className="mefil-chat-message">
+                      <p>{note.text}</p>
+                      <time className="mefil-chat-meta">{formatKalamTimestamp(note.createdAt)}</time>
+                    </article>
+                  ))
+                )}
+              </div>
+              {mefilChatError ? <p className="mefil-chat-error">{mefilChatError}</p> : null}
+              <form className="mefil-chat-composer" onSubmit={handleSendMefilNote}>
+                <textarea
+                  className="mefil-chat-input"
+                  rows="2"
+                  placeholder={`Write as ${MEFIL_ROLES[mefilRole]}...`}
+                  value={mefilChatInput}
+                  onChange={(e) => setMefilChatInput(e.target.value)}
+                  maxLength={KALAM_MAX_TEXT_LENGTH}
+                  disabled={mefilChatSaving}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      e.currentTarget.form?.requestSubmit();
+                    }
+                  }}
+                />
+                <button type="submit" className="mefil-chat-send-btn" disabled={mefilChatSaving}>
+                  {mefilChatSaving ? 'Sending...' : 'Send'}
+                </button>
+              </form>
             </div>
 
             <div className="boss-card">
@@ -2648,14 +2706,6 @@ function App() {
               </div>
             </div>
 
-            <div className="notify-row">
-              <button type="button" className="notify-btn" onClick={handleEnableNotifications} disabled={notificationState === 'pending'}>
-                {notificationState === 'pending' ? 'Requesting...' : 'Request Notifications'}
-              </button>
-              <span className={`notify-state notify-state-${notificationState}`}>{notificationMessage || 'Notifications are not configured yet.'}</span>
-            </div>
-
-            {mefilForegroundPing ? <p className="mefil-live-ping">{mefilForegroundPing}</p> : null}
             {questLoading ? <p className="mefil-status">Syncing quest...</p> : null}
             {questError ? <p className="mefil-error">{questError}</p> : null}
           </section>
