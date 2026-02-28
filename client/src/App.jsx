@@ -754,6 +754,7 @@ function App() {
   const dailyResetLabel = formatResetCountdown(secondsUntilReset);
   const bossHpPercent = Math.min(100, Math.max(0, (questState.bossHp / Math.max(1, questState.bossMaxHp || BOSS_MAX_HP)) * 100));
   const teamHpPercent = Math.min(100, Math.max(0, (questState.teamHp / Math.max(1, questState.teamMaxHp || TEAM_MAX_HP)) * 100));
+  const teamHpTone = teamHpPercent <= 25 ? 'critical' : (teamHpPercent <= 55 ? 'low' : 'safe');
   const safeVillainTotal = Math.max(1, Number.parseInt(String(questState.villainTotal ?? DEFAULT_MEFIL_VILLAIN_TOTAL), 10) || DEFAULT_MEFIL_VILLAIN_TOTAL);
   const safeVillainIndex = Math.max(0, Math.min(safeVillainTotal - 1, Number.parseInt(String(questState.villainIndex ?? 0), 10) || 0));
   const currentVillainNumber = safeVillainIndex + 1;
@@ -3482,7 +3483,7 @@ function App() {
                     <div className="boss-stat">
                       <label>{`Team HP: ${questState.teamHp}/${questState.teamMaxHp || TEAM_MAX_HP}`}</label>
                       <div className="hp-track hp-track-team">
-                        <span className="hp-fill hp-fill-team" style={{ width: `${teamHpPercent}%` }}></span>
+                        <span className={`hp-fill hp-fill-team hp-fill-team-${teamHpTone}`} style={{ width: `${teamHpPercent}%` }}></span>
                       </div>
                     </div>
                     <p className="boss-last-action">

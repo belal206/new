@@ -1446,6 +1446,18 @@ h1 {
   background: linear-gradient(90deg, #2f5c32, #7cbf76);
 }
 
+.hp-fill-team-safe {
+  background: linear-gradient(90deg, #2f5c32, #7cbf76);
+}
+
+.hp-fill-team-low {
+  background: linear-gradient(90deg, #efb13b, #dd7a24);
+}
+
+.hp-fill-team-critical {
+  background: linear-gradient(90deg, #ef4b3a, #b31212);
+}
+
 .boss-last-action {
   margin: 0;
   font-size: 0.8rem;
@@ -3945,6 +3957,18 @@ body.theme-shahi .daily-quest-bar {
 
 .mefil-overlay-lava .hp-fill-team {
   background: linear-gradient(90deg, #f0c141 0%, #ff9837 45%, #e55219 100%);
+}
+
+.mefil-overlay-lava .hp-fill-team-safe {
+  background: linear-gradient(90deg, #f0c141 0%, #ff9837 45%, #e55219 100%);
+}
+
+.mefil-overlay-lava .hp-fill-team-low {
+  background: linear-gradient(90deg, #ff9a3d 0%, #ff5b21 55%, #d52a14 100%);
+}
+
+.mefil-overlay-lava .hp-fill-team-critical {
+  background: linear-gradient(90deg, #ff4e2a 0%, #dc220f 55%, #8f0909 100%);
 }
 
 .mefil-overlay-lava .status-pill,
