@@ -41,8 +41,31 @@ const MEFIL_SESSION_TTL_DAYS = Number.isFinite(parsedMefilSessionTtlDays) && par
     ? parsedMefilSessionTtlDays
     : 30;
 const MEFIL_SESSION_TTL_MS = MEFIL_SESSION_TTL_DAYS * 24 * 60 * 60 * 1000;
-const DEFAULT_MEFIL_BOSS_NAME = 'James P. Sullivan';
-const LEGACY_MEFIL_BOSS_NAMES = new Set(['The Aadhaar OTP Rakshas', 'The DBMS Final']);
+const MEFIL_VILLAIN_ROSTER = [
+    { id: 'v01', name: 'James P. Sullivan', image: '/images/villains/v01.svg' },
+    { id: 'v02', name: 'The Chai Tax Collector', image: '/images/villains/v02.svg' },
+    { id: 'v03', name: 'Auto Rickshaw Drift King', image: '/images/villains/v03.svg' },
+    { id: 'v04', name: 'Laggy Lecture Phantom', image: '/images/villains/v04.svg' },
+    { id: 'v05', name: 'Assignment Deadline Hydra', image: '/images/villains/v05.svg' },
+    { id: 'v06', name: 'The Ctrl-Z Bandit', image: '/images/villains/v06.svg' },
+    { id: 'v07', name: 'Samosa Storm Warden', image: '/images/villains/v07.svg' },
+    { id: 'v08', name: 'Wi-Fi Signal Vanisher', image: '/images/villains/v08.svg' },
+    { id: 'v09', name: 'The 2% Battery Demon', image: '/images/villains/v09.svg' },
+    { id: 'v10', name: 'Midnight Maggie Titan', image: '/images/villains/v10.svg' },
+    { id: 'v11', name: 'Bus Stop Time Bender', image: '/images/villains/v11.svg' },
+    { id: 'v12', name: 'The Snooze Button Sultan', image: '/images/villains/v12.svg' },
+    { id: 'v13', name: 'Exam Hall Echo Beast', image: '/images/villains/v13.svg' },
+    { id: 'v14', name: 'The PDF Password Djinn', image: '/images/villains/v14.svg' },
+    { id: 'v15', name: 'Traffic Jam Juggernaut', image: '/images/villains/v15.svg' },
+    { id: 'v16', name: 'The Low Attendance Lich', image: '/images/villains/v16.svg' },
+    { id: 'v17', name: 'Rain Delay Revenant', image: '/images/villains/v17.svg' },
+    { id: 'v18', name: 'The Group Project Ghost', image: '/images/villains/v18.svg' },
+    { id: 'v19', name: 'Result Day Raptor', image: '/images/villains/v19.svg' },
+    { id: 'v20', name: 'The Final Viva Leviathan', image: '/images/villains/v20.svg' }
+];
+const MEFIL_VILLAIN_TOTAL = MEFIL_VILLAIN_ROSTER.length;
+const DEFAULT_MEFIL_BOSS_NAME = MEFIL_VILLAIN_ROSTER[0].name;
+const DEFAULT_MEFIL_BOSS_IMAGE = MEFIL_VILLAIN_ROSTER[0].image;
 
 const normalizeTags = (tags) => [...new Set(
     (Array.isArray(tags) ? tags : [])
@@ -153,6 +176,11 @@ const MusicSettings = mongoose.model('MusicSettings', new mongoose.Schema({
         bossMaxHp: { type: Number, default: 500 },
         teamHp: { type: Number, default: 100 },
         teamMaxHp: { type: Number, default: 100 },
+        villainIndex: { type: Number, default: 0 },
+        villainTotal: { type: Number, default: MEFIL_VILLAIN_TOTAL },
+        villainId: { type: String, default: MEFIL_VILLAIN_ROSTER[0].id },
+        villainImage: { type: String, default: DEFAULT_MEFIL_BOSS_IMAGE },
+        campaignCompleted: { type: Boolean, default: false },
         status: { type: String, default: 'active' },
         lastActionType: { type: String, default: null },
         lastActor: { type: String, default: null },
@@ -813,17 +841,43 @@ const readMefilRequestedRole = (req, value, fieldName = 'role') => {
     return { role: req.mefilRole, error: null };
 };
 
+const clampMefilVillainIndex = (value) => {
+    const parsed = Number.parseInt(String(value ?? ''), 10);
+    if (!Number.isFinite(parsed)) return 0;
+    return Math.max(0, Math.min(MEFIL_VILLAIN_TOTAL - 1, parsed));
+};
+
+const getMefilVillainByIndex = (index) => {
+    const safeIndex = clampMefilVillainIndex(index);
+    return MEFIL_VILLAIN_ROSTER[safeIndex] || MEFIL_VILLAIN_ROSTER[0];
+};
+
+const getMefilBossMaxHpForIndex = (index) => {
+    const safeIndex = clampMefilVillainIndex(index);
+    return MEFIL_BOSS_MAX_HP + (safeIndex * 50);
+};
+
 const normalizeMefilQuest = (quest) => {
     const source = quest && typeof quest === 'object' ? quest : {};
-    const parsedBossMax = Number.parseInt(String(source.bossMaxHp ?? MEFIL_BOSS_MAX_HP), 10);
+    const villainIndex = clampMefilVillainIndex(source.villainIndex);
+    const villain = getMefilVillainByIndex(villainIndex);
+    const expectedBossMax = getMefilBossMaxHpForIndex(villainIndex);
+    const parsedBossMax = Number.parseInt(String(source.bossMaxHp ?? expectedBossMax), 10);
     const parsedTeamMax = Number.parseInt(String(source.teamMaxHp ?? MEFIL_TEAM_MAX_HP), 10);
-    const bossMaxHp = Number.isFinite(parsedBossMax) && parsedBossMax > 0 ? parsedBossMax : MEFIL_BOSS_MAX_HP;
+    const bossMaxHp = Number.isFinite(parsedBossMax) && parsedBossMax > 0 ? parsedBossMax : expectedBossMax;
     const teamMaxHp = Number.isFinite(parsedTeamMax) && parsedTeamMax > 0 ? parsedTeamMax : MEFIL_TEAM_MAX_HP;
     const parsedBossHp = Number.parseInt(String(source.bossHp ?? bossMaxHp), 10);
     const parsedTeamHp = Number.parseInt(String(source.teamHp ?? teamMaxHp), 10);
-    const bossHp = Number.isFinite(parsedBossHp) ? Math.max(0, Math.min(bossMaxHp, parsedBossHp)) : bossMaxHp;
+    let bossHp = Number.isFinite(parsedBossHp) ? Math.max(0, Math.min(bossMaxHp, parsedBossHp)) : bossMaxHp;
     const teamHp = Number.isFinite(parsedTeamHp) ? Math.max(0, Math.min(teamMaxHp, parsedTeamHp)) : teamMaxHp;
-    const status = bossHp <= 0 ? 'won' : (teamHp <= 0 ? 'lost' : 'active');
+    const campaignCompleted = (
+        villainIndex === (MEFIL_VILLAIN_TOTAL - 1)
+        && (Boolean(source.campaignCompleted) || bossHp <= 0)
+    );
+    if (!campaignCompleted && bossHp <= 0) {
+        bossHp = bossMaxHp;
+    }
+    const status = campaignCompleted ? 'won' : (teamHp <= 0 ? 'lost' : 'active');
     const lastActionType = source.lastActionType === 'attack' || source.lastActionType === 'distracted'
         ? source.lastActionType
         : null;
@@ -831,17 +885,17 @@ const normalizeMefilQuest = (quest) => {
     const parsedLastDamage = Number.parseInt(String(source.lastDamage ?? ''), 10);
     const lastDamage = Number.isFinite(parsedLastDamage) ? parsedLastDamage : null;
 
-    const rawBossName = String(source.bossName || '').trim();
-    const bossName = !rawBossName || LEGACY_MEFIL_BOSS_NAMES.has(rawBossName)
-        ? DEFAULT_MEFIL_BOSS_NAME
-        : rawBossName;
-
     return {
-        bossName,
+        bossName: villain.name,
         bossHp,
-        bossMaxHp,
+        bossMaxHp: expectedBossMax,
         teamHp,
         teamMaxHp,
+        villainIndex,
+        villainTotal: MEFIL_VILLAIN_TOTAL,
+        villainId: villain.id,
+        villainImage: villain.image,
+        campaignCompleted,
         status,
         lastActionType,
         lastActor,
@@ -858,6 +912,11 @@ const mefilQuestEqual = (left, right) => {
         && leftQuest.bossMaxHp === rightQuest.bossMaxHp
         && leftQuest.teamHp === rightQuest.teamHp
         && leftQuest.teamMaxHp === rightQuest.teamMaxHp
+        && leftQuest.villainIndex === rightQuest.villainIndex
+        && leftQuest.villainTotal === rightQuest.villainTotal
+        && leftQuest.villainId === rightQuest.villainId
+        && leftQuest.villainImage === rightQuest.villainImage
+        && leftQuest.campaignCompleted === rightQuest.campaignCompleted
         && leftQuest.status === rightQuest.status
         && leftQuest.lastActionType === rightQuest.lastActionType
         && leftQuest.lastActor === rightQuest.lastActor
@@ -1390,6 +1449,11 @@ const getOrCreateMusicSettings = async () => MusicSettings.findOneAndUpdate(
                 bossMaxHp: MEFIL_BOSS_MAX_HP,
                 teamHp: MEFIL_TEAM_MAX_HP,
                 teamMaxHp: MEFIL_TEAM_MAX_HP,
+                villainIndex: 0,
+                villainTotal: MEFIL_VILLAIN_TOTAL,
+                villainId: MEFIL_VILLAIN_ROSTER[0].id,
+                villainImage: DEFAULT_MEFIL_BOSS_IMAGE,
+                campaignCompleted: false,
                 status: 'active',
                 lastActionType: null,
                 lastActor: null,
@@ -2332,8 +2396,28 @@ app.post('/api/mefil/pomodoro/complete-attack', requireMefilAuth, async (req, re
         const rolePresence = normalizeMefilPresenceEntry(musicSettings.mefilPresence?.[role]);
         const attackDamage = getMefilPomodoroPoints(rolePresence.durationSeconds);
 
-        quest.bossHp = Math.max(0, quest.bossHp - attackDamage);
-        quest.status = quest.bossHp <= 0 ? 'won' : (quest.teamHp <= 0 ? 'lost' : 'active');
+        const nextBossHp = Math.max(0, quest.bossHp - attackDamage);
+        const hasNextVillain = quest.villainIndex < (MEFIL_VILLAIN_TOTAL - 1);
+        if (nextBossHp <= 0 && !quest.campaignCompleted && hasNextVillain) {
+            const nextVillainIndex = quest.villainIndex + 1;
+            const nextVillain = getMefilVillainByIndex(nextVillainIndex);
+            const nextBossMax = getMefilBossMaxHpForIndex(nextVillainIndex);
+            quest.villainIndex = nextVillainIndex;
+            quest.villainTotal = MEFIL_VILLAIN_TOTAL;
+            quest.villainId = nextVillain.id;
+            quest.villainImage = nextVillain.image;
+            quest.bossName = nextVillain.name;
+            quest.bossMaxHp = nextBossMax;
+            quest.bossHp = nextBossMax;
+            quest.teamHp = MEFIL_TEAM_MAX_HP;
+            quest.teamMaxHp = MEFIL_TEAM_MAX_HP;
+            quest.campaignCompleted = false;
+            quest.status = 'active';
+        } else {
+            quest.bossHp = nextBossHp;
+            quest.campaignCompleted = (quest.villainIndex === (MEFIL_VILLAIN_TOTAL - 1) && nextBossHp <= 0);
+            quest.status = quest.campaignCompleted ? 'won' : (quest.teamHp <= 0 ? 'lost' : 'active');
+        }
         quest.lastActionType = 'attack';
         quest.lastActor = role;
         quest.lastDamage = attackDamage;
@@ -2373,8 +2457,28 @@ app.post('/api/mefil/attack', requireMefilAuth, async (req, res) => {
         const attackDamage = getMefilPomodoroPoints(rolePresence.durationSeconds);
 
         if (quest.status === 'active') {
-            quest.bossHp = Math.max(0, quest.bossHp - attackDamage);
-            quest.status = quest.bossHp <= 0 ? 'won' : (quest.teamHp <= 0 ? 'lost' : 'active');
+            const nextBossHp = Math.max(0, quest.bossHp - attackDamage);
+            const hasNextVillain = quest.villainIndex < (MEFIL_VILLAIN_TOTAL - 1);
+            if (nextBossHp <= 0 && !quest.campaignCompleted && hasNextVillain) {
+                const nextVillainIndex = quest.villainIndex + 1;
+                const nextVillain = getMefilVillainByIndex(nextVillainIndex);
+                const nextBossMax = getMefilBossMaxHpForIndex(nextVillainIndex);
+                quest.villainIndex = nextVillainIndex;
+                quest.villainTotal = MEFIL_VILLAIN_TOTAL;
+                quest.villainId = nextVillain.id;
+                quest.villainImage = nextVillain.image;
+                quest.bossName = nextVillain.name;
+                quest.bossMaxHp = nextBossMax;
+                quest.bossHp = nextBossMax;
+                quest.teamHp = MEFIL_TEAM_MAX_HP;
+                quest.teamMaxHp = MEFIL_TEAM_MAX_HP;
+                quest.campaignCompleted = false;
+                quest.status = 'active';
+            } else {
+                quest.bossHp = nextBossHp;
+                quest.campaignCompleted = (quest.villainIndex === (MEFIL_VILLAIN_TOTAL - 1) && nextBossHp <= 0);
+                quest.status = quest.campaignCompleted ? 'won' : (quest.teamHp <= 0 ? 'lost' : 'active');
+            }
             quest.lastActionType = 'attack';
             quest.lastActor = actor;
             quest.lastDamage = attackDamage;
@@ -2438,11 +2542,16 @@ app.post('/api/mefil/reset', requireMefilAuth, async (req, res) => {
 
         const musicSettings = await getMusicSettings();
         const resetQuest = normalizeMefilQuest({
-            bossName: DEFAULT_MEFIL_BOSS_NAME,
+            bossName: MEFIL_VILLAIN_ROSTER[0].name,
             bossHp: MEFIL_BOSS_MAX_HP,
             bossMaxHp: MEFIL_BOSS_MAX_HP,
             teamHp: MEFIL_TEAM_MAX_HP,
             teamMaxHp: MEFIL_TEAM_MAX_HP,
+            villainIndex: 0,
+            villainTotal: MEFIL_VILLAIN_TOTAL,
+            villainId: MEFIL_VILLAIN_ROSTER[0].id,
+            villainImage: MEFIL_VILLAIN_ROSTER[0].image,
+            campaignCompleted: false,
             status: 'active',
             lastActionType: null,
             lastActor: null,

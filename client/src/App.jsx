@@ -64,13 +64,19 @@ const TEAM_MAX_HP = 100;
 const ATTACK_DAMAGE = 25;
 const DISTRACT_DAMAGE = 20;
 const DEFAULT_MEFIL_BOSS_NAME = 'James P. Sullivan';
-const DEFAULT_MEFIL_BOSS_ICON = '/images/james-p-sullivan.webp';
+const DEFAULT_MEFIL_BOSS_ICON = '/images/villains/v01.svg';
+const DEFAULT_MEFIL_VILLAIN_TOTAL = 20;
 const defaultQuestState = {
   bossName: DEFAULT_MEFIL_BOSS_NAME,
   bossHp: BOSS_MAX_HP,
   bossMaxHp: BOSS_MAX_HP,
   teamHp: TEAM_MAX_HP,
   teamMaxHp: TEAM_MAX_HP,
+  villainIndex: 0,
+  villainTotal: DEFAULT_MEFIL_VILLAIN_TOTAL,
+  villainId: 'v01',
+  villainImage: DEFAULT_MEFIL_BOSS_ICON,
+  campaignCompleted: false,
   status: 'active',
   lastActionType: null,
   lastActor: null,
@@ -334,6 +340,14 @@ const normalizeMefilQuest = (payload) => {
     : null;
   const parsedLastDamage = Number.parseInt(String(payload?.lastDamage ?? ''), 10);
   const lastDamage = Number.isFinite(parsedLastDamage) ? parsedLastDamage : null;
+  const parsedVillainIndex = Number.parseInt(String(payload?.villainIndex ?? 0), 10);
+  const villainTotal = Math.max(1, Number.parseInt(String(payload?.villainTotal ?? DEFAULT_MEFIL_VILLAIN_TOTAL), 10) || DEFAULT_MEFIL_VILLAIN_TOTAL);
+  const villainIndex = Number.isFinite(parsedVillainIndex)
+    ? Math.max(0, Math.min(villainTotal - 1, parsedVillainIndex))
+    : 0;
+  const villainId = String(payload?.villainId || `v${String(villainIndex + 1).padStart(2, '0')}`).trim();
+  const villainImage = String(payload?.villainImage || DEFAULT_MEFIL_BOSS_ICON).trim() || DEFAULT_MEFIL_BOSS_ICON;
+  const campaignCompleted = Boolean(payload?.campaignCompleted) || (villainIndex === villainTotal - 1 && bossHp <= 0);
 
   return {
     bossName: String(payload?.bossName || defaultQuestState.bossName),
@@ -341,7 +355,12 @@ const normalizeMefilQuest = (payload) => {
     bossMaxHp,
     teamHp,
     teamMaxHp,
-    status,
+    villainIndex,
+    villainTotal,
+    villainId,
+    villainImage,
+    campaignCompleted,
+    status: campaignCompleted ? 'won' : status,
     lastActionType,
     lastActor,
     lastDamage,
@@ -543,6 +562,44 @@ const FallingLeaves = () => {
   );
 };
 
+const FallingLava = () => {
+  const [drops, setDrops] = useState([]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const left = Math.random() * 100;
+      const duration = 1.9 + Math.random() * 2.8;
+      const size = 8 + Math.random() * 18;
+      const drift = (Math.random() - 0.5) * 8;
+      setDrops((prev) => [...prev, { id, left, duration, size, drift }]);
+      window.setTimeout(() => {
+        setDrops((prev) => prev.filter((drop) => drop.id !== id));
+      }, duration * 1000 + 120);
+    }, 280);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="lava-rain-container" aria-hidden="true">
+      {drops.map((drop) => (
+        <span
+          key={drop.id}
+          className="lava-drop"
+          style={{
+            left: `${drop.left}%`,
+            width: `${drop.size}px`,
+            height: `${Math.max(12, drop.size * 1.85)}px`,
+            animationDuration: `${drop.duration}s`,
+            '--lava-drift': `${drop.drift}vw`,
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
 function App() {
   const YOUTUBE_ONLY_MODE = true;
 
@@ -599,6 +656,7 @@ function App() {
   const [mefilTodoLoading, setMefilTodoLoading] = useState(false);
   const [mefilTodoSaving, setMefilTodoSaving] = useState(false);
   const [mefilTodoError, setMefilTodoError] = useState('');
+  const [isBossImageOpen, setIsBossImageOpen] = useState(false);
   const galleryScrollYRef = useRef(0);
   const poemDetailCardRef = useRef(null);
   const poemDetailHeadingRef = useRef(null);
@@ -696,6 +754,13 @@ function App() {
   const dailyResetLabel = formatResetCountdown(secondsUntilReset);
   const bossHpPercent = Math.min(100, Math.max(0, (questState.bossHp / Math.max(1, questState.bossMaxHp || BOSS_MAX_HP)) * 100));
   const teamHpPercent = Math.min(100, Math.max(0, (questState.teamHp / Math.max(1, questState.teamMaxHp || TEAM_MAX_HP)) * 100));
+  const safeVillainTotal = Math.max(1, Number.parseInt(String(questState.villainTotal ?? DEFAULT_MEFIL_VILLAIN_TOTAL), 10) || DEFAULT_MEFIL_VILLAIN_TOTAL);
+  const safeVillainIndex = Math.max(0, Math.min(safeVillainTotal - 1, Number.parseInt(String(questState.villainIndex ?? 0), 10) || 0));
+  const currentVillainNumber = safeVillainIndex + 1;
+  const defeatedVillains = questState.campaignCompleted ? safeVillainTotal : safeVillainIndex;
+  const campaignProgressPercent = Math.min(100, Math.max(0, (defeatedVillains / safeVillainTotal) * 100));
+  const isFinalVillain = !questState.campaignCompleted && currentVillainNumber === safeVillainTotal;
+  const bossImageSrc = questState.villainImage || DEFAULT_MEFIL_BOSS_ICON;
   const activeMefilRole = mefilRole || 'belal';
   const activePresenceEntry = mefilPresence[activeMefilRole] || defaultMefilPresenceEntry;
   const canUseMefilActions = mefilLoggedIn && Boolean(mefilRole);
@@ -1031,6 +1096,7 @@ function App() {
 
   const handleOpenMefil = () => {
     setIsMefilOpen(true);
+    setIsBossImageOpen(false);
     setMefilLoginError('');
     setQuestError('');
     setMefilChatError('');
@@ -1038,6 +1104,7 @@ function App() {
   };
 
   const handleCloseMefil = () => {
+    setIsBossImageOpen(false);
     setIsMefilOpen(false);
     setMefilChatError('');
   };
@@ -2059,12 +2126,16 @@ function App() {
     if (!isMefilOpen) return undefined;
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') {
+        if (isBossImageOpen) {
+          setIsBossImageOpen(false);
+          return;
+        }
         setIsMefilOpen(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isMefilOpen]);
+  }, [isMefilOpen, isBossImageOpen]);
 
   useEffect(() => {
     if (!isMehfilOpen) return undefined;
@@ -3302,8 +3373,9 @@ function App() {
       </div>
 
       {isMefilOpen ? (
-        <div className="mefil-overlay" role="dialog" aria-modal="true" aria-label="Mefil Boss Battle" onClick={handleCloseMefil}>
-          <section className="mefil-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="mefil-overlay mefil-overlay-lava" role="dialog" aria-modal="true" aria-label="Mefil Boss Battle" onClick={handleCloseMefil}>
+          <FallingLava />
+          <section className="mefil-modal mefil-lava-theme" onClick={(e) => e.stopPropagation()}>
             <div className="mefil-header">
               <h2>Mefil Boss Battle</h2>
               <div className="mefil-header-actions">
@@ -3375,15 +3447,31 @@ function App() {
                   <div className="boss-card">
                     <div className="boss-head">
                       <div className="boss-head-main">
-                        <img
-                          src={DEFAULT_MEFIL_BOSS_ICON}
-                          alt="James P. Sullivan icon"
-                          className="boss-icon"
-                          loading="lazy"
-                        />
+                        <button
+                          type="button"
+                          className="boss-icon-btn"
+                          onClick={() => setIsBossImageOpen(true)}
+                          aria-label={`View ${questState.bossName || DEFAULT_MEFIL_BOSS_NAME} image`}
+                        >
+                          <img
+                            src={bossImageSrc}
+                            alt={`${questState.bossName || DEFAULT_MEFIL_BOSS_NAME} icon`}
+                            className="boss-icon"
+                            loading="lazy"
+                          />
+                        </button>
                         <strong>{questState.bossName || DEFAULT_MEFIL_BOSS_NAME}</strong>
                       </div>
                       <span className={`status-pill status-pill-${questState.status}`}>{questState.status}</span>
+                    </div>
+                    <div className="campaign-progress-block">
+                      <div className="campaign-progress-head">
+                        <strong>{`Villain ${currentVillainNumber} / ${safeVillainTotal}`}</strong>
+                        {isFinalVillain ? <span className="campaign-final-badge">Final Villain</span> : null}
+                      </div>
+                      <div className="campaign-progress-track">
+                        <span className="campaign-progress-fill" style={{ width: `${campaignProgressPercent}%` }}></span>
+                      </div>
                     </div>
                     <div className="boss-stat">
                       <label>{`Boss HP: ${questState.bossHp}/${questState.bossMaxHp || BOSS_MAX_HP}`}</label>
@@ -3402,6 +3490,9 @@ function App() {
                         ? `${MEFIL_ROLES[questState.lastActor] || 'Someone'} used ${questState.lastActionType === 'attack' ? 'Attack' : 'Distracted'} (${questState.lastDamage || 0})`
                         : 'No actions yet in this quest.'}
                     </p>
+                    {questState.campaignCompleted ? (
+                      <p className="campaign-complete-banner">Campaign complete. You defeated all 20 villains.</p>
+                    ) : null}
                     <div className="mefil-points-strip">
                       <span>{`Belal: ${mefilPoints.belal} pts`}</span>
                       <span>{`Rutbah: ${mefilPoints.rutbah} pts`}</span>
@@ -3616,6 +3707,26 @@ function App() {
               </div>
             )}
           </section>
+          {isBossImageOpen ? (
+            <div
+              className="boss-image-lightbox"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsBossImageOpen(false);
+              }}
+            >
+              <div className="boss-image-lightbox-card" onClick={(e) => e.stopPropagation()}>
+                <button type="button" className="boss-image-close" onClick={() => setIsBossImageOpen(false)}>Close</button>
+                <img
+                  src={bossImageSrc}
+                  alt={questState.bossName || DEFAULT_MEFIL_BOSS_NAME}
+                  className="boss-image-full"
+                  loading="lazy"
+                />
+                <p>{questState.bossName || DEFAULT_MEFIL_BOSS_NAME}</p>
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : null}
 

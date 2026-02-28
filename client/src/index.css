@@ -3731,6 +3731,270 @@ body.theme-shahi .daily-quest-bar {
   background: rgba(232, 225, 210, 0.16);
 }
 
+.boss-icon-btn {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.boss-icon-btn:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.7);
+  outline-offset: 2px;
+}
+
+.campaign-progress-block {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.campaign-progress-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.campaign-progress-head strong {
+  font-size: 0.86rem;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.campaign-final-badge {
+  min-height: 22px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 160, 63, 0.56);
+  padding: 0 9px;
+  font-size: 0.68rem;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.campaign-progress-track {
+  height: 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(36, 0, 70, 0.22);
+  background: rgba(255, 255, 255, 0.65);
+  overflow: hidden;
+}
+
+.campaign-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #ff9e3d 0%, #ff5a1f 50%, #ff2c0b 100%);
+}
+
+.campaign-complete-banner {
+  margin: 0;
+  border: 1px solid rgba(255, 136, 66, 0.5);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 0.82rem;
+  letter-spacing: 0.35px;
+  background: rgba(255, 126, 53, 0.12);
+}
+
+.boss-image-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 2895;
+  background: rgba(3, 2, 8, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.boss-image-lightbox-card {
+  width: min(96vw, 640px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 147, 77, 0.55);
+  background: rgba(10, 8, 12, 0.96);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.boss-image-close {
+  align-self: flex-end;
+  min-height: 34px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 153, 85, 0.6);
+  background: rgba(255, 128, 50, 0.12);
+  color: #ffd8be;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.boss-image-full {
+  width: 100%;
+  max-height: 72vh;
+  object-fit: contain;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 147, 77, 0.45);
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.boss-image-lightbox-card p {
+  margin: 0;
+  color: #ffcfad;
+  font-weight: 600;
+  text-align: center;
+}
+
+.lava-rain-container {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.lava-drop {
+  position: absolute;
+  top: -14vh;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffd16e 0%, #ff8c33 38%, #ff4f12 68%, #9f1800 100%);
+  box-shadow: 0 0 10px rgba(255, 110, 0, 0.45), 0 0 24px rgba(255, 71, 22, 0.28);
+  opacity: 0.9;
+  animation-name: lava-fall;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@keyframes lava-fall {
+  0% {
+    transform: translate3d(0, -10vh, 0);
+  }
+  100% {
+    transform: translate3d(var(--lava-drift, 0vw), 115vh, 0);
+  }
+}
+
+.mefil-overlay-lava {
+  background: radial-gradient(circle at 20% 10%, rgba(255, 99, 36, 0.26), transparent 50%),
+    radial-gradient(circle at 86% 2%, rgba(255, 152, 45, 0.18), transparent 40%),
+    linear-gradient(180deg, rgba(16, 8, 10, 0.95), rgba(6, 3, 6, 0.98));
+}
+
+.mefil-overlay-lava .mefil-modal {
+  position: relative;
+  z-index: 2;
+  border-color: rgba(255, 134, 56, 0.45);
+  background: linear-gradient(160deg, rgba(26, 12, 10, 0.9), rgba(13, 8, 11, 0.95));
+}
+
+.mefil-overlay-lava .mefil-header,
+.mefil-overlay-lava .boss-card,
+.mefil-overlay-lava .mefil-role-card,
+.mefil-overlay-lava .mefil-todo-section,
+.mefil-overlay-lava .mefil-todo-card,
+.mefil-overlay-lava .mefil-todo-list,
+.mefil-overlay-lava .mefil-todo-item,
+.mefil-overlay-lava .mefil-chat-card,
+.mefil-overlay-lava .mefil-chat-messages {
+  border-color: rgba(255, 125, 50, 0.45);
+  background: rgba(18, 11, 13, 0.9);
+}
+
+.mefil-overlay-lava .mefil-header h2,
+.mefil-overlay-lava .boss-head strong,
+.mefil-overlay-lava .boss-stat label,
+.mefil-overlay-lava .boss-last-action,
+.mefil-overlay-lava .campaign-progress-head strong,
+.mefil-overlay-lava .mefil-profile-pill,
+.mefil-overlay-lava .mefil-login-card h3,
+.mefil-overlay-lava .mefil-login-field span,
+.mefil-overlay-lava .mefil-role-card-head h3,
+.mefil-overlay-lava .mefil-duration-row span,
+.mefil-overlay-lava .mefil-points-hint,
+.mefil-overlay-lava .mefil-timer-label,
+.mefil-overlay-lava .mefil-timer-value,
+.mefil-overlay-lava .mefil-todo-head h3,
+.mefil-overlay-lava .mefil-todo-head span,
+.mefil-overlay-lava .mefil-todo-check span,
+.mefil-overlay-lava .mefil-todo-item-meta time,
+.mefil-overlay-lava .mefil-chat-head h3,
+.mefil-overlay-lava .mefil-chat-head span,
+.mefil-overlay-lava .mefil-chat-author,
+.mefil-overlay-lava .mefil-chat-bubble p,
+.mefil-overlay-lava .mefil-chat-meta,
+.mefil-overlay-lava .mefil-chat-empty,
+.mefil-overlay-lava .mefil-status,
+.mefil-overlay-lava .mefil-error {
+  color: #ffd8be;
+}
+
+.mefil-overlay-lava .hp-track,
+.mefil-overlay-lava .campaign-progress-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 140, 68, 0.44);
+}
+
+.mefil-overlay-lava .hp-fill-boss {
+  background: linear-gradient(90deg, #ff8e3c 0%, #ff450f 70%, #cf1200 100%);
+}
+
+.mefil-overlay-lava .hp-fill-team {
+  background: linear-gradient(90deg, #f0c141 0%, #ff9837 45%, #e55219 100%);
+}
+
+.mefil-overlay-lava .status-pill,
+.mefil-overlay-lava .status-pill-active,
+.mefil-overlay-lava .status-pill-won,
+.mefil-overlay-lava .status-pill-lost {
+  border-color: rgba(255, 147, 77, 0.48);
+  color: #ffdbbf;
+}
+
+.mefil-overlay-lava .mefil-notify-btn,
+.mefil-overlay-lava .mefil-close-btn,
+.mefil-overlay-lava .mefil-logout-btn,
+.mefil-overlay-lava .mefil-login-btn,
+.mefil-overlay-lava .mefil-controls-row button,
+.mefil-overlay-lava .pomodoro-controls button,
+.mefil-overlay-lava .mefil-chat-send-btn,
+.mefil-overlay-lava .mefil-todo-composer button,
+.mefil-overlay-lava .mefil-todo-item-meta button {
+  border-color: rgba(255, 147, 77, 0.55);
+  background: rgba(255, 117, 41, 0.12);
+  color: #ffd8be;
+}
+
+.mefil-overlay-lava .mefil-login-field input,
+.mefil-overlay-lava .mefil-login-field select,
+.mefil-overlay-lava .mefil-status-select,
+.mefil-overlay-lava .mefil-duration-select,
+.mefil-overlay-lava .mefil-chat-input,
+.mefil-overlay-lava .mefil-todo-composer input {
+  border-color: rgba(255, 144, 72, 0.48);
+  background: rgba(10, 8, 10, 0.9);
+  color: #ffe4ce;
+}
+
+.mefil-overlay-lava .mefil-chat-input::placeholder,
+.mefil-overlay-lava .mefil-todo-composer input::placeholder {
+  color: rgba(255, 196, 156, 0.6);
+}
+
+.mefil-overlay-lava .mefil-bottom-stack {
+  border-top-color: rgba(255, 130, 56, 0.38);
+}
+
+@media (max-width: 900px) {
+  .boss-image-lightbox-card {
+    width: min(96vw, 540px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   body.theme-noor {
     animation: none;
@@ -3750,7 +4014,8 @@ body.theme-shahi .daily-quest-bar {
   .levelup-fill,
   .levelup-fill.levelup-fill-streak,
   .celebration-glow,
-  .daily-quest-card-pulse {
+  .daily-quest-card-pulse,
+  .lava-drop {
     animation: none !important;
   }
 }

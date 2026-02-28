@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="900" viewBox="0 0 900 900">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#7d2513"/>
+      <stop offset="100%" stop-color="#140707"/>
+    </linearGradient>
+    <radialGradient id="flare" cx="45%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#ffb15a" stop-opacity="0.9"/>
+      <stop offset="60%" stop-color="#ff4d1f" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#120707" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="900" height="900" fill="url(#bg)"/>
+  <rect x="36" y="36" width="828" height="828" rx="36" fill="none" stroke="#ffb76e" stroke-opacity="0.62" stroke-width="6"/>
+  <circle cx="700" cy="200" r="220" fill="url(#flare)"/>
+  <circle cx="220" cy="680" r="210" fill="#b73322"/>
+  <path d="M150 560 C260 450, 410 710, 530 600 C640 510, 760 640, 820 590" fill="none" stroke="#ffcf92" stroke-opacity="0.58" stroke-width="12" stroke-linecap="round"/>
+  <text x="86" y="120" fill="#ffd7a8" font-family="Cinzel, Georgia, serif" font-size="52" font-weight="700">Villain 01</text>
+  <text x="86" y="780" fill="#ffe6c7" font-family="Georgia, serif" font-size="44"></text>
+</svg>
