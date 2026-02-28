@@ -3874,8 +3874,8 @@ body.theme-shahi .daily-quest-bar {
   position: absolute;
   top: -14vh;
   border-radius: 999px;
-  background: linear-gradient(180deg, #ffd16e 0%, #ff8c33 38%, #ff4f12 68%, #9f1800 100%);
-  box-shadow: 0 0 10px rgba(255, 110, 0, 0.45), 0 0 24px rgba(255, 71, 22, 0.28);
+  background: linear-gradient(180deg, #ffd4e6 0%, #ff94ba 36%, #ef5d95 66%, #9c2f5d 100%);
+  box-shadow: 0 0 10px rgba(255, 121, 168, 0.42), 0 0 24px rgba(207, 76, 133, 0.3);
   opacity: 0.9;
   animation-name: lava-fall;
   animation-timing-function: linear;
@@ -3892,16 +3892,16 @@ body.theme-shahi .daily-quest-bar {
 }
 
 .mefil-overlay-lava {
-  background: radial-gradient(circle at 20% 10%, rgba(255, 99, 36, 0.26), transparent 50%),
-    radial-gradient(circle at 86% 2%, rgba(255, 152, 45, 0.18), transparent 40%),
-    linear-gradient(180deg, rgba(16, 8, 10, 0.95), rgba(6, 3, 6, 0.98));
+  background: radial-gradient(circle at 18% 9%, rgba(244, 111, 164, 0.26), transparent 50%),
+    radial-gradient(circle at 84% 4%, rgba(255, 173, 205, 0.2), transparent 40%),
+    linear-gradient(180deg, rgba(27, 8, 19, 0.95), rgba(11, 4, 10, 0.98));
 }
 
 .mefil-overlay-lava .mefil-modal {
   position: relative;
   z-index: 2;
-  border-color: rgba(255, 134, 56, 0.45);
-  background: linear-gradient(160deg, rgba(26, 12, 10, 0.9), rgba(13, 8, 11, 0.95));
+  border-color: rgba(244, 124, 169, 0.46);
+  background: linear-gradient(160deg, rgba(41, 12, 30, 0.9), rgba(20, 8, 18, 0.95));
 }
 
 .mefil-overlay-lava .mefil-header,
@@ -3913,8 +3913,8 @@ body.theme-shahi .daily-quest-bar {
 .mefil-overlay-lava .mefil-todo-item,
 .mefil-overlay-lava .mefil-chat-card,
 .mefil-overlay-lava .mefil-chat-messages {
-  border-color: rgba(255, 125, 50, 0.45);
-  background: rgba(18, 11, 13, 0.9);
+  border-color: rgba(242, 126, 171, 0.46);
+  background: rgba(30, 12, 23, 0.9);
 }
 
 .mefil-overlay-lava .mefil-header h2,
@@ -3942,21 +3942,21 @@ body.theme-shahi .daily-quest-bar {
 .mefil-overlay-lava .mefil-chat-empty,
 .mefil-overlay-lava .mefil-status,
 .mefil-overlay-lava .mefil-error {
-  color: #ffd8be;
+  color: #ffe0ee;
 }
 
 .mefil-overlay-lava .hp-track,
 .mefil-overlay-lava .campaign-progress-track {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 140, 68, 0.44);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(245, 143, 186, 0.45);
 }
 
 .mefil-overlay-lava .hp-fill-boss {
-  background: linear-gradient(90deg, #ff8e3c 0%, #ff450f 70%, #cf1200 100%);
+  background: linear-gradient(90deg, #ff9fcb 0%, #f05597 60%, #b62c67 100%);
 }
 
 .mefil-overlay-lava .hp-fill-team {
-  background: linear-gradient(90deg, #f0c141 0%, #ff9837 45%, #e55219 100%);
+  background: linear-gradient(90deg, #f8b7d6 0%, #ea7cac 48%, #be3f7d 100%);
 }
 
 .mefil-overlay-lava .hp-fill-team-safe {
@@ -3975,8 +3975,8 @@ body.theme-shahi .daily-quest-bar {
 .mefil-overlay-lava .status-pill-active,
 .mefil-overlay-lava .status-pill-won,
 .mefil-overlay-lava .status-pill-lost {
-  border-color: rgba(255, 147, 77, 0.48);
-  color: #ffdbbf;
+  border-color: rgba(247, 149, 191, 0.5);
+  color: #ffe6f2;
 }
 
 .mefil-overlay-lava .mefil-notify-btn,
@@ -3988,9 +3988,9 @@ body.theme-shahi .daily-quest-bar {
 .mefil-overlay-lava .mefil-chat-send-btn,
 .mefil-overlay-lava .mefil-todo-composer button,
 .mefil-overlay-lava .mefil-todo-item-meta button {
-  border-color: rgba(255, 147, 77, 0.55);
-  background: rgba(255, 117, 41, 0.12);
-  color: #ffd8be;
+  border-color: rgba(246, 150, 191, 0.55);
+  background: rgba(233, 115, 170, 0.14);
+  color: #ffe4f1;
 }
 
 .mefil-overlay-lava .mefil-login-field input,
@@ -3999,18 +3999,18 @@ body.theme-shahi .daily-quest-bar {
 .mefil-overlay-lava .mefil-duration-select,
 .mefil-overlay-lava .mefil-chat-input,
 .mefil-overlay-lava .mefil-todo-composer input {
-  border-color: rgba(255, 144, 72, 0.48);
-  background: rgba(10, 8, 10, 0.9);
-  color: #ffe4ce;
+  border-color: rgba(248, 157, 197, 0.48);
+  background: rgba(19, 8, 15, 0.9);
+  color: #ffe9f3;
 }
 
 .mefil-overlay-lava .mefil-chat-input::placeholder,
 .mefil-overlay-lava .mefil-todo-composer input::placeholder {
-  color: rgba(255, 196, 156, 0.6);
+  color: rgba(255, 203, 230, 0.64);
 }
 
 .mefil-overlay-lava .mefil-bottom-stack {
-  border-top-color: rgba(255, 130, 56, 0.38);
+  border-top-color: rgba(245, 146, 188, 0.4);
 }
 
 @media (max-width: 900px) {

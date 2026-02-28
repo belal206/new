@@ -63,8 +63,8 @@ const BOSS_MAX_HP = 500;
 const TEAM_MAX_HP = 100;
 const ATTACK_DAMAGE = 25;
 const DISTRACT_DAMAGE = 20;
-const DEFAULT_MEFIL_BOSS_NAME = 'James P. Sullivan';
-const DEFAULT_MEFIL_BOSS_ICON = '/images/villains/v01.svg';
+const DEFAULT_MEFIL_BOSS_NAME = 'Mike Wazowski';
+const DEFAULT_MEFIL_BOSS_ICON = '/images/villains/v01.jpg';
 const DEFAULT_MEFIL_VILLAIN_TOTAL = 20;
 const defaultQuestState = {
   bossName: DEFAULT_MEFIL_BOSS_NAME,
@@ -3467,7 +3467,7 @@ function App() {
                     </div>
                     <div className="campaign-progress-block">
                       <div className="campaign-progress-head">
-                        <strong>{`Villain ${currentVillainNumber} / ${safeVillainTotal}`}</strong>
+                        <strong>{`Stage ${currentVillainNumber} / ${safeVillainTotal}`}</strong>
                         {isFinalVillain ? <span className="campaign-final-badge">Final Villain</span> : null}
                       </div>
                       <div className="campaign-progress-track">
