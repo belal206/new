@@ -2785,6 +2785,10 @@ app.get('/healthz', (req, res) => {
     res.json({ ok: true });
 });
 
+app.get('/api/healthz', (req, res) => {
+    res.json({ ok: true });
+});
+
 if (process.env.NODE_ENV === 'production') {
     app.use(express.static(clientDistPath));
 
@@ -2796,4 +2800,8 @@ if (process.env.NODE_ENV === 'production') {
     });
 }
 
-app.listen(PORT, () => console.log(`Royal API on ${PORT}`));
+if (!process.env.VERCEL) {
+    app.listen(PORT, () => console.log(`Royal API on ${PORT}`));
+}
+
+module.exports = app;
