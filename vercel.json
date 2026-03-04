@@ -9,7 +9,7 @@
       "src": "client/package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "client/dist"
+        "distDir": "dist"
       }
     }
   ],
@@ -22,8 +22,24 @@
       "handle": "filesystem"
     },
     {
+      "src": "/assets/(.*)",
+      "dest": "/client/dist/assets/$1"
+    },
+    {
+      "src": "/images/(.*)",
+      "dest": "/client/dist/images/$1"
+    },
+    {
+      "src": "/favicon.ico",
+      "dest": "/client/dist/favicon.ico"
+    },
+    {
+      "src": "/firebase-messaging-sw.js",
+      "dest": "/client/dist/firebase-messaging-sw.js"
+    },
+    {
       "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "/client/dist/index.html"
     }
   ]
 }
