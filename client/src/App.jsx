@@ -674,6 +674,10 @@ function App() {
     isRunning: false,
     remainingSeconds: null,
   });
+  const mefilAutoAttackRef = useRef({
+    role: null,
+    pending: false,
+  });
 
   const [formData, setFormData] = useState({ title: '', poet: 'Ahmad Faraz', content: '', tags: [] });
   const [editingPoemId, setEditingPoemId] = useState(null);
@@ -1364,8 +1368,15 @@ function App() {
     }
   };
 
-  const handleBossAttack = async () => {
-    if (!canAttackBoss) return;
+  const runMefilPomodoroAttack = async ({ skipReadyCheck = false } = {}) => {
+    if (!canUseMefilActions) return false;
+    if (!skipReadyCheck && !canAttackBoss) return false;
+    if (mefilAutoAttackRef.current.pending) return false;
+
+    mefilAutoAttackRef.current = {
+      role: mefilRole,
+      pending: true,
+    };
     setMefilActionLoading(true);
     try {
       const res = await fetch('/api/mefil/pomodoro/complete-attack', {
@@ -1384,12 +1395,22 @@ function App() {
       const data = await res.json();
       applyMefilStatePayload(data);
       setQuestError('');
+      return true;
     } catch (err) {
       console.error(err);
       setQuestError(err.message || 'Failed to complete Pomodoro attack.');
+      return false;
     } finally {
+      mefilAutoAttackRef.current = {
+        role: mefilRole,
+        pending: false,
+      };
       setMefilActionLoading(false);
     }
+  };
+
+  const handleBossAttack = async () => {
+    await runMefilPomodoroAttack();
   };
 
   const handleMefilDistracted = async () => {
@@ -2279,6 +2300,10 @@ function App() {
         isRunning: false,
         remainingSeconds: null,
       };
+      mefilAutoAttackRef.current = {
+        role: null,
+        pending: false,
+      };
       return;
     }
     const currentEntry = mefilPresence[mefilRole] || defaultMefilPresenceEntry;
@@ -2296,6 +2321,9 @@ function App() {
       const completedDuration = Number(currentEntry.durationSeconds || POMODORO_SECONDS);
       const attackDamage = getMefilPomodoroPointsForDuration(completedDuration);
       showMefilPomodoroCompleteNotification(mefilRole, attackDamage);
+      if (questState.status === 'active') {
+        runMefilPomodoroAttack({ skipReadyCheck: true });
+      }
     }
 
     mefilPomodoroCompletionRef.current = {
@@ -2303,7 +2331,7 @@ function App() {
       isRunning: Boolean(currentEntry.isRunning),
       remainingSeconds: Number(currentEntry.remainingSeconds),
     };
-  }, [mefilLoggedIn, mefilRole, mefilPresence]);
+  }, [mefilLoggedIn, mefilRole, mefilPresence, questState.status]);
 
   useEffect(() => {
     if (!isRandomOrderEnabled) return;
